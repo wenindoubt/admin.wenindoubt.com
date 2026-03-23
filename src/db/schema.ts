@@ -82,6 +82,7 @@ export const leadInsights = pgTable(
     leadId: uuid("lead_id")
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
+    prompt: text(),
     rawInput: text("raw_input"),
     analysisText: text("analysis_text").notNull(),
     summary: text(),

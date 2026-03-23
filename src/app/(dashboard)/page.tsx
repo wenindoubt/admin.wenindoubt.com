@@ -65,7 +65,9 @@ async function DashboardContent() {
               <kpi.icon className="size-4 text-gold-400/60" />
             </CardHeader>
             <CardContent>
-              <p className="font-heading text-3xl font-bold tracking-tight">
+              <p
+                className={`font-heading text-3xl font-bold tracking-tight ${kpi.prefix === "$" ? "text-emerald-600" : ""}`}
+              >
                 {kpi.prefix}
                 {kpiValues[kpi.key]}
               </p>
@@ -109,7 +111,7 @@ async function DashboardContent() {
                           {count} lead{count !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <span className="text-sm font-medium font-heading tabular-nums">
+                      <span className="text-sm font-medium font-heading tabular-nums text-emerald-600">
                         ${Number(value).toLocaleString()}
                       </span>
                     </div>
@@ -142,7 +144,7 @@ async function DashboardContent() {
                   className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0"
                 >
                   <span className="text-sm capitalize text-muted-foreground">
-                    {sc.source.replace("_", " ")}
+                    {sc.source.replaceAll("_", " ")}
                   </span>
                   <span className="text-sm font-heading font-semibold tabular-nums">
                     {sc.count}

@@ -1,7 +1,17 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -19,6 +29,8 @@ export type LeadFilters = {
   assignedTo?: string;
   search?: string;
   tagIds?: string[];
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 };
 
 export async function getLeads(filters?: LeadFilters) {
@@ -57,14 +69,55 @@ export async function getLeads(filters?: LeadFilters) {
       )!,
     );
   }
+  if (filters?.tagIds && filters.tagIds.length > 0) {
+    const leadsWithTags = db
+      .selectDistinct({ leadId: leadTags.leadId })
+      .from(leadTags)
+      .where(inArray(leadTags.tagId, filters.tagIds));
+    conditions.push(inArray(leads.id, leadsWithTags));
+  }
 
-  let query = db.select().from(leads).orderBy(desc(leads.createdAt));
+  const sortDir = filters?.sortOrder === "asc" ? asc : desc;
+  const sortKey = filters?.sortBy ?? "created";
+  const orderBy =
+    {
+      name: sortDir(leads.firstName),
+      company: sortDir(leads.companyName),
+      status: sortDir(leads.status),
+      source: sortDir(leads.source),
+      value: sortDir(leads.estimatedValue),
+      created: sortDir(leads.createdAt),
+    }[sortKey] ?? sortDir(leads.createdAt);
+
+  let query = db.select().from(leads).orderBy(orderBy);
 
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }
 
-  return query;
+  const rows = await query;
+
+  // Batch-fetch tags for all leads
+  if (rows.length === 0) return [];
+
+  const leadIds = rows.map((r) => r.id);
+  const allLeadTags = await db
+    .select({ leadId: leadTags.leadId, tag: tags })
+    .from(leadTags)
+    .innerJoin(tags, eq(leadTags.tagId, tags.id))
+    .where(inArray(leadTags.leadId, leadIds));
+
+  const tagsByLeadId = new Map<string, (typeof tags.$inferSelect)[]>();
+  for (const row of allLeadTags) {
+    const existing = tagsByLeadId.get(row.leadId) ?? [];
+    existing.push(row.tag);
+    tagsByLeadId.set(row.leadId, existing);
+  }
+
+  return rows.map((lead) => ({
+    ...lead,
+    tags: tagsByLeadId.get(lead.id) ?? [],
+  }));
 }
 
 export async function getLead(id: string) {
@@ -74,23 +127,23 @@ export async function getLead(id: string) {
   const [lead] = await db.select().from(leads).where(eq(leads.id, id));
   if (!lead) return null;
 
-  const activities = await db
-    .select()
-    .from(leadActivities)
-    .where(eq(leadActivities.leadId, id))
-    .orderBy(desc(leadActivities.createdAt));
-
-  const insights = await db
-    .select()
-    .from(leadInsights)
-    .where(eq(leadInsights.leadId, id))
-    .orderBy(desc(leadInsights.generatedAt));
-
-  const leadTagRows = await db
-    .select({ tag: tags })
-    .from(leadTags)
-    .innerJoin(tags, eq(leadTags.tagId, tags.id))
-    .where(eq(leadTags.leadId, id));
+  const [activities, insights, leadTagRows] = await Promise.all([
+    db
+      .select()
+      .from(leadActivities)
+      .where(eq(leadActivities.leadId, id))
+      .orderBy(desc(leadActivities.createdAt)),
+    db
+      .select()
+      .from(leadInsights)
+      .where(eq(leadInsights.leadId, id))
+      .orderBy(desc(leadInsights.generatedAt)),
+    db
+      .select({ tag: tags })
+      .from(leadTags)
+      .innerJoin(tags, eq(leadTags.tagId, tags.id))
+      .where(eq(leadTags.leadId, id)),
+  ]);
 
   return {
     ...lead,
@@ -214,6 +267,7 @@ export async function setLeadTags(leadId: string, tagIds: string[]) {
       .values(tagIds.map((tagId) => ({ leadId, tagId })));
   }
 
+  revalidatePath("/leads");
   revalidatePath(`/leads/${leadId}`);
 }
 
@@ -222,42 +276,40 @@ export async function getLeadStats() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const statusCounts = await db
-    .select({
-      status: leads.status,
-      count: count(),
-    })
-    .from(leads)
-    .groupBy(leads.status);
-
-  const sourceCounts = await db
-    .select({
-      source: leads.source,
-      count: count(),
-    })
-    .from(leads)
-    .groupBy(leads.source);
-
-  const pipelineValues = await db
-    .select({
-      status: leads.status,
-      total: sql<string>`COALESCE(SUM(${leads.estimatedValue}), 0)`,
-    })
-    .from(leads)
-    .groupBy(leads.status);
-
-  const recentActivities = await db
-    .select({
-      activity: leadActivities,
-      leadFirstName: leads.firstName,
-      leadLastName: leads.lastName,
-    })
-    .from(leadActivities)
-    .innerJoin(leads, eq(leadActivities.leadId, leads.id))
-    .orderBy(desc(leadActivities.createdAt))
-    .limit(20);
-
-  const totalLeads = await db.select({ count: count() }).from(leads);
+  const [
+    statusCounts,
+    sourceCounts,
+    pipelineValues,
+    recentActivities,
+    totalLeads,
+  ] = await Promise.all([
+    db
+      .select({ status: leads.status, count: count() })
+      .from(leads)
+      .groupBy(leads.status),
+    db
+      .select({ source: leads.source, count: count() })
+      .from(leads)
+      .groupBy(leads.source),
+    db
+      .select({
+        status: leads.status,
+        total: sql<string>`COALESCE(SUM(${leads.estimatedValue}), 0)`,
+      })
+      .from(leads)
+      .groupBy(leads.status),
+    db
+      .select({
+        activity: leadActivities,
+        leadFirstName: leads.firstName,
+        leadLastName: leads.lastName,
+      })
+      .from(leadActivities)
+      .innerJoin(leads, eq(leadActivities.leadId, leads.id))
+      .orderBy(desc(leadActivities.createdAt))
+      .limit(20),
+    db.select({ count: count() }).from(leads),
+  ]);
 
   return {
     statusCounts,

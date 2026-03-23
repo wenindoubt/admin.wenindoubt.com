@@ -1,9 +1,10 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { leads } from "@/db/schema";
+import { leadInsights, leads } from "@/db/schema";
 import { claude } from "@/lib/ai/claude";
 import { GEMINI_MODEL, gemini } from "@/lib/ai/gemini";
 import {
@@ -87,7 +88,7 @@ export async function draftOutreach(leadId: string) {
   const context = buildLeadContext(lead);
 
   const response = await claude.messages.create({
-    model: "claude-sonnet-4-6-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 512,
     system: OUTREACH_DRAFT_SYSTEM,
     messages: [
@@ -122,4 +123,17 @@ export async function suggestNextSteps(leadId: string) {
   if (!jsonMatch) throw new Error("Invalid response");
 
   return JSON.parse(jsonMatch[1] ?? jsonMatch[0]);
+}
+
+export async function deleteInsight(insightId: string, leadId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  await db
+    .delete(leadInsights)
+    .where(
+      and(eq(leadInsights.id, insightId), eq(leadInsights.leadId, leadId)),
+    );
+
+  revalidatePath(`/leads/${leadId}`);
 }

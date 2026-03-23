@@ -1,8 +1,16 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,9 +28,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Lead } from "@/db/schema";
+import type { Lead, Tag } from "@/db/schema";
 import { deleteLead, updateLead } from "@/lib/actions/leads";
 import { LEAD_STATUSES } from "@/lib/constants";
+
+type LeadWithTags = Lead & { tags: Tag[] };
 
 function StatusBadge({ status }: { status: string }) {
   const s = LEAD_STATUSES.find((s) => s.value === status);
@@ -67,7 +77,51 @@ function StatusDropdown({ lead }: { lead: Lead }) {
   );
 }
 
-export function LeadsTable({ leads }: { leads: Lead[] }) {
+function SortableHeader({
+  column,
+  children,
+}: {
+  column: string;
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentSort = searchParams.get("sortBy");
+  const currentOrder = searchParams.get("sortOrder") ?? "desc";
+  const isActive = currentSort === column;
+
+  const handleSort = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sortBy", column);
+    params.set(
+      "sortOrder",
+      isActive && currentOrder === "asc" ? "desc" : "asc",
+    );
+    router.push(`/leads?${params.toString()}`);
+  }, [router, searchParams, column, isActive, currentOrder]);
+
+  return (
+    <TableHead
+      className="text-xs uppercase tracking-wider text-muted-foreground/70 cursor-pointer select-none hover:text-muted-foreground transition-colors"
+      onClick={handleSort}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {isActive ? (
+          currentOrder === "asc" ? (
+            <ArrowUp className="size-3" />
+          ) : (
+            <ArrowDown className="size-3" />
+          )
+        ) : (
+          <ArrowUpDown className="size-3 opacity-30" />
+        )}
+      </span>
+    </TableHead>
+  );
+}
+
+export function LeadsTable({ leads }: { leads: LeadWithTags[] }) {
   const router = useRouter();
 
   async function handleDelete(id: string) {
@@ -103,24 +157,12 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-              Name
-            </TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-              Company
-            </TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-              Status
-            </TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-              Source
-            </TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-              Value
-            </TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-              Created
-            </TableHead>
+            <SortableHeader column="name">Name</SortableHeader>
+            <SortableHeader column="company">Company</SortableHeader>
+            <SortableHeader column="status">Status</SortableHeader>
+            <SortableHeader column="source">Source</SortableHeader>
+            <SortableHeader column="value">Value</SortableHeader>
+            <SortableHeader column="created">Created</SortableHeader>
             <TableHead className="w-[50px]" />
           </TableRow>
         </TableHeader>
@@ -142,6 +184,26 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                     {lead.email}
                   </p>
                 )}
+                {lead.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {lead.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={
+                          tag.color
+                            ? {
+                                backgroundColor: `${tag.color}15`,
+                                color: tag.color,
+                              }
+                            : undefined
+                        }
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </TableCell>
               <TableCell>
                 {lead.companyName && (
@@ -159,9 +221,9 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                 <StatusDropdown lead={lead} />
               </TableCell>
               <TableCell className="capitalize text-sm text-muted-foreground">
-                {lead.source.replace("_", " ")}
+                {lead.source.replaceAll("_", " ")}
               </TableCell>
-              <TableCell className="font-heading tabular-nums">
+              <TableCell className="font-heading tabular-nums text-emerald-600">
                 {lead.estimatedValue ? (
                   `$${Number(lead.estimatedValue).toLocaleString()}`
                 ) : (

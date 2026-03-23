@@ -5,25 +5,44 @@ import { LeadFilters } from "@/components/lead-filters";
 import { LeadsTable } from "@/components/leads-table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getLeads } from "@/lib/actions/leads";
+import { getLeads, getTags } from "@/lib/actions/leads";
 
 type SearchParams = Promise<{
   status?: string;
   source?: string;
   search?: string;
   assignedTo?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  tag?: string | string[];
 }>;
 
 async function LeadsContent({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
+
+  // Normalize tag param to array
+  const tagIds = params.tag
+    ? Array.isArray(params.tag)
+      ? params.tag
+      : [params.tag]
+    : undefined;
+
   const leads = await getLeads({
     status: params.status,
     source: params.source,
     search: params.search,
     assignedTo: params.assignedTo,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+    tagIds,
   });
 
   return <LeadsTable leads={leads} />;
+}
+
+async function FiltersWithTags() {
+  const allTags = await getTags();
+  return <LeadFilters allTags={allTags} />;
 }
 
 export default async function LeadsPage(props: { searchParams: SearchParams }) {
@@ -57,7 +76,7 @@ export default async function LeadsPage(props: { searchParams: SearchParams }) {
         </div>
       </div>
       <Suspense fallback={<div className="h-10" />}>
-        <LeadFilters />
+        <FiltersWithTags />
       </Suspense>
       <Suspense
         fallback={

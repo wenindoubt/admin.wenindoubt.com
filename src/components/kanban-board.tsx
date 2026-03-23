@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase/realtime";
 type KanbanColumn = {
   status: string;
   label: string;
+  description: string;
   color: string;
   leads: Lead[];
 };
@@ -56,6 +57,7 @@ function buildColumns(leads: Lead[]): KanbanColumn[] {
   return LEAD_STATUSES.map((s) => ({
     status: s.value,
     label: s.label,
+    description: s.description,
     color: s.color,
     leads: leads.filter((l) => l.status === s.value),
   }));
@@ -155,13 +157,18 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
       <div className="flex gap-3 overflow-x-auto pb-4">
         {columns.map((column) => (
           <div key={column.status} className="w-72 shrink-0">
-            <div className="mb-3 flex items-center justify-between">
-              <Badge variant="outline" className={column.color}>
-                {column.label}
-              </Badge>
-              <span className="text-xs text-muted-foreground/60 tabular-nums">
-                {column.leads.length}
-              </span>
+            <div className="mb-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className={column.color}>
+                  {column.label}
+                </Badge>
+                <span className="text-xs text-muted-foreground/60 tabular-nums">
+                  {column.leads.length}
+                </span>
+              </div>
+              <p className="text-xs leading-snug text-muted-foreground/50 px-0.5">
+                {column.description}
+              </p>
             </div>
             <Droppable droppableId={column.status}>
               {(provided, snapshot) => (
@@ -204,7 +211,7 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
                               </p>
                             )}
                             {lead.estimatedValue && (
-                              <p className="mt-1.5 text-base font-heading font-semibold text-gold-400/80 tabular-nums">
+                              <p className="mt-1.5 text-base font-heading font-semibold text-emerald-600 tabular-nums">
                                 ${Number(lead.estimatedValue).toLocaleString()}
                               </p>
                             )}

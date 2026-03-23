@@ -59,8 +59,8 @@ export function AppSidebar() {
                       : "text-sidebar-foreground hover:text-foreground"
                   }
                 >
-                  <item.icon className="size-4" />
-                  <span>{item.label}</span>
+                  <item.icon className="size-5" />
+                  <span className="text-base">{item.label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
