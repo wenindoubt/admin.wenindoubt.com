@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# 🎯 Admin | WenInDoubt
 
-First, run the development server:
+**AI-powered lead management CRM with pipeline tracking, real-time Kanban board, and intelligent insights.**
+
+</div>
+
+## ⚡ Setup
+
+**Prerequisites:** Node.js 20+, Docker (for local Supabase)
 
 ```bash
+# Install dependencies
+npm install
+
+# Start local Supabase (Postgres + Realtime)
+supabase start
+
+# Push database schema
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizzle-kit push
+
+# Seed sample data (optional)
+npx tsx scripts/seed.ts
+
+# Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> ⚠️ First `supabase start` pulls ~2GB of Docker images. Subsequent starts are fast.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.local.example` or set these in `.env.local`:
 
-## Learn More
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `ANTHROPIC_API_KEY` | Claude API key (lead analysis) |
+| `GOOGLE_AI_API_KEY` | Gemini API key (scoring, embeddings) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk auth public key |
+| `CLERK_SECRET_KEY` | Clerk auth secret key |
 
-To learn more about Next.js, take a look at the following resources:
+Local dev uses Supabase CLI defaults. Production values go in Vercel.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `supabase start` | Start local Postgres + services |
+| `supabase stop` | Stop local stack |
+| `npx tsx scripts/seed.ts` | Seed sample data |
+| `npx tsx scripts/seed.ts --clean` | Remove sample data |
 
-## Deploy on Vercel
+## 🔧 Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16, React 19 |
+| Auth | Clerk |
+| Database | PostgreSQL + Drizzle ORM |
+| AI | Claude (analysis, outreach) + Gemini (scoring, embeddings) |
+| Realtime | Supabase (Kanban live sync) |
+| UI | shadcn v4, Tailwind CSS v4, next-themes |
+| Forms | react-hook-form + Zod |
+| Drag & Drop | @hello-pangea/dnd |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📐 Architecture
+
+See [docs/](docs/README.md) for architecture diagrams and detailed documentation.
