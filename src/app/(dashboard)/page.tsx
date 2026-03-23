@@ -1,10 +1,10 @@
+import { Activity, DollarSign, TrendingUp, Users } from "lucide-react";
 import { Suspense } from "react";
-import { getLeadStats } from "@/lib/actions/leads";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getLeadStats } from "@/lib/actions/leads";
 import { LEAD_STATUSES } from "@/lib/constants";
-import { Users, DollarSign, TrendingUp, Activity } from "lucide-react";
 
 const kpiConfig = [
   { key: "leads", label: "Total Leads", icon: Users, prefix: "" },
@@ -18,15 +18,22 @@ async function DashboardContent() {
 
   const totalPipelineValue = stats.pipelineValues.reduce(
     (sum, pv) => sum + Number(pv.total),
-    0
+    0,
   );
 
-  const activeStatuses = ["new", "contacted", "qualifying", "proposal_sent", "negotiating"];
+  const activeStatuses = [
+    "new",
+    "contacted",
+    "qualifying",
+    "proposal_sent",
+    "negotiating",
+  ];
   const activePipelineValue = stats.pipelineValues
     .filter((pv) => activeStatuses.includes(pv.status))
     .reduce((sum, pv) => sum + Number(pv.total), 0);
 
-  const wonCount = stats.statusCounts.find((s) => s.status === "won")?.count ?? 0;
+  const wonCount =
+    stats.statusCounts.find((s) => s.status === "won")?.count ?? 0;
 
   const kpiValues = {
     leads: stats.totalLeads.toString(),
@@ -38,7 +45,7 @@ async function DashboardContent() {
   // Calculate max count for pipeline bar widths
   const maxCount = Math.max(
     ...stats.statusCounts.map((sc) => Number(sc.count)),
-    1
+    1,
   );
 
   return (
@@ -59,7 +66,8 @@ async function DashboardContent() {
             </CardHeader>
             <CardContent>
               <p className="font-heading text-3xl font-bold tracking-tight">
-                {kpi.prefix}{kpiValues[kpi.key]}
+                {kpi.prefix}
+                {kpiValues[kpi.key]}
               </p>
             </CardContent>
           </Card>
@@ -70,19 +78,26 @@ async function DashboardContent() {
         {/* Pipeline by Status */}
         <Card className="animate-fade-up stagger-5">
           <CardHeader>
-            <CardTitle className="gold-underline pb-1 text-lg">Pipeline by Status</CardTitle>
+            <CardTitle className="gold-underline pb-1 text-lg">
+              Pipeline by Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {LEAD_STATUSES.map((s) => {
                 const count = Number(
-                  stats.statusCounts.find((sc) => sc.status === s.value)?.count ?? 0
+                  stats.statusCounts.find((sc) => sc.status === s.value)
+                    ?.count ?? 0,
                 );
                 const value =
-                  stats.pipelineValues.find((pv) => pv.status === s.value)?.total ?? "0";
+                  stats.pipelineValues.find((pv) => pv.status === s.value)
+                    ?.total ?? "0";
                 const barWidth = (count / maxCount) * 100;
                 // Extract the accent color from the status config
-                const barColor = s.color.split(" ")[0].replace("bg-", "bg-").replace("/15", "/30");
+                const barColor = s.color
+                  .split(" ")[0]
+                  .replace("bg-", "bg-")
+                  .replace("/15", "/30");
                 return (
                   <div key={s.value} className="space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -115,7 +130,9 @@ async function DashboardContent() {
         {/* Leads by Source */}
         <Card className="animate-fade-up stagger-6">
           <CardHeader>
-            <CardTitle className="gold-underline pb-1 text-lg">Leads by Source</CardTitle>
+            <CardTitle className="gold-underline pb-1 text-lg">
+              Leads by Source
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -127,7 +144,9 @@ async function DashboardContent() {
                   <span className="text-sm capitalize text-muted-foreground">
                     {sc.source.replace("_", " ")}
                   </span>
-                  <span className="text-sm font-heading font-semibold tabular-nums">{sc.count}</span>
+                  <span className="text-sm font-heading font-semibold tabular-nums">
+                    {sc.count}
+                  </span>
                 </div>
               ))}
               {stats.sourceCounts.length === 0 && (
@@ -141,40 +160,46 @@ async function DashboardContent() {
       {/* Recent Activity */}
       <Card className="animate-fade-up stagger-7">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-lg">Recent Activity</CardTitle>
+          <CardTitle className="gold-underline pb-1 text-lg">
+            Recent Activity
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="relative space-y-0">
             {stats.recentActivities.length === 0 && (
               <p className="text-sm text-muted-foreground">No activity yet</p>
             )}
-            {stats.recentActivities.map(({ activity, leadFirstName, leadLastName }, i) => (
-              <div
-                key={activity.id}
-                className="relative flex items-start gap-4 py-3 text-sm"
-              >
-                {/* Vertical connector line */}
-                {i < stats.recentActivities.length - 1 && (
-                  <div className="absolute left-3 top-9 bottom-0 w-px bg-border/50" />
-                )}
-                {/* Activity type icon */}
-                <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[10px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
-                  {activity.type[0]}
+            {stats.recentActivities.map(
+              ({ activity, leadFirstName, leadLastName }, i) => (
+                <div
+                  key={activity.id}
+                  className="relative flex items-start gap-4 py-3 text-sm"
+                >
+                  {/* Vertical connector line */}
+                  {i < stats.recentActivities.length - 1 && (
+                    <div className="absolute left-3 top-9 bottom-0 w-px bg-border/50" />
+                  )}
+                  {/* Activity type icon */}
+                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[10px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+                    {activity.type[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate">
+                      <span className="font-medium text-foreground">
+                        {leadFirstName} {leadLastName}
+                      </span>{" "}
+                      <span className="text-muted-foreground">&mdash;</span>{" "}
+                      <span className="text-muted-foreground">
+                        {activity.description}
+                      </span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground/70">
+                      {new Date(activity.createdAt).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate">
-                    <span className="font-medium text-foreground">
-                      {leadFirstName} {leadLastName}
-                    </span>{" "}
-                    <span className="text-muted-foreground">&mdash;</span>{" "}
-                    <span className="text-muted-foreground">{activity.description}</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground/70">
-                    {new Date(activity.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </CardContent>
       </Card>
@@ -186,7 +211,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-end gap-3">
-        <h1 className="font-heading text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="font-heading text-3xl font-bold tracking-tight">
+          Dashboard
+        </h1>
         <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
       </div>
       <Suspense

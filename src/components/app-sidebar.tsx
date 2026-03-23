@@ -1,8 +1,9 @@
 "use client";
 
+import { UserButton } from "@clerk/nextjs";
+import { Kanban, LayoutDashboard, Tags, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
 import {
   Sidebar,
   SidebarContent,
@@ -12,8 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, Tags, Kanban } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -31,7 +30,9 @@ export function AppSidebar() {
         <Link href="/" className="flex items-center gap-3 group">
           {/* Gold monogram */}
           <div className="flex size-9 items-center justify-center rounded-lg bg-gold-400/10 ring-1 ring-gold-400/25 transition-all group-hover:bg-gold-400/15 group-hover:ring-gold-400/40">
-            <span className="font-heading text-lg font-bold text-gold-400">W</span>
+            <span className="font-heading text-lg font-bold text-gold-400">
+              W
+            </span>
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold tracking-wide text-foreground">
@@ -67,12 +68,11 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <UserButton />
-            <span className="text-xs text-muted-foreground truncate">Account</span>
-          </div>
-          <ThemeToggle />
+        <div className="flex items-center gap-3">
+          <UserButton />
+          <span className="text-xs text-muted-foreground truncate">
+            Account
+          </span>
         </div>
       </SidebarFooter>
     </Sidebar>

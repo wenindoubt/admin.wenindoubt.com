@@ -1,9 +1,17 @@
 "use client";
 
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -12,17 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LEAD_STATUSES } from "@/lib/constants";
-import { deleteLead, updateLead } from "@/lib/actions/leads";
 import type { Lead } from "@/db/schema";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { deleteLead, updateLead } from "@/lib/actions/leads";
+import { LEAD_STATUSES } from "@/lib/constants";
 
 function StatusBadge({ status }: { status: string }) {
   const s = LEAD_STATUSES.find((s) => s.value === status);
@@ -56,7 +56,9 @@ function StatusDropdown({ lead }: { lead: Lead }) {
             key={s.value}
             onClick={() => handleStatusChange(s.value)}
           >
-            <span className={`mr-2 inline-block size-2 rounded-full ${s.color.split(" ")[0]}`} />
+            <span
+              className={`mr-2 inline-block size-2 rounded-full ${s.color.split(" ")[0]}`}
+            />
             {s.label}
           </DropdownMenuItem>
         ))}
@@ -101,18 +103,33 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Name</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Company</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Status</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Source</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Value</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Created</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+              Name
+            </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+              Company
+            </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+              Status
+            </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+              Source
+            </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+              Value
+            </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+              Created
+            </TableHead>
             <TableHead className="w-[50px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {leads.map((lead) => (
-            <TableRow key={lead.id} className="border-border/30 hover:bg-accent/50 transition-colors">
+            <TableRow
+              key={lead.id}
+              className="border-border/30 hover:bg-accent/50 transition-colors"
+            >
               <TableCell>
                 <Link
                   href={`/leads/${lead.id}`}
@@ -121,7 +138,9 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                   {lead.firstName} {lead.lastName}
                 </Link>
                 {lead.email && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{lead.email}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {lead.email}
+                  </p>
                 )}
               </TableCell>
               <TableCell>
@@ -143,9 +162,11 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                 {lead.source.replace("_", " ")}
               </TableCell>
               <TableCell className="font-heading tabular-nums">
-                {lead.estimatedValue
-                  ? `$${Number(lead.estimatedValue).toLocaleString()}`
-                  : <span className="text-muted-foreground/50">&mdash;</span>}
+                {lead.estimatedValue ? (
+                  `$${Number(lead.estimatedValue).toLocaleString()}`
+                ) : (
+                  <span className="text-muted-foreground/50">&mdash;</span>
+                )}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground tabular-nums">
                 {new Date(lead.createdAt).toLocaleDateString()}
@@ -154,7 +175,11 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-muted-foreground hover:text-foreground"
+                      />
                     }
                   >
                     <MoreHorizontal className="size-4" />

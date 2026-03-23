@@ -1,9 +1,9 @@
 "use client";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -11,10 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ACTIVITY_TYPES } from "@/lib/constants";
-import { activityFormSchema, type ActivityFormValues } from "@/lib/validations";
+import { Textarea } from "@/components/ui/textarea";
 import { addActivity } from "@/lib/actions/leads";
-import { toast } from "sonner";
+import { ACTIVITY_TYPES } from "@/lib/constants";
+import { type ActivityFormValues, activityFormSchema } from "@/lib/validations";
 
 export function ActivityForm({ leadId }: { leadId: string }) {
   const {
@@ -38,13 +38,16 @@ export function ActivityForm({ leadId }: { leadId: string }) {
     }
   }
 
-  const inputClasses = "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
+  const inputClasses =
+    "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex gap-3">
       <Select
         defaultValue="note"
-        onValueChange={(v) => v && setValue("type", v as ActivityFormValues["type"])}
+        onValueChange={(v) =>
+          v && setValue("type", v as ActivityFormValues["type"])
+        }
       >
         <SelectTrigger className={`w-32 ${inputClasses}`}>
           <SelectValue />
@@ -64,7 +67,9 @@ export function ActivityForm({ leadId }: { leadId: string }) {
           {...register("description")}
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
       <Button

@@ -12,11 +12,17 @@ export default function SignUpPage() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex size-14 items-center justify-center rounded-xl bg-gold-400/10 ring-1 ring-gold-400/25">
-            <span className="font-heading text-2xl font-bold text-gold-400">W</span>
+            <span className="font-heading text-2xl font-bold text-gold-400">
+              W
+            </span>
           </div>
           <div className="text-center">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">WenInDoubt</h1>
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mt-1">Create Account</p>
+            <h1 className="font-heading text-2xl font-bold tracking-tight">
+              WenInDoubt
+            </h1>
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mt-1">
+              Create Account
+            </p>
           </div>
         </div>
 

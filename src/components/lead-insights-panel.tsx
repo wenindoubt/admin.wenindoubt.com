@@ -1,6 +1,8 @@
 "use client";
 
+import { RefreshCw, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LeadInsight } from "@/db/schema";
-import { Sparkles, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
 
 type Props = {
   leadId: string;
@@ -70,7 +70,9 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
                 </div>
                 AI Insights
               </CardTitle>
-              <CardDescription className="text-xs mt-1">AI-generated analysis</CardDescription>
+              <CardDescription className="text-xs mt-1">
+                AI-generated analysis
+              </CardDescription>
             </div>
             <Button
               variant="outline"
@@ -79,7 +81,9 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
               disabled={isAnalyzing}
               className="border-gold-400/25 text-gold-400 hover:bg-gold-400/10 hover:text-gold-300 hover:border-gold-400/40"
             >
-              <RefreshCw className={`size-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`size-3.5 ${isAnalyzing ? "animate-spin" : ""}`}
+              />
               {insights.length > 0 ? "Re-analyze" : "Analyze"}
             </Button>
           </div>
@@ -88,7 +92,9 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
           {isAnalyzing && (
             <div className="space-y-2">
               {streamedText ? (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{streamedText}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {streamedText}
+                </p>
               ) : (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full bg-gold-400/5" />
@@ -103,9 +109,7 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
               <div className="flex size-10 items-center justify-center rounded-full bg-gold-400/10 mb-3">
                 <Sparkles className="size-4 text-gold-400/60" />
               </div>
-              <p className="text-sm text-muted-foreground">
-                No analysis yet
-              </p>
+              <p className="text-sm text-muted-foreground">No analysis yet</p>
               <p className="text-xs text-muted-foreground/60 mt-1">
                 Click Analyze to generate AI insights
               </p>
@@ -113,9 +117,14 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
           )}
           {!isAnalyzing &&
             insights.map((insight) => (
-              <div key={insight.id} className="space-y-2 border-b border-border/20 pb-4 last:border-0 last:pb-0">
+              <div
+                key={insight.id}
+                className="space-y-2 border-b border-border/20 pb-4 last:border-0 last:pb-0"
+              >
                 {insight.summary && (
-                  <p className="text-sm font-medium text-foreground/90">{insight.summary}</p>
+                  <p className="text-sm font-medium text-foreground/90">
+                    {insight.summary}
+                  </p>
                 )}
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {insight.analysisText}

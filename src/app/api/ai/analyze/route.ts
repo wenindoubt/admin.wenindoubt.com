@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest } from "next/server";
-import { db } from "@/db";
-import { leads, leadInsights } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import type { NextRequest } from "next/server";
+import { db } from "@/db";
+import { leadInsights, leads } from "@/db/schema";
 import { claude } from "@/lib/ai/claude";
-import { LEAD_ANALYSIS_SYSTEM } from "@/lib/ai/prompts";
 import { generateEmbedding } from "@/lib/ai/embeddings";
+import { LEAD_ANALYSIS_SYSTEM } from "@/lib/ai/prompts";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();

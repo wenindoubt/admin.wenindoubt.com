@@ -1,0 +1,43 @@
+[tools]
+node = "24"
+
+[tasks.install]
+description = "Install dependencies (clean, from lockfile)"
+run = "npm ci"
+
+[tasks.dev]
+description = "Start dev server"
+run = "npm run dev"
+
+[tasks.build]
+description = "Production build"
+run = "npm run build"
+
+[tasks.start]
+description = "Start production server"
+run = "npm run start"
+depends = ["build"]
+
+[tasks.lint]
+description = "Run Biome lint + format check"
+run = "npm run lint"
+
+[tasks."lint:fix"]
+description = "Auto-fix lint + formatting"
+run = "npm run lint:fix"
+
+[tasks.format]
+description = "Format all files"
+run = "npm run format"
+
+[tasks.typecheck]
+description = "Type check with TypeScript"
+run = "npx tsc --noEmit"
+
+[tasks.check]
+description = "Run all quality checks"
+depends = ["lint", "typecheck"]
+
+[tasks."check:ci"]
+description = "Run all quality checks (CI)"
+depends = ["lint", "typecheck", "build"]

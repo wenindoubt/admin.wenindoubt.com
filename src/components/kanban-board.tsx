@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import {
   DragDropContext,
-  Droppable,
   Draggable,
+  Droppable,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { LEAD_STATUSES } from "@/lib/constants";
-import { updateLead } from "@/lib/actions/leads";
-import { supabase } from "@/lib/supabase/realtime";
-import type { Lead } from "@/db/schema";
-import { toast } from "sonner";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import type { Lead } from "@/db/schema";
+import { updateLead } from "@/lib/actions/leads";
+import { LEAD_STATUSES } from "@/lib/constants";
+import { supabase } from "@/lib/supabase/realtime";
 
 type KanbanColumn = {
   status: string;
@@ -22,6 +22,35 @@ type KanbanColumn = {
   color: string;
   leads: Lead[];
 };
+
+// Supabase Realtime sends raw DB column names (snake_case).
+// Map them to Drizzle's camelCase Lead type.
+function mapRealtimePayload(row: Record<string, unknown>): Lead {
+  return {
+    id: row.id as string,
+    firstName: row.first_name as string,
+    lastName: row.last_name as string,
+    email: (row.email as string) ?? null,
+    phone: (row.phone as string) ?? null,
+    linkedinUrl: (row.linkedin_url as string) ?? null,
+    companyName: (row.company_name as string) ?? null,
+    companyWebsite: (row.company_website as string) ?? null,
+    jobTitle: (row.job_title as string) ?? null,
+    industry: (row.industry as string) ?? null,
+    companySize: (row.company_size as string) ?? null,
+    status: row.status as Lead["status"],
+    source: row.source as Lead["source"],
+    sourceDetail: (row.source_detail as string) ?? null,
+    estimatedValue: (row.estimated_value as string) ?? null,
+    assignedTo: (row.assigned_to as string) ?? null,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
+    convertedAt: row.converted_at ? new Date(row.converted_at as string) : null,
+    lastContactedAt: row.last_contacted_at
+      ? new Date(row.last_contacted_at as string)
+      : null,
+  };
+}
 
 function buildColumns(leads: Lead[]): KanbanColumn[] {
   return LEAD_STATUSES.map((s) => ({
@@ -43,27 +72,24 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
         { event: "*", schema: "public", table: "leads" },
         (payload) => {
           if (payload.eventType === "UPDATE") {
-            const updated = payload.new as Lead;
+            const updated = mapRealtimePayload(payload.new);
             setColumns((prev) =>
               prev.map((col) => ({
                 ...col,
                 leads:
                   col.status === updated.status
-                    ? [
-                        ...col.leads.filter((l) => l.id !== updated.id),
-                        updated,
-                      ]
+                    ? [...col.leads.filter((l) => l.id !== updated.id), updated]
                     : col.leads.filter((l) => l.id !== updated.id),
-              }))
+              })),
             );
           } else if (payload.eventType === "INSERT") {
-            const newLead = payload.new as Lead;
+            const newLead = mapRealtimePayload(payload.new);
             setColumns((prev) =>
               prev.map((col) =>
                 col.status === newLead.status
                   ? { ...col, leads: [...col.leads, newLead] }
-                  : col
-              )
+                  : col,
+              ),
             );
           } else if (payload.eventType === "DELETE") {
             const deleted = payload.old as { id: string };
@@ -71,10 +97,10 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
               prev.map((col) => ({
                 ...col,
                 leads: col.leads.filter((l) => l.id !== deleted.id),
-              }))
+              })),
             );
           }
-        }
+        },
       )
       .subscribe();
 
@@ -178,7 +204,7 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
                               </p>
                             )}
                             {lead.estimatedValue && (
-                              <p className="mt-1.5 text-xs font-heading font-semibold text-gold-400/80 tabular-nums">
+                              <p className="mt-1.5 text-base font-heading font-semibold text-gold-400/80 tabular-nums">
                                 ${Number(lead.estimatedValue).toLocaleString()}
                               </p>
                             )}

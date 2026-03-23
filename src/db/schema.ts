@@ -1,13 +1,13 @@
 import {
-  pgTable,
-  pgEnum,
-  uuid,
-  text,
-  numeric,
-  timestamp,
-  jsonb,
-  primaryKey,
   index,
+  jsonb,
+  numeric,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
   vector,
 } from "drizzle-orm/pg-core";
 
@@ -71,7 +71,7 @@ export const leads = pgTable(
     index("idx_leads_assigned_to").on(table.assignedTo),
     index("idx_leads_created_at").on(table.createdAt),
     index("idx_leads_company").on(table.companyName),
-  ]
+  ],
 );
 
 // AI-generated insights
@@ -94,7 +94,7 @@ export const leadInsights = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("idx_lead_insights_lead_id").on(table.leadId)]
+  (table) => [index("idx_lead_insights_lead_id").on(table.leadId)],
 );
 
 // Activity log
@@ -116,7 +116,7 @@ export const leadActivities = pgTable(
   (table) => [
     index("idx_lead_activities_lead_id").on(table.leadId),
     index("idx_lead_activities_created_at").on(table.createdAt),
-  ]
+  ],
 );
 
 // Tags
@@ -136,7 +136,7 @@ export const leadTags = pgTable(
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.leadId, table.tagId] })]
+  (table) => [primaryKey({ columns: [table.leadId, table.tagId] })],
 );
 
 // Type exports

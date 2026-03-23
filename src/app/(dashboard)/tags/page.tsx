@@ -1,5 +1,5 @@
-import { getTags } from "@/lib/actions/leads";
 import { TagManager } from "@/components/tag-manager";
+import { getTags } from "@/lib/actions/leads";
 
 export default async function TagsPage() {
   const allTags = await getTags();

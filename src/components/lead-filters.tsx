@@ -1,6 +1,8 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,9 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LEAD_STATUSES, LEAD_SOURCES } from "@/lib/constants";
-import { useCallback } from "react";
-import { Search } from "lucide-react";
+import { LEAD_SOURCES, LEAD_STATUSES } from "@/lib/constants";
 
 export function LeadFilters() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export function LeadFilters() {
       }
       router.push(`/leads?${params.toString()}`);
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   return (
@@ -40,7 +40,7 @@ export function LeadFilters() {
           onChange={(e) => {
             const timeout = setTimeout(
               () => updateFilter("search", e.target.value),
-              300
+              300,
             );
             return () => clearTimeout(timeout);
           }}

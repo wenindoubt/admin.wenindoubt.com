@@ -1,16 +1,16 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { leads } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { gemini, GEMINI_MODEL } from "@/lib/ai/gemini";
 import { claude } from "@/lib/ai/claude";
+import { GEMINI_MODEL, gemini } from "@/lib/ai/gemini";
 import {
-  LEAD_SCORING_SYSTEM,
   COMPANY_RESEARCH_SYSTEM,
-  OUTREACH_DRAFT_SYSTEM,
+  LEAD_SCORING_SYSTEM,
   NEXT_STEPS_SYSTEM,
+  OUTREACH_DRAFT_SYSTEM,
 } from "@/lib/ai/prompts";
 
 function buildLeadContext(lead: typeof leads.$inferSelect): string {
@@ -47,7 +47,8 @@ export async function scoreLead(leadId: string) {
 
   const text = response.text ?? "";
   // Extract JSON from potential markdown code block
-  const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
+  const jsonMatch =
+    text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Invalid scoring response");
 
   return JSON.parse(jsonMatch[1] ?? jsonMatch[0]);
@@ -116,7 +117,8 @@ export async function suggestNextSteps(leadId: string) {
   });
 
   const text = response.text ?? "";
-  const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
+  const jsonMatch =
+    text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Invalid response");
 
   return JSON.parse(jsonMatch[1] ?? jsonMatch[0]);

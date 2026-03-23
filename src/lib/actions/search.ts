@@ -1,11 +1,10 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { cosineDistance, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { leads, leadInsights } from "@/db/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { leadInsights, leads } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
-import { cosineDistance } from "drizzle-orm";
 
 export async function semanticSearch(query: string, limit = 10) {
   const { userId } = await auth();
@@ -62,7 +61,9 @@ export async function findSimilarLeads(leadId: string, limit = 5) {
     })
     .from(leadInsights)
     .innerJoin(leads, eq(leadInsights.leadId, leads.id))
-    .where(sql`${leadInsights.leadId} != ${leadId} AND ${leadInsights.embedding} IS NOT NULL`)
+    .where(
+      sql`${leadInsights.leadId} != ${leadId} AND ${leadInsights.embedding} IS NOT NULL`,
+    )
     .orderBy(desc(similarity))
     .limit(limit);
 

@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { KanbanBoard } from "@/components/kanban-board";
-import { getLeads } from "@/lib/actions/leads";
 import { List } from "lucide-react";
+import Link from "next/link";
+import { KanbanBoard } from "@/components/kanban-board";
+import { Button } from "@/components/ui/button";
+import { getLeads } from "@/lib/actions/leads";
 
 export default async function BoardPage() {
   const leads = await getLeads();
@@ -11,7 +11,9 @@ export default async function BoardPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-end gap-3">
-          <h1 className="font-heading text-3xl font-bold tracking-tight">Pipeline Board</h1>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">
+            Pipeline Board
+          </h1>
           <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
         </div>
         <Button

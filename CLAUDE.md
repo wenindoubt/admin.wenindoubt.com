@@ -9,7 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev        # start dev server (requires local Supabase running)
 npm run build      # production build
-npm run lint       # eslint
+npm run lint       # biome check (lint + format)
+npm run lint:fix   # biome auto-fix
+mise run check     # lint + typecheck
 supabase start     # start local Postgres + Supabase services
 supabase stop      # stop local stack
 npx tsx scripts/seed.ts          # seed sample data
@@ -24,7 +26,7 @@ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizz
 - **DB**: Drizzle ORM + `postgres` driver. Schema in `src/db/schema.ts`. Connection uses `prepare: false` for Supabase pooler compatibility.
 - **AI**: Claude (`@anthropic-ai/sdk`) for lead analysis + outreach drafting. Gemini (`@google/genai`) for scoring, research, embeddings (768-dim vectors).
 - **Realtime**: Supabase client-side subscriptions for Kanban board live updates.
-- **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4, `next-themes` for dark/light toggle.
+- **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
 
 ## Project Structure

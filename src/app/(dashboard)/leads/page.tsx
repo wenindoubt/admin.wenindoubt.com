@@ -1,11 +1,11 @@
+import { Kanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import { LeadsTable } from "@/components/leads-table";
 import { LeadFilters } from "@/components/lead-filters";
-import { getLeads } from "@/lib/actions/leads";
-import { Plus, Kanban } from "lucide-react";
+import { LeadsTable } from "@/components/leads-table";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getLeads } from "@/lib/actions/leads";
 
 type SearchParams = Promise<{
   status?: string;
@@ -31,7 +31,9 @@ export default async function LeadsPage(props: { searchParams: SearchParams }) {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-end gap-3">
-          <h1 className="font-heading text-3xl font-bold tracking-tight">Leads</h1>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">
+            Leads
+          </h1>
           <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
         </div>
         <div className="flex gap-2">

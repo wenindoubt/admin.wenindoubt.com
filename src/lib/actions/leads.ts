@@ -1,17 +1,17 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
-  leads,
   leadActivities,
-  leadTags,
-  tags,
   leadInsights,
+  leads,
+  leadTags,
   type NewLead,
+  tags,
 } from "@/db/schema";
-import { auth } from "@clerk/nextjs/server";
-import { eq, desc, ilike, or, sql, and, count } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 
 export type LeadFilters = {
   status?: string;
@@ -28,10 +28,20 @@ export async function getLeads(filters?: LeadFilters) {
   const conditions = [];
 
   if (filters?.status) {
-    conditions.push(eq(leads.status, filters.status as typeof leads.status.enumValues[number]));
+    conditions.push(
+      eq(
+        leads.status,
+        filters.status as (typeof leads.status.enumValues)[number],
+      ),
+    );
   }
   if (filters?.source) {
-    conditions.push(eq(leads.source, filters.source as typeof leads.source.enumValues[number]));
+    conditions.push(
+      eq(
+        leads.source,
+        filters.source as (typeof leads.source.enumValues)[number],
+      ),
+    );
   }
   if (filters?.assignedTo) {
     conditions.push(eq(leads.assignedTo, filters.assignedTo));
@@ -43,15 +53,12 @@ export async function getLeads(filters?: LeadFilters) {
         ilike(leads.firstName, term),
         ilike(leads.lastName, term),
         ilike(leads.companyName, term),
-        ilike(leads.email, term)
-      )!
+        ilike(leads.email, term),
+      )!,
     );
   }
 
-  let query = db
-    .select()
-    .from(leads)
-    .orderBy(desc(leads.createdAt));
+  let query = db.select().from(leads).orderBy(desc(leads.createdAt));
 
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
@@ -160,7 +167,7 @@ export async function addActivity(
   leadId: string,
   type: string,
   description: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");

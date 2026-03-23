@@ -5,15 +5,10 @@
  * Clean: npx tsx scripts/seed.ts --clean
  */
 import "dotenv/config";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { eq, inArray } from "drizzle-orm";
-import {
-  leads,
-  leadActivities,
-  tags,
-  leadTags,
-} from "../src/db/schema";
+import { leadActivities, leads, leadTags, tags } from "../src/db/schema";
 
 const SEED_MARKER = "[seed]"; // createdBy marker so we can identify & remove seed data
 
@@ -205,30 +200,42 @@ const sampleLeads = [
 ];
 
 const activityTemplates = [
-  { type: "note", descriptions: [
-    "Initial research completed — strong fit for our enterprise tier",
-    "Reviewed their recent Series B announcement",
-    "Checked LinkedIn — mutual connections with our advisory board",
-    "Internal discussion: team agrees this is a high-priority lead",
-  ]},
-  { type: "email", descriptions: [
-    "Sent introductory email with case study attached",
-    "Followed up on proposal — awaiting feedback",
-    "Shared product roadmap deck per their request",
-    "Sent pricing breakdown for annual plan",
-  ]},
-  { type: "call", descriptions: [
-    "Discovery call — 30 min. Discussed pain points around current tooling",
-    "Demo call completed. Strong interest in analytics dashboard",
-    "Quick check-in call. Decision expected by end of quarter",
-    "Technical deep-dive with their engineering team",
-  ]},
-  { type: "meeting", descriptions: [
-    "On-site meeting at their HQ. Met the full buying committee",
-    "Lunch meeting to discuss partnership structure",
-    "Video call with CEO and CTO — alignment on timeline",
-    "Workshop session to map integration requirements",
-  ]},
+  {
+    type: "note",
+    descriptions: [
+      "Initial research completed — strong fit for our enterprise tier",
+      "Reviewed their recent Series B announcement",
+      "Checked LinkedIn — mutual connections with our advisory board",
+      "Internal discussion: team agrees this is a high-priority lead",
+    ],
+  },
+  {
+    type: "email",
+    descriptions: [
+      "Sent introductory email with case study attached",
+      "Followed up on proposal — awaiting feedback",
+      "Shared product roadmap deck per their request",
+      "Sent pricing breakdown for annual plan",
+    ],
+  },
+  {
+    type: "call",
+    descriptions: [
+      "Discovery call — 30 min. Discussed pain points around current tooling",
+      "Demo call completed. Strong interest in analytics dashboard",
+      "Quick check-in call. Decision expected by end of quarter",
+      "Technical deep-dive with their engineering team",
+    ],
+  },
+  {
+    type: "meeting",
+    descriptions: [
+      "On-site meeting at their HQ. Met the full buying committee",
+      "Lunch meeting to discuss partnership structure",
+      "Video call with CEO and CTO — alignment on timeline",
+      "Workshop session to map integration requirements",
+    ],
+  },
 ];
 
 // ─── Seed Logic ───
@@ -265,7 +272,10 @@ async function seed() {
     for (const name of pick) {
       const tag = tagsByName[name];
       if (tag) {
-        await db.insert(leadTags).values({ leadId: lead.id, tagId: tag.id }).onConflictDoNothing();
+        await db
+          .insert(leadTags)
+          .values({ leadId: lead.id, tagId: tag.id })
+          .onConflictDoNothing();
         tagCount++;
       }
     }
@@ -277,8 +287,12 @@ async function seed() {
   for (const lead of insertedLeads) {
     const numActivities = 2 + Math.floor(Math.random() * 4);
     for (let i = 0; i < numActivities; i++) {
-      const template = activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
-      const desc = template.descriptions[Math.floor(Math.random() * template.descriptions.length)];
+      const template =
+        activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
+      const desc =
+        template.descriptions[
+          Math.floor(Math.random() * template.descriptions.length)
+        ];
       const daysAgo = Math.floor(Math.random() * 30);
       const createdAt = new Date(Date.now() - daysAgo * 86400000);
 
@@ -314,7 +328,9 @@ async function clean() {
       .delete(leads)
       .where(inArray(leads.id, seedLeadIds))
       .returning();
-    console.log(`  Deleted ${deleted.length} seed leads (+ cascaded activities, tags, insights)`);
+    console.log(
+      `  Deleted ${deleted.length} seed leads (+ cascaded activities, tags, insights)`,
+    );
   } else {
     console.log("  No seed data found");
   }
@@ -331,6 +347,4 @@ async function clean() {
 
 const isClean = process.argv.includes("--clean");
 
-(isClean ? clean() : seed())
-  .catch(console.error)
-  .finally(() => conn.end());
+(isClean ? clean() : seed()).catch(console.error).finally(() => conn.end());

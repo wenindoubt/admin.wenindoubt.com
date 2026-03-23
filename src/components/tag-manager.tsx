@@ -1,13 +1,13 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { createTag } from "@/lib/actions/leads";
 import type { Tag } from "@/db/schema";
-import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { createTag } from "@/lib/actions/leads";
 
 const TAG_COLORS = [
   "#ef4444",
@@ -50,11 +50,12 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
         <div className="flex items-center gap-1.5">
           {TAG_COLORS.map((c) => (
             <button
+              type="button"
               key={c}
               className={`size-7 rounded-full transition-all ${
                 color === c
                   ? "ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110"
-                  : "ring-1 ring-white/10 hover:ring-white/25"
+                  : "ring-1 ring-foreground/10 hover:ring-foreground/25"
               }`}
               style={{ backgroundColor: c }}
               onClick={() => setColor(c)}

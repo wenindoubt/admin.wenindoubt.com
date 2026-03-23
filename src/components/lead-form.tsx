@@ -1,12 +1,12 @@
 "use client";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -15,11 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LEAD_STATUSES, LEAD_SOURCES, COMPANY_SIZES } from "@/lib/constants";
-import { leadFormSchema, type LeadFormValues } from "@/lib/validations";
-import { createLead, updateLead } from "@/lib/actions/leads";
+import { Textarea } from "@/components/ui/textarea";
 import type { Lead } from "@/db/schema";
+import { createLead, updateLead } from "@/lib/actions/leads";
+import { COMPANY_SIZES, LEAD_SOURCES, LEAD_STATUSES } from "@/lib/constants";
+import { type LeadFormValues, leadFormSchema } from "@/lib/validations";
 
 type LeadFormProps = {
   lead?: Lead;
@@ -90,46 +90,86 @@ export function LeadForm({ lead }: LeadFormProps) {
     }
   }
 
-  const inputClasses = "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
-  const labelClasses = "text-xs uppercase tracking-wider text-muted-foreground/80";
+  const inputClasses =
+    "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
+  const labelClasses =
+    "text-xs uppercase tracking-wider text-muted-foreground/80";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-fade-in">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 animate-fade-in"
+    >
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">Contact Information</CardTitle>
+          <CardTitle className="gold-underline pb-1 text-base">
+            Contact Information
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelClasses}>First Name *</Label>
-            <Input id="firstName" {...register("firstName")} className={inputClasses} />
+            <Label htmlFor="firstName" className={labelClasses}>
+              First Name *
+            </Label>
+            <Input
+              id="firstName"
+              {...register("firstName")}
+              className={inputClasses}
+            />
             {errors.firstName && (
-              <p className="text-sm text-destructive">{errors.firstName.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.firstName.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelClasses}>Last Name *</Label>
-            <Input id="lastName" {...register("lastName")} className={inputClasses} />
+            <Label htmlFor="lastName" className={labelClasses}>
+              Last Name *
+            </Label>
+            <Input
+              id="lastName"
+              {...register("lastName")}
+              className={inputClasses}
+            />
             {errors.lastName && (
-              <p className="text-sm text-destructive">{errors.lastName.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.lastName.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email" className={labelClasses}>Email</Label>
-            <Input id="email" type="email" {...register("email")} className={inputClasses} />
+            <Label htmlFor="email" className={labelClasses}>
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email")}
+              className={inputClasses}
+            />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone" className={labelClasses}>Phone</Label>
+            <Label htmlFor="phone" className={labelClasses}>
+              Phone
+            </Label>
             <Input id="phone" {...register("phone")} className={inputClasses} />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="linkedinUrl" className={labelClasses}>LinkedIn URL</Label>
-            <Input id="linkedinUrl" {...register("linkedinUrl")} className={inputClasses} />
+            <Label htmlFor="linkedinUrl" className={labelClasses}>
+              LinkedIn URL
+            </Label>
+            <Input
+              id="linkedinUrl"
+              {...register("linkedinUrl")}
+              className={inputClasses}
+            />
             {errors.linkedinUrl && (
-              <p className="text-sm text-destructive">{errors.linkedinUrl.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.linkedinUrl.message}
+              </p>
             )}
           </div>
         </CardContent>
@@ -137,27 +177,55 @@ export function LeadForm({ lead }: LeadFormProps) {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">Company Details</CardTitle>
+          <CardTitle className="gold-underline pb-1 text-base">
+            Company Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="companyName" className={labelClasses}>Company Name</Label>
-            <Input id="companyName" {...register("companyName")} className={inputClasses} />
+            <Label htmlFor="companyName" className={labelClasses}>
+              Company Name
+            </Label>
+            <Input
+              id="companyName"
+              {...register("companyName")}
+              className={inputClasses}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="companyWebsite" className={labelClasses}>Company Website</Label>
-            <Input id="companyWebsite" {...register("companyWebsite")} className={inputClasses} />
+            <Label htmlFor="companyWebsite" className={labelClasses}>
+              Company Website
+            </Label>
+            <Input
+              id="companyWebsite"
+              {...register("companyWebsite")}
+              className={inputClasses}
+            />
             {errors.companyWebsite && (
-              <p className="text-sm text-destructive">{errors.companyWebsite.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.companyWebsite.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="jobTitle" className={labelClasses}>Job Title</Label>
-            <Input id="jobTitle" {...register("jobTitle")} className={inputClasses} />
+            <Label htmlFor="jobTitle" className={labelClasses}>
+              Job Title
+            </Label>
+            <Input
+              id="jobTitle"
+              {...register("jobTitle")}
+              className={inputClasses}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="industry" className={labelClasses}>Industry</Label>
-            <Input id="industry" {...register("industry")} className={inputClasses} />
+            <Label htmlFor="industry" className={labelClasses}>
+              Industry
+            </Label>
+            <Input
+              id="industry"
+              {...register("industry")}
+              className={inputClasses}
+            />
           </div>
           <div className="space-y-2">
             <Label className={labelClasses}>Company Size</Label>
@@ -182,14 +250,18 @@ export function LeadForm({ lead }: LeadFormProps) {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">Lead Details</CardTitle>
+          <CardTitle className="gold-underline pb-1 text-base">
+            Lead Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className={labelClasses}>Status</Label>
             <Select
               defaultValue={lead?.status ?? "new"}
-              onValueChange={(v) => v && setValue("status", v as LeadFormValues["status"])}
+              onValueChange={(v) =>
+                v && setValue("status", v as LeadFormValues["status"])
+              }
             >
               <SelectTrigger className={inputClasses}>
                 <SelectValue />
@@ -207,7 +279,9 @@ export function LeadForm({ lead }: LeadFormProps) {
             <Label className={labelClasses}>Source</Label>
             <Select
               defaultValue={lead?.source ?? "other"}
-              onValueChange={(v) => v && setValue("source", v as LeadFormValues["source"])}
+              onValueChange={(v) =>
+                v && setValue("source", v as LeadFormValues["source"])
+              }
             >
               <SelectTrigger className={inputClasses}>
                 <SelectValue />
@@ -222,7 +296,9 @@ export function LeadForm({ lead }: LeadFormProps) {
             </Select>
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="sourceDetail" className={labelClasses}>Source Detail</Label>
+            <Label htmlFor="sourceDetail" className={labelClasses}>
+              Source Detail
+            </Label>
             <Textarea
               id="sourceDetail"
               placeholder='e.g. "Referred by John Smith" or "AWS re:Invent 2026"'
@@ -231,7 +307,9 @@ export function LeadForm({ lead }: LeadFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="estimatedValue" className={labelClasses}>Estimated Value ($)</Label>
+            <Label htmlFor="estimatedValue" className={labelClasses}>
+              Estimated Value ($)
+            </Label>
             <Input
               id="estimatedValue"
               type="number"
@@ -249,7 +327,11 @@ export function LeadForm({ lead }: LeadFormProps) {
           disabled={isSubmitting}
           className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0"
         >
-          {isSubmitting ? "Saving..." : isEditing ? "Update Lead" : "Create Lead"}
+          {isSubmitting
+            ? "Saving..."
+            : isEditing
+              ? "Update Lead"
+              : "Create Lead"}
         </Button>
         <Button
           type="button"
