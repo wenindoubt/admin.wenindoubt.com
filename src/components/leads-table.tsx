@@ -80,9 +80,16 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
 
   if (leads.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <p>No leads found</p>
-        <Button className="mt-4" nativeButton={false} render={<Link href="/leads/new" />}>
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/50 py-16 text-muted-foreground">
+        <div className="flex size-12 items-center justify-center rounded-full bg-gold-400/10 mb-4">
+          <span className="font-heading text-lg text-gold-400">+</span>
+        </div>
+        <p className="text-sm">No leads found</p>
+        <Button
+          className="mt-4 bg-gold-400 hover:bg-gold-500 text-primary-foreground border-0"
+          nativeButton={false}
+          render={<Link href="/leads/new" />}
+        >
           Create your first lead
         </Button>
       </div>
@@ -90,87 +97,89 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Company</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Source</TableHead>
-          <TableHead>Value</TableHead>
-          <TableHead>Created</TableHead>
-          <TableHead className="w-[50px]" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {leads.map((lead) => (
-          <TableRow key={lead.id}>
-            <TableCell>
-              <Link
-                href={`/leads/${lead.id}`}
-                className="font-medium hover:underline"
-              >
-                {lead.firstName} {lead.lastName}
-              </Link>
-              {lead.email && (
-                <p className="text-sm text-muted-foreground">{lead.email}</p>
-              )}
-            </TableCell>
-            <TableCell>
-              {lead.companyName && (
-                <div>
-                  <p>{lead.companyName}</p>
-                  {lead.jobTitle && (
-                    <p className="text-sm text-muted-foreground">
-                      {lead.jobTitle}
-                    </p>
-                  )}
-                </div>
-              )}
-            </TableCell>
-            <TableCell>
-              <StatusDropdown lead={lead} />
-            </TableCell>
-            <TableCell className="capitalize">
-              {lead.source.replace("_", " ")}
-            </TableCell>
-            <TableCell>
-              {lead.estimatedValue
-                ? `$${Number(lead.estimatedValue).toLocaleString()}`
-                : "—"}
-            </TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {new Date(lead.createdAt).toLocaleDateString()}
-            </TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button variant="ghost" size="icon" className="size-8" />
-                  }
-                >
-                  <MoreHorizontal className="size-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => router.push(`/leads/${lead.id}/edit`)}
-                  >
-                    <Pencil className="mr-2 size-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => handleDelete(lead.id)}
-                  >
-                    <Trash2 className="mr-2 size-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
+    <div className="rounded-lg border border-border/50 overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border/50 hover:bg-transparent">
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Name</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Company</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Status</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Source</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Value</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">Created</TableHead>
+            <TableHead className="w-[50px]" />
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {leads.map((lead) => (
+            <TableRow key={lead.id} className="border-border/30 hover:bg-accent/50 transition-colors">
+              <TableCell>
+                <Link
+                  href={`/leads/${lead.id}`}
+                  className="font-medium text-foreground hover:text-gold-400 transition-colors"
+                >
+                  {lead.firstName} {lead.lastName}
+                </Link>
+                {lead.email && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{lead.email}</p>
+                )}
+              </TableCell>
+              <TableCell>
+                {lead.companyName && (
+                  <div>
+                    <p className="text-sm">{lead.companyName}</p>
+                    {lead.jobTitle && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {lead.jobTitle}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                <StatusDropdown lead={lead} />
+              </TableCell>
+              <TableCell className="capitalize text-sm text-muted-foreground">
+                {lead.source.replace("_", " ")}
+              </TableCell>
+              <TableCell className="font-heading tabular-nums">
+                {lead.estimatedValue
+                  ? `$${Number(lead.estimatedValue).toLocaleString()}`
+                  : <span className="text-muted-foreground/50">&mdash;</span>}
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground tabular-nums">
+                {new Date(lead.createdAt).toLocaleDateString()}
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground" />
+                    }
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => router.push(`/leads/${lead.id}/edit`)}
+                    >
+                      <Pencil className="mr-2 size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleDelete(lead.id)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

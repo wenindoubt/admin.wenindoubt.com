@@ -38,13 +38,15 @@ export function ActivityForm({ leadId }: { leadId: string }) {
     }
   }
 
+  const inputClasses = "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex gap-3">
       <Select
         defaultValue="note"
         onValueChange={(v) => v && setValue("type", v as ActivityFormValues["type"])}
       >
-        <SelectTrigger className="w-32">
+        <SelectTrigger className={`w-32 ${inputClasses}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -58,14 +60,18 @@ export function ActivityForm({ leadId }: { leadId: string }) {
       <div className="flex-1 space-y-1">
         <Textarea
           placeholder="Add a note, log a call, etc."
-          className="min-h-[60px]"
+          className={`min-h-[60px] ${inputClasses}`}
           {...register("description")}
         />
         {errors.description && (
           <p className="text-sm text-destructive">{errors.description.message}</p>
         )}
       </div>
-      <Button type="submit" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0 self-start"
+      >
         Add
       </Button>
     </form>

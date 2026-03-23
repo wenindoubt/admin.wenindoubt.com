@@ -48,7 +48,6 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
       }
 
       toast.success("Analysis complete");
-      // Reload page to show saved insight
       window.location.reload();
     } catch {
       toast.error("Analysis failed");
@@ -58,62 +57,77 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="size-4" />
-              AI Insights
-            </CardTitle>
-            <CardDescription>AI-generated analysis</CardDescription>
+    <div className="glow-border">
+      <Card className="relative border-border/50 overflow-hidden">
+        {/* Subtle gradient overlay for AI feel */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gold-400/[0.02] via-transparent to-violet-500/[0.02] pointer-events-none" />
+        <CardHeader className="relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex size-5 items-center justify-center rounded-md bg-gold-400/15">
+                  <Sparkles className="size-3 text-gold-400" />
+                </div>
+                AI Insights
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">AI-generated analysis</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runAnalysis}
+              disabled={isAnalyzing}
+              className="border-gold-400/25 text-gold-400 hover:bg-gold-400/10 hover:text-gold-300 hover:border-gold-400/40"
+            >
+              <RefreshCw className={`size-3.5 ${isAnalyzing ? "animate-spin" : ""}`} />
+              {insights.length > 0 ? "Re-analyze" : "Analyze"}
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={runAnalysis}
-            disabled={isAnalyzing}
-          >
-            <RefreshCw className={`size-4 ${isAnalyzing ? "animate-spin" : ""}`} />
-            {insights.length > 0 ? "Re-analyze" : "Analyze"}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isAnalyzing && (
-          <div className="space-y-2">
-            {streamedText ? (
-              <p className="whitespace-pre-wrap text-sm">{streamedText}</p>
-            ) : (
-              <>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </>
-            )}
-          </div>
-        )}
-        {!isAnalyzing && insights.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No analysis yet. Click Analyze to generate AI insights.
-          </p>
-        )}
-        {!isAnalyzing &&
-          insights.map((insight) => (
-            <div key={insight.id} className="space-y-2">
-              {insight.summary && (
-                <p className="text-sm font-medium">{insight.summary}</p>
+        </CardHeader>
+        <CardContent className="relative space-y-4">
+          {isAnalyzing && (
+            <div className="space-y-2">
+              {streamedText ? (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{streamedText}</p>
+              ) : (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full bg-gold-400/5" />
+                  <Skeleton className="h-4 w-3/4 bg-gold-400/5" />
+                  <Skeleton className="h-4 w-1/2 bg-gold-400/5" />
+                </div>
               )}
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                {insight.analysisText}
+            </div>
+          )}
+          {!isAnalyzing && insights.length === 0 && (
+            <div className="flex flex-col items-center py-6 text-center">
+              <div className="flex size-10 items-center justify-center rounded-full bg-gold-400/10 mb-3">
+                <Sparkles className="size-4 text-gold-400/60" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                No analysis yet
               </p>
-              <p className="text-xs text-muted-foreground">
-                Generated {new Date(insight.generatedAt).toLocaleString()} via{" "}
-                {insight.analysisModel}
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Click Analyze to generate AI insights
               </p>
             </div>
-          ))}
-      </CardContent>
-    </Card>
+          )}
+          {!isAnalyzing &&
+            insights.map((insight) => (
+              <div key={insight.id} className="space-y-2 border-b border-border/20 pb-4 last:border-0 last:pb-0">
+                {insight.summary && (
+                  <p className="text-sm font-medium text-foreground/90">{insight.summary}</p>
+                )}
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {insight.analysisText}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50">
+                  {new Date(insight.generatedAt).toLocaleString()} &middot;{" "}
+                  {insight.analysisModel}
+                </p>
+              </div>
+            ))}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

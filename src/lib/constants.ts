@@ -1,12 +1,12 @@
 export const LEAD_STATUSES = [
-  { value: "new", label: "New", color: "bg-blue-100 text-blue-800" },
-  { value: "contacted", label: "Contacted", color: "bg-yellow-100 text-yellow-800" },
-  { value: "qualifying", label: "Qualifying", color: "bg-purple-100 text-purple-800" },
-  { value: "proposal_sent", label: "Proposal Sent", color: "bg-indigo-100 text-indigo-800" },
-  { value: "negotiating", label: "Negotiating", color: "bg-orange-100 text-orange-800" },
-  { value: "won", label: "Won", color: "bg-green-100 text-green-800" },
-  { value: "lost", label: "Lost", color: "bg-red-100 text-red-800" },
-  { value: "churned", label: "Churned", color: "bg-gray-100 text-gray-800" },
+  { value: "new", label: "New", color: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/25" },
+  { value: "contacted", label: "Contacted", color: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25" },
+  { value: "qualifying", label: "Qualifying", color: "bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/25" },
+  { value: "proposal_sent", label: "Proposal Sent", color: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/25" },
+  { value: "negotiating", label: "Negotiating", color: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/25" },
+  { value: "won", label: "Won", color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25" },
+  { value: "lost", label: "Lost", color: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/25" },
+  { value: "churned", label: "Churned", color: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/25" },
 ] as const;
 
 export const LEAD_SOURCES = [

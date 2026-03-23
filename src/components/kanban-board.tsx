@@ -35,7 +35,6 @@ function buildColumns(leads: Lead[]): KanbanColumn[] {
 export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
   const [columns, setColumns] = useState(() => buildColumns(initialLeads));
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("leads-realtime")
@@ -96,7 +95,6 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
 
     const newStatus = destination.droppableId;
 
-    // Optimistic update
     setColumns((prev) => {
       const updated = prev.map((col) => ({
         ...col,
@@ -121,7 +119,6 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
         status: newStatus as Lead["status"],
       });
     } catch {
-      // Revert on failure
       setColumns((prev) => buildColumns(prev.flatMap((c) => c.leads)));
       toast.error("Failed to update status");
     }
@@ -129,14 +126,14 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-3 overflow-x-auto pb-4">
         {columns.map((column) => (
           <div key={column.status} className="w-72 shrink-0">
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex items-center justify-between">
               <Badge variant="outline" className={column.color}>
                 {column.label}
               </Badge>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs text-muted-foreground/60 tabular-nums">
                 {column.leads.length}
               </span>
             </div>
@@ -146,7 +143,9 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={`min-h-[200px] space-y-2 rounded-lg border p-2 transition-colors ${
-                    snapshot.isDraggingOver ? "bg-muted/50" : "bg-muted/20"
+                    snapshot.isDraggingOver
+                      ? "border-gold-400/30 bg-gold-400/[0.03]"
+                      : "border-border/30 bg-card/30"
                   }`}
                 >
                   {column.leads.map((lead, index) => (
@@ -160,24 +159,26 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`cursor-grab transition-shadow ${
-                            snapshot.isDragging ? "shadow-lg" : ""
+                          className={`cursor-grab border-border/40 transition-all ${
+                            snapshot.isDragging
+                              ? "shadow-lg shadow-black/30 ring-1 ring-gold-400/20"
+                              : "hover:border-border/60"
                           }`}
                         >
                           <CardContent className="p-3">
                             <Link
                               href={`/leads/${lead.id}`}
-                              className="font-medium hover:underline"
+                              className="font-medium text-sm hover:text-gold-400 transition-colors"
                             >
                               {lead.firstName} {lead.lastName}
                             </Link>
                             {lead.companyName && (
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground mt-0.5">
                                 {lead.companyName}
                               </p>
                             )}
                             {lead.estimatedValue && (
-                              <p className="mt-1 text-sm font-medium">
+                              <p className="mt-1.5 text-xs font-heading font-semibold text-gold-400/80 tabular-nums">
                                 ${Number(lead.estimatedValue).toLocaleString()}
                               </p>
                             )}

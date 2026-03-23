@@ -38,27 +38,33 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex gap-3">
         <Input
           placeholder="Tag name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+          className="bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20"
         />
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1.5">
           {TAG_COLORS.map((c) => (
             <button
               key={c}
-              className={`size-8 rounded-full border-2 ${
-                color === c ? "border-foreground" : "border-transparent"
+              className={`size-7 rounded-full transition-all ${
+                color === c
+                  ? "ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110"
+                  : "ring-1 ring-white/10 hover:ring-white/25"
               }`}
               style={{ backgroundColor: c }}
               onClick={() => setColor(c)}
             />
           ))}
         </div>
-        <Button onClick={handleCreate}>
+        <Button
+          onClick={handleCreate}
+          className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0"
+        >
           <Plus className="size-4" />
           Add
         </Button>
@@ -68,9 +74,10 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
         {tags.map((tag) => (
           <Badge
             key={tag.id}
+            className="border-0 px-3 py-1 text-sm"
             style={
               tag.color
-                ? { backgroundColor: tag.color, color: "#fff" }
+                ? { backgroundColor: `${tag.color}20`, color: tag.color }
                 : undefined
             }
           >
