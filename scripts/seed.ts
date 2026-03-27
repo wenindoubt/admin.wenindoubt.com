@@ -1,5 +1,5 @@
 /**
- * Seed script — creates sample leads, activities, and tags.
+ * Seed script — creates sample companies, contacts, deals, activities, and tags.
  *
  * Run:   npx tsx scripts/seed.ts
  * Clean: npx tsx scripts/seed.ts --clean
@@ -8,9 +8,17 @@ import "dotenv/config";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { leadActivities, leads, leadTags, tags } from "../src/db/schema";
+import {
+  companies,
+  companyTags,
+  contacts,
+  dealActivities,
+  deals,
+  dealTags,
+  tags,
+} from "../src/db/schema";
 
-const SEED_MARKER = "[seed]"; // createdBy marker so we can identify & remove seed data
+const SEED_MARKER = "[seed]";
 
 const conn = postgres(process.env.DATABASE_URL!, { prepare: false });
 const db = drizzle(conn);
@@ -27,21 +35,88 @@ const sampleTags = [
   { name: "Finance", color: "#eab308" },
 ] as const;
 
-const sampleLeads = [
+const sampleCompanies = [
+  {
+    name: "Acme Corp",
+    website: "https://acmecorp.io",
+    industry: "Enterprise Software",
+    size: "201-500",
+  },
+  {
+    name: "Neon Labs",
+    website: "https://neonlabs.com",
+    industry: "Developer Tools",
+    size: "51-200",
+  },
+  {
+    name: "Vault Finance",
+    website: "https://vaultfinance.co",
+    industry: "Fintech",
+    size: "11-50",
+  },
+  {
+    name: "Meridian Health",
+    website: "https://meridianhealth.org",
+    industry: "Healthcare",
+    size: "500+",
+  },
+  {
+    name: "Brightpath Design",
+    website: "https://brightpath.design",
+    industry: "Design Agency",
+    size: "1-10",
+  },
+  {
+    name: "Stratos Cloud",
+    website: "https://stratoscloud.io",
+    industry: "Cloud Infrastructure",
+    size: "201-500",
+  },
+  {
+    name: "Greenlane",
+    website: "https://greenlane.co",
+    industry: "Supply Chain",
+    size: "51-200",
+  },
+  {
+    name: "Pixelcraft Studio",
+    website: null,
+    industry: "Media & Entertainment",
+    size: "11-50",
+  },
+  {
+    name: "NordicPay",
+    website: "https://nordicpay.eu",
+    industry: "Payments",
+    size: "51-200",
+  },
+  {
+    name: "AutoFleet",
+    website: "https://autofleet.mx",
+    industry: "Logistics & Fleet",
+    size: "11-50",
+  },
+  {
+    name: "DataVine AI",
+    website: "https://datavine.ai",
+    industry: "Artificial Intelligence",
+    size: "11-50",
+  },
+  {
+    name: "Summit Capital",
+    website: "https://summitcap.com",
+    industry: "Venture Capital",
+    size: "1-10",
+  },
+] as const;
+
+const sampleContacts = [
   {
     firstName: "Sarah",
     lastName: "Chen",
     email: "sarah.chen@acmecorp.io",
     phone: "+1 415-555-0101",
-    companyName: "Acme Corp",
-    companyWebsite: "https://acmecorp.io",
     jobTitle: "VP of Engineering",
-    industry: "Enterprise Software",
-    companySize: "201-500",
-    status: "negotiating" as const,
-    source: "referral" as const,
-    sourceDetail: "Referred by Mike Torres at CloudBase",
-    estimatedValue: "125000",
     linkedinUrl: "https://linkedin.com/in/sarahchen",
   },
   {
@@ -49,14 +124,7 @@ const sampleLeads = [
     lastName: "Kowalski",
     email: "j.kowalski@neonlabs.com",
     phone: "+1 212-555-0142",
-    companyName: "Neon Labs",
-    companyWebsite: "https://neonlabs.com",
     jobTitle: "CTO",
-    industry: "Developer Tools",
-    companySize: "51-200",
-    status: "proposal_sent" as const,
-    source: "linkedin" as const,
-    estimatedValue: "85000",
     linkedinUrl: "https://linkedin.com/in/jameskowalski",
   },
   {
@@ -64,140 +132,169 @@ const sampleLeads = [
     lastName: "Sharma",
     email: "priya@vaultfinance.co",
     phone: "+1 650-555-0199",
-    companyName: "Vault Finance",
-    companyWebsite: "https://vaultfinance.co",
     jobTitle: "Head of Product",
-    industry: "Fintech",
-    companySize: "11-50",
-    status: "qualifying" as const,
-    source: "conference" as const,
-    sourceDetail: "Met at SaaStr Annual 2026",
-    estimatedValue: "45000",
+    linkedinUrl: null,
   },
   {
     firstName: "David",
     lastName: "Okafor",
     email: "dokafor@meridianhealth.org",
-    companyName: "Meridian Health",
-    companyWebsite: "https://meridianhealth.org",
+    phone: null,
     jobTitle: "Director of IT",
-    industry: "Healthcare",
-    companySize: "500+",
-    status: "contacted" as const,
-    source: "cold_outreach" as const,
-    estimatedValue: "200000",
+    linkedinUrl: null,
   },
   {
     firstName: "Emily",
     lastName: "Nguyen",
     email: "emily@brightpath.design",
-    companyName: "Brightpath Design",
-    companyWebsite: "https://brightpath.design",
+    phone: null,
     jobTitle: "Founder & CEO",
-    industry: "Design Agency",
-    companySize: "1-10",
-    status: "new" as const,
-    source: "website" as const,
-    estimatedValue: "15000",
+    linkedinUrl: null,
   },
   {
     firstName: "Marcus",
     lastName: "Bell",
     email: "mbell@stratoscloud.io",
     phone: "+1 303-555-0178",
-    companyName: "Stratos Cloud",
-    companyWebsite: "https://stratoscloud.io",
     jobTitle: "VP Sales",
-    industry: "Cloud Infrastructure",
-    companySize: "201-500",
-    status: "won" as const,
-    source: "referral" as const,
-    sourceDetail: "Referred by Lisa Wang",
-    estimatedValue: "180000",
+    linkedinUrl: null,
   },
   {
     firstName: "Aisha",
     lastName: "Patel",
     email: "aisha.patel@greenlane.co",
-    companyName: "Greenlane",
-    companyWebsite: "https://greenlane.co",
+    phone: null,
     jobTitle: "COO",
-    industry: "Supply Chain",
-    companySize: "51-200",
-    status: "lost" as const,
-    source: "conference" as const,
-    sourceDetail: "Web Summit 2025",
-    estimatedValue: "60000",
+    linkedinUrl: null,
   },
   {
     firstName: "Tom",
     lastName: "Reeves",
     email: "treeves@pixelcraft.studio",
-    companyName: "Pixelcraft Studio",
+    phone: null,
     jobTitle: "Creative Director",
-    industry: "Media & Entertainment",
-    companySize: "11-50",
-    status: "qualifying" as const,
-    source: "linkedin" as const,
-    estimatedValue: "32000",
+    linkedinUrl: null,
   },
   {
     firstName: "Lena",
     lastName: "Andersen",
     email: "lena@nordicpay.eu",
     phone: "+45 31-555-0144",
-    companyName: "NordicPay",
-    companyWebsite: "https://nordicpay.eu",
     jobTitle: "Head of Partnerships",
-    industry: "Payments",
-    companySize: "51-200",
-    status: "proposal_sent" as const,
-    source: "referral" as const,
-    sourceDetail: "Intro from Anders at Stripe",
-    estimatedValue: "95000",
+    linkedinUrl: null,
   },
   {
     firstName: "Carlos",
     lastName: "Mendez",
     email: "carlos@autofleet.mx",
-    companyName: "AutoFleet",
-    companyWebsite: "https://autofleet.mx",
+    phone: null,
     jobTitle: "CEO",
-    industry: "Logistics & Fleet",
-    companySize: "11-50",
-    status: "new" as const,
-    source: "website" as const,
-    estimatedValue: "22000",
+    linkedinUrl: null,
   },
   {
     firstName: "Rachel",
     lastName: "Kim",
     email: "rkim@datavine.ai",
-    companyName: "DataVine AI",
-    companyWebsite: "https://datavine.ai",
+    phone: null,
     jobTitle: "ML Engineering Lead",
-    industry: "Artificial Intelligence",
-    companySize: "11-50",
-    status: "contacted" as const,
-    source: "cold_outreach" as const,
-    estimatedValue: "55000",
+    linkedinUrl: null,
   },
   {
     firstName: "Oliver",
     lastName: "Grant",
     email: "ogrant@summitcap.com",
     phone: "+1 917-555-0166",
-    companyName: "Summit Capital",
-    companyWebsite: "https://summitcap.com",
     jobTitle: "Managing Partner",
-    industry: "Venture Capital",
-    companySize: "1-10",
-    status: "negotiating" as const,
+    linkedinUrl: null,
+  },
+] as const;
+
+const sampleDeals = [
+  {
+    title: "Acme Corp — Platform Redesign",
+    stage: "negotiating" as const,
+    source: "referral" as const,
+    sourceDetail: "Referred by Mike Torres at CloudBase",
+    estimatedValue: "125000",
+  },
+  {
+    title: "Neon Labs — DevTool Integration",
+    stage: "proposal_sent" as const,
+    source: "linkedin" as const,
+    sourceDetail: null,
+    estimatedValue: "85000",
+  },
+  {
+    title: "Vault Finance — Product Consulting",
+    stage: "qualifying" as const,
+    source: "conference" as const,
+    sourceDetail: "Met at SaaStr Annual 2026",
+    estimatedValue: "45000",
+  },
+  {
+    title: "Meridian Health — IT Modernization",
+    stage: "contacted" as const,
+    source: "cold_outreach" as const,
+    sourceDetail: null,
+    estimatedValue: "200000",
+  },
+  {
+    title: "Brightpath Design — Brand Strategy",
+    stage: "new" as const,
+    source: "website" as const,
+    sourceDetail: null,
+    estimatedValue: "15000",
+  },
+  {
+    title: "Stratos Cloud — Sales Enablement",
+    stage: "won" as const,
+    source: "referral" as const,
+    sourceDetail: "Referred by Lisa Wang",
+    estimatedValue: "180000",
+  },
+  {
+    title: "Greenlane — Supply Chain Audit",
+    stage: "lost" as const,
+    source: "conference" as const,
+    sourceDetail: "Web Summit 2025",
+    estimatedValue: "60000",
+  },
+  {
+    title: "Pixelcraft — Content Pipeline",
+    stage: "qualifying" as const,
+    source: "linkedin" as const,
+    sourceDetail: null,
+    estimatedValue: "32000",
+  },
+  {
+    title: "NordicPay — Partnership Strategy",
+    stage: "proposal_sent" as const,
+    source: "referral" as const,
+    sourceDetail: "Intro from Anders at Stripe",
+    estimatedValue: "95000",
+  },
+  {
+    title: "AutoFleet — Fleet Analytics",
+    stage: "new" as const,
+    source: "website" as const,
+    sourceDetail: null,
+    estimatedValue: "22000",
+  },
+  {
+    title: "DataVine AI — ML Ops Consulting",
+    stage: "contacted" as const,
+    source: "cold_outreach" as const,
+    sourceDetail: null,
+    estimatedValue: "55000",
+  },
+  {
+    title: "Summit Capital — Portfolio Advisory",
+    stage: "negotiating" as const,
     source: "referral" as const,
     sourceDetail: "Portfolio company intro",
     estimatedValue: "300000",
   },
-];
+] as const;
 
 const activityTemplates = [
   {
@@ -206,7 +303,7 @@ const activityTemplates = [
       "Initial research completed — strong fit for our enterprise tier",
       "Reviewed their recent Series B announcement",
       "Checked LinkedIn — mutual connections with our advisory board",
-      "Internal discussion: team agrees this is a high-priority lead",
+      "Internal discussion: team agrees this is a high-priority deal",
     ],
   },
   {
@@ -243,7 +340,7 @@ const activityTemplates = [
 async function seed() {
   console.log("Seeding sample data...\n");
 
-  // 1. Tags
+  // Tags
   const insertedTags = [];
   for (const t of sampleTags) {
     const [tag] = await db
@@ -255,96 +352,147 @@ async function seed() {
   }
   console.log(`  Tags:       ${insertedTags.length} created`);
 
-  // Fetch all tags (including pre-existing ones matching our names)
   const allTags = await db.select().from(tags);
   const tagsByName = Object.fromEntries(allTags.map((t) => [t.name, t]));
 
-  // 2. Leads
-  const insertedLeads = await db.insert(leads).values(sampleLeads).returning();
-  console.log(`  Leads:      ${insertedLeads.length} created`);
+  // Companies
+  const insertedCompanies = await db
+    .insert(companies)
+    .values(sampleCompanies.map((c) => ({ ...c })))
+    .returning();
+  console.log(`  Companies:  ${insertedCompanies.length} created`);
 
-  // 3. Tag assignments (random 1-3 tags per lead)
+  // Contacts (one per company)
+  const insertedContacts = [];
+  for (let i = 0; i < sampleContacts.length; i++) {
+    const [contact] = await db
+      .insert(contacts)
+      .values({ ...sampleContacts[i], companyId: insertedCompanies[i].id })
+      .returning();
+    insertedContacts.push(contact);
+  }
+  console.log(`  Contacts:   ${insertedContacts.length} created`);
+
+  // Deals (one per company/contact pair)
+  const insertedDeals = [];
+  for (let i = 0; i < sampleDeals.length; i++) {
+    const deal = sampleDeals[i];
+    const [inserted] = await db
+      .insert(deals)
+      .values({
+        ...deal,
+        companyId: insertedCompanies[i].id,
+        primaryContactId: insertedContacts[i].id,
+        convertedAt: deal.stage === "won" ? new Date() : null,
+        closedAt:
+          deal.stage === "won" || deal.stage === "lost" ? new Date() : null,
+      })
+      .returning();
+    insertedDeals.push(inserted);
+  }
+  console.log(`  Deals:      ${insertedDeals.length} created`);
+
+  // Deal tags (random 1-3 per deal)
   const tagNames = Object.keys(tagsByName);
-  let tagCount = 0;
-  for (const lead of insertedLeads) {
+  let dtCount = 0;
+  for (const deal of insertedDeals) {
     const shuffled = [...tagNames].sort(() => Math.random() - 0.5);
     const pick = shuffled.slice(0, 1 + Math.floor(Math.random() * 2));
     for (const name of pick) {
       const tag = tagsByName[name];
       if (tag) {
         await db
-          .insert(leadTags)
-          .values({ leadId: lead.id, tagId: tag.id })
+          .insert(dealTags)
+          .values({ dealId: deal.id, tagId: tag.id })
           .onConflictDoNothing();
-        tagCount++;
+        dtCount++;
       }
     }
   }
-  console.log(`  Tag links:  ${tagCount} created`);
+  console.log(`  Deal tags:  ${dtCount} created`);
 
-  // 4. Activities (2-5 per lead, spread over recent weeks)
+  // Company tags (random 0-2 per company)
+  let ctCount = 0;
+  for (const company of insertedCompanies) {
+    const shuffled = [...tagNames].sort(() => Math.random() - 0.5);
+    const pick = shuffled.slice(0, Math.floor(Math.random() * 2));
+    for (const name of pick) {
+      const tag = tagsByName[name];
+      if (tag) {
+        await db
+          .insert(companyTags)
+          .values({ companyId: company.id, tagId: tag.id })
+          .onConflictDoNothing();
+        ctCount++;
+      }
+    }
+  }
+  console.log(`  Co. tags:   ${ctCount} created`);
+
+  // Activities (2-5 per deal)
   let actCount = 0;
-  for (const lead of insertedLeads) {
-    const numActivities = 2 + Math.floor(Math.random() * 4);
-    for (let i = 0; i < numActivities; i++) {
-      const template =
+  for (const deal of insertedDeals) {
+    const num = 2 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < num; i++) {
+      const tmpl =
         activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
       const desc =
-        template.descriptions[
-          Math.floor(Math.random() * template.descriptions.length)
-        ];
+        tmpl.descriptions[Math.floor(Math.random() * tmpl.descriptions.length)];
       const daysAgo = Math.floor(Math.random() * 30);
-      const createdAt = new Date(Date.now() - daysAgo * 86400000);
-
-      await db.insert(leadActivities).values({
-        leadId: lead.id,
-        type: template.type,
+      await db.insert(dealActivities).values({
+        dealId: deal.id,
+        type: tmpl.type,
         description: desc,
         createdBy: SEED_MARKER,
-        createdAt,
+        createdAt: new Date(Date.now() - daysAgo * 86400000),
       });
       actCount++;
     }
   }
   console.log(`  Activities: ${actCount} created`);
 
-  console.log("\nDone! Seed data has createdBy='[seed]' for easy cleanup.");
+  console.log("\nDone!");
 }
 
 async function clean() {
   console.log("Removing seed data...\n");
 
-  // Find all activities created by seed
   const seedActivities = await db
-    .select({ leadId: leadActivities.leadId })
-    .from(leadActivities)
-    .where(eq(leadActivities.createdBy, SEED_MARKER));
+    .select({ dealId: dealActivities.dealId })
+    .from(dealActivities)
+    .where(eq(dealActivities.createdBy, SEED_MARKER));
 
-  const seedLeadIds = [...new Set(seedActivities.map((a) => a.leadId))];
+  const seedDealIds = [...new Set(seedActivities.map((a) => a.dealId))];
 
-  if (seedLeadIds.length > 0) {
-    // Cascade deletes will handle activities, insights, lead_tags
+  if (seedDealIds.length > 0) {
+    const seedDeals = await db
+      .select({ companyId: deals.companyId })
+      .from(deals)
+      .where(inArray(deals.id, seedDealIds));
+    const companyIds = [...new Set(seedDeals.map((d) => d.companyId))];
+
     const deleted = await db
-      .delete(leads)
-      .where(inArray(leads.id, seedLeadIds))
+      .delete(deals)
+      .where(inArray(deals.id, seedDealIds))
       .returning();
-    console.log(
-      `  Deleted ${deleted.length} seed leads (+ cascaded activities, tags, insights)`,
-    );
+    console.log(`  Deleted ${deleted.length} seed deals`);
+
+    if (companyIds.length > 0) {
+      const dc = await db
+        .delete(companies)
+        .where(inArray(companies.id, companyIds))
+        .returning();
+      console.log(`  Deleted ${dc.length} seed companies`);
+    }
   } else {
     console.log("  No seed data found");
   }
 
-  // Clean up orphaned seed tags (only if no other leads reference them)
   for (const t of sampleTags) {
     await db.delete(tags).where(eq(tags.name, t.name));
   }
-  console.log(`  Deleted seed tags`);
-  console.log("\nDone!");
+  console.log("  Deleted seed tags\nDone!");
 }
 
-// ─── Entry ───
-
 const isClean = process.argv.includes("--clean");
-
 (isClean ? clean() : seed()).catch(console.error).finally(() => conn.end());

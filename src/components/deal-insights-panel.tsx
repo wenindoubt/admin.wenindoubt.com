@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowUp,
   Check,
   ChevronLeft,
@@ -14,9 +15,10 @@ import {
   RefreshCw,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -38,12 +40,22 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { LeadInsight } from "@/db/schema";
+import type { Company, Contact, Deal, DealInsight } from "@/db/schema";
 import { deleteInsight } from "@/lib/actions/ai";
+import { buildDealContext } from "@/lib/ai/context";
 
 type Props = {
-  leadId: string;
-  insights: LeadInsight[];
+  deal: Deal;
+  company: Company;
+  contact: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    phone: string | null;
+    jobTitle: string | null;
+  } | null;
+  insights: DealInsight[];
 };
 
 const PAGE_SIZE = 3;
@@ -160,11 +172,11 @@ const PRINT_STYLES = `
 function ExportToolbar({
   analysisText,
   contentRef,
-  leadName,
+  dealTitle,
 }: {
   analysisText: string;
   contentRef: React.RefObject<HTMLDivElement | null>;
-  leadName?: string;
+  dealTitle?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -180,10 +192,10 @@ function ExportToolbar({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `analysis${leadName ? `-${leadName.toLowerCase().replace(/\s+/g, "-")}` : ""}.md`;
+    a.download = `analysis${dealTitle ? `-${dealTitle.toLowerCase().replace(/\s+/g, "-")}` : ""}.md`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [analysisText, leadName]);
+  }, [analysisText, dealTitle]);
 
   const printAnalysis = useCallback(() => {
     const renderedHtml = contentRef.current?.innerHTML;
@@ -197,7 +209,7 @@ function ExportToolbar({
 
     printWindow.document.open();
     printWindow.document.write(
-      `<!DOCTYPE html><html><head><title>Lead Analysis${leadName ? ` — ${leadName}` : ""}</title><style>${PRINT_STYLES}</style></head><body>${renderedHtml}</body></html>`,
+      `<!DOCTYPE html><html><head><title>Deal Analysis${dealTitle ? ` — ${dealTitle}` : ""}</title><style>${PRINT_STYLES}</style></head><body>${renderedHtml}</body></html>`,
     );
     printWindow.document.close();
 
@@ -205,7 +217,7 @@ function ExportToolbar({
       printWindow.print();
       printWindow.onafterprint = () => printWindow.close();
     };
-  }, [contentRef, leadName]);
+  }, [contentRef, dealTitle]);
 
   const btnClass =
     "h-7 gap-1.5 rounded-md px-2.5 text-xs font-medium text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 transition-colors";
@@ -263,11 +275,11 @@ function PromptBadge({ prompt }: { prompt: string }) {
 
 function HistoryInsightCard({
   insight,
-  leadId,
+  dealId,
   onDelete,
 }: {
-  insight: LeadInsight;
-  leadId: string;
+  insight: DealInsight;
+  dealId: string;
   onDelete: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -283,7 +295,7 @@ function HistoryInsightCard({
     }
     startTransition(async () => {
       try {
-        await deleteInsight(insight.id, leadId);
+        await deleteInsight(insight.id, dealId);
         toast.success("Analysis deleted");
         onDelete();
       } catch {
@@ -350,11 +362,11 @@ function HistoryInsightCard({
 }
 
 function InsightHistoryModal({
-  leadId,
+  dealId,
   olderInsights,
 }: {
-  leadId: string;
-  olderInsights: LeadInsight[];
+  dealId: string;
+  olderInsights: DealInsight[];
 }) {
   const [historyPage, setHistoryPage] = useState(0);
 
@@ -411,7 +423,7 @@ function InsightHistoryModal({
             <HistoryInsightCard
               key={insight.id}
               insight={insight}
-              leadId={leadId}
+              dealId={dealId}
               onDelete={handleDelete}
             />
           ))}
@@ -464,16 +476,70 @@ function InsightHistoryModal({
   );
 }
 
-export function LeadInsightsPanel({ leadId, insights }: Props) {
+export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
+  const dealId = deal.id;
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [streamedText, setStreamedText] = useState("");
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState("");
+  const [dismissedStale, setDismissedStale] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const latestInsight = insights[0];
   const olderInsights = insights.slice(1);
+
+  // Build contact in the shape buildDealContext expects
+  const contactForContext: Contact | null = contact
+    ? {
+        id: contact.id,
+        companyId: deal.companyId,
+        firstName: contact.firstName ?? "",
+        lastName: contact.lastName ?? "",
+        email: contact.email,
+        phone: contact.phone,
+        linkedinUrl: null,
+        jobTitle: contact.jobTitle,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    : null;
+
+  // Detect which fields changed since last analysis
+  const currentContext = buildDealContext(deal, company, contactForContext);
+  const staleChanges = (() => {
+    if (dismissedStale) return [];
+    if (!latestInsight?.rawInput) return [];
+    if (latestInsight.rawInput === currentContext) return [];
+
+    const parseFields = (text: string) => {
+      const map = new Map<string, string>();
+      for (const line of text.split("\n")) {
+        if (line.startsWith("Recent Activity")) break;
+        const idx = line.indexOf(": ");
+        if (idx > 0) map.set(line.slice(0, idx), line.slice(idx + 2));
+      }
+      return map;
+    };
+
+    const oldFields = parseFields(latestInsight.rawInput);
+    const newFields = parseFields(currentContext);
+    const changes: { field: string; from: string; to: string }[] = [];
+
+    for (const [key, newVal] of newFields) {
+      const oldVal = oldFields.get(key);
+      if (oldVal !== newVal) {
+        changes.push({ field: key, from: oldVal ?? "(empty)", to: newVal });
+      }
+    }
+    for (const [key, oldVal] of oldFields) {
+      if (!newFields.has(key)) {
+        changes.push({ field: key, from: oldVal, to: "(removed)" });
+      }
+    }
+    return changes;
+  })();
+  const isStale = staleChanges.length > 0;
 
   async function runAnalysis(prompt?: string) {
     setIsAnalyzing(true);
@@ -481,7 +547,7 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
     setActivePrompt(prompt ?? null);
 
     try {
-      const body: Record<string, string> = { leadId };
+      const body: Record<string, string> = { dealId };
       if (prompt) body.prompt = prompt;
 
       const res = await fetch("/api/ai/analyze", {
@@ -512,6 +578,16 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
       setActivePrompt(null);
     }
   }
+
+  // Auto-trigger analysis for new deals with no insights.
+  const hasRunAutoAnalysis = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref-guarded one-shot effect
+  useEffect(() => {
+    if (insights.length === 0 && !hasRunAutoAnalysis.current) {
+      hasRunAutoAnalysis.current = true;
+      runAnalysis();
+    }
+  }, [insights.length]);
 
   function handleCustomSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -564,7 +640,7 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
               onChange={(e) => setCustomQuery(e.target.value)}
               disabled={isAnalyzing}
               maxLength={500}
-              placeholder="Ask something specific about this lead..."
+              placeholder="Ask something specific about this deal..."
               className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 pr-10 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-gold-400/30 focus:border-gold-400/30 disabled:opacity-50"
             />
             <button
@@ -578,6 +654,55 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
         </CardHeader>
 
         <CardContent className="relative">
+          {/* Stale analysis banner */}
+          {isStale && !isAnalyzing && (
+            <div className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] px-3.5 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <AlertTriangle className="size-4 text-amber-500 shrink-0" />
+                  <span className="text-foreground/80">
+                    Deal data changed since last analysis
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => runAnalysis()}
+                    className="h-7 border-amber-400/30 text-amber-600 hover:bg-amber-400/10 hover:text-amber-500 hover:border-amber-400/50 text-xs"
+                  >
+                    <RefreshCw className="size-3" />
+                    Re-analyze
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedStale(true)}
+                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-colors"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-2 space-y-1 text-xs">
+                {staleChanges.map((c) => (
+                  <div
+                    key={c.field}
+                    className="flex items-baseline gap-1.5 text-foreground/60"
+                  >
+                    <span className="font-medium text-amber-600/80">
+                      {c.field}:
+                    </span>
+                    <span className="line-through text-muted-foreground/40">
+                      {c.from}
+                    </span>
+                    <span className="text-foreground/70">&rarr;</span>
+                    <span className="text-foreground/80">{c.to}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Streaming state */}
           {isAnalyzing && (
             <div>
@@ -615,7 +740,7 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
               </p>
               <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
                 Run an analysis to get AI-powered insights, or ask a specific
-                question about this lead
+                question about this deal
               </p>
             </div>
           )}
@@ -635,12 +760,13 @@ export function LeadInsightsPanel({ leadId, insights }: Props) {
               <ExportToolbar
                 analysisText={latestInsight.analysisText}
                 contentRef={contentRef}
+                dealTitle={deal.title}
               />
 
               {/* History modal trigger */}
               {olderInsights.length > 0 && (
                 <InsightHistoryModal
-                  leadId={leadId}
+                  dealId={dealId}
                   olderInsights={olderInsights}
                 />
               )}

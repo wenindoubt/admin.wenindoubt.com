@@ -2,10 +2,10 @@ import { List } from "lucide-react";
 import Link from "next/link";
 import { KanbanBoard } from "@/components/kanban-board";
 import { Button } from "@/components/ui/button";
-import { getLeads } from "@/lib/actions/leads";
+import { getDeals } from "@/lib/actions/deals";
 
 export default async function BoardPage() {
-  const leads = await getLeads();
+  const deals = await getDeals();
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -19,14 +19,14 @@ export default async function BoardPage() {
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href="/leads" />}
+          render={<Link href="/deals" />}
           className="border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
         >
           <List className="size-4" />
           List View
         </Button>
       </div>
-      <KanbanBoard initialLeads={leads} />
+      <KanbanBoard initialDeals={deals} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ export default function DashboardLayout({
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           <div className="h-4 w-px bg-border" />
           <span className="text-xs text-muted-foreground tracking-wide">
-            Lead Intelligence Platform
+            Deal Intelligence Platform
           </span>
         </div>
         <div className="p-6 lg:p-8">{children}</div>

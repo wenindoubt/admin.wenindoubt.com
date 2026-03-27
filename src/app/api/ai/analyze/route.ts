@@ -2,12 +2,19 @@ import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { db } from "@/db";
-import { leadInsights, leads } from "@/db/schema";
+import {
+  companies,
+  contacts,
+  dealActivities,
+  dealInsights,
+  deals,
+} from "@/db/schema";
 import { claude } from "@/lib/ai/claude";
+import { buildDealContext } from "@/lib/ai/context";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import {
-  LEAD_ANALYSIS_SYSTEM,
-  LEAD_CUSTOM_ANALYSIS_SYSTEM,
+  DEAL_ANALYSIS_SYSTEM,
+  DEAL_CUSTOM_ANALYSIS_SYSTEM,
 } from "@/lib/ai/prompts";
 
 const MAX_PROMPT_LENGTH = 500;
@@ -18,9 +25,9 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { leadId, prompt } = await req.json();
-  if (!leadId) {
-    return new Response("Missing leadId", { status: 400 });
+  const { dealId, prompt } = await req.json();
+  if (!dealId) {
+    return new Response("Missing dealId", { status: 400 });
   }
 
   const isCustom = typeof prompt === "string" && prompt.trim().length > 0;
@@ -32,38 +39,41 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  if (!lead) {
-    return new Response("Lead not found", { status: 404 });
+  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+  if (!deal) {
+    return new Response("Deal not found", { status: 404 });
   }
 
-  // Build context from lead data — wrapped in XML tags for data/instruction separation
-  const leadFields = [
-    `Name: ${lead.firstName} ${lead.lastName}`,
-    lead.email && `Email: ${lead.email}`,
-    lead.phone && `Phone: ${lead.phone}`,
-    lead.companyName && `Company: ${lead.companyName}`,
-    lead.companyWebsite && `Website: ${lead.companyWebsite}`,
-    lead.jobTitle && `Title: ${lead.jobTitle}`,
-    lead.industry && `Industry: ${lead.industry}`,
-    lead.companySize && `Company Size: ${lead.companySize}`,
-    lead.sourceDetail && `Source Detail: ${lead.sourceDetail}`,
-    lead.estimatedValue && `Estimated Value: $${lead.estimatedValue}`,
-    `Status: ${lead.status}`,
-    `Source: ${lead.source}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const [company] = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.id, deal.companyId));
+  if (!company) {
+    return new Response("Company not found", { status: 404 });
+  }
 
-  const context = `<lead_data>\n${leadFields}\n</lead_data>`;
+  const [contactRows, activities] = await Promise.all([
+    deal.primaryContactId
+      ? db.select().from(contacts).where(eq(contacts.id, deal.primaryContactId))
+      : Promise.resolve([]),
+    db
+      .select()
+      .from(dealActivities)
+      .where(eq(dealActivities.dealId, dealId))
+      .orderBy(dealActivities.createdAt),
+  ]);
+  const contact = contactRows[0] ?? null;
+
+  const dealFields = buildDealContext(deal, company, contact, activities);
+  const context = `<deal_data>\n${dealFields}\n</deal_data>`;
 
   const systemPrompt = isCustom
-    ? LEAD_CUSTOM_ANALYSIS_SYSTEM
-    : LEAD_ANALYSIS_SYSTEM;
+    ? DEAL_CUSTOM_ANALYSIS_SYSTEM
+    : DEAL_ANALYSIS_SYSTEM;
 
   const userMessage = isCustom
     ? `${context}\n\n<question>\n${prompt.trim()}\n</question>`
-    : `Analyze this lead:\n\n${context}`;
+    : `Analyze this deal:\n\n${context}`;
 
   // Stream Claude response
   const encoder = new TextEncoder();
@@ -93,10 +103,10 @@ export async function POST(req: NextRequest) {
         const summary = fullText.substring(0, 200).split("\n")[0];
         const embedding = await generateEmbedding(fullText);
 
-        await db.insert(leadInsights).values({
-          leadId,
+        await db.insert(dealInsights).values({
+          dealId,
           prompt: isCustom ? prompt.trim() : null,
-          rawInput: leadFields,
+          rawInput: dealFields,
           analysisText: fullText,
           summary,
           embedding,

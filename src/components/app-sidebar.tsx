@@ -1,7 +1,13 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { Kanban, LayoutDashboard, Tags, Users } from "lucide-react";
+import {
+  Building2,
+  Handshake,
+  Kanban,
+  LayoutDashboard,
+  Tags,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,8 +22,9 @@ import {
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Leads", href: "/leads", icon: Users },
-  { label: "Board", href: "/leads/board", icon: Kanban },
+  { label: "Companies", href: "/companies", icon: Building2 },
+  { label: "Deals", href: "/deals", icon: Handshake },
+  { label: "Board", href: "/deals/board", icon: Kanban },
   { label: "Tags", href: "/tags", icon: Tags },
 ];
 

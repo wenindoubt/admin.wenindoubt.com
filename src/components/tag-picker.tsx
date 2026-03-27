@@ -11,14 +11,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Tag } from "@/db/schema";
-import { setLeadTags } from "@/lib/actions/leads";
+import { setCompanyTags } from "@/lib/actions/companies";
+import { setDealTags } from "@/lib/actions/deals";
 
 export function TagPicker({
-  leadId,
+  entityId,
+  entityType,
   currentTags,
   allTags,
 }: {
-  leadId: string;
+  entityId: string;
+  entityType: "deal" | "company";
   currentTags: Tag[];
   allTags: Tag[];
 }) {
@@ -39,7 +42,11 @@ export function TagPicker({
 
     startTransition(async () => {
       try {
-        await setLeadTags(leadId, [...next]);
+        if (entityType === "deal") {
+          await setDealTags(entityId, [...next]);
+        } else {
+          await setCompanyTags(entityId, [...next]);
+        }
       } catch {
         setSelectedIds(prev);
         toast.error("Failed to update tags");

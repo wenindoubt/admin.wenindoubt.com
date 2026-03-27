@@ -4,136 +4,144 @@ import { auth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { leadInsights, leads } from "@/db/schema";
+import {
+  companies,
+  contacts,
+  dealActivities,
+  dealInsights,
+  deals,
+} from "@/db/schema";
 import { claude } from "@/lib/ai/claude";
-import { GEMINI_MODEL, gemini } from "@/lib/ai/gemini";
+import { buildDealContext } from "@/lib/ai/context";
 import {
   COMPANY_RESEARCH_SYSTEM,
-  LEAD_SCORING_SYSTEM,
+  DEAL_SCORING_SYSTEM,
   NEXT_STEPS_SYSTEM,
   OUTREACH_DRAFT_SYSTEM,
 } from "@/lib/ai/prompts";
 
-function buildLeadContext(lead: typeof leads.$inferSelect): string {
-  return [
-    `Name: ${lead.firstName} ${lead.lastName}`,
-    lead.email && `Email: ${lead.email}`,
-    lead.companyName && `Company: ${lead.companyName}`,
-    lead.companyWebsite && `Website: ${lead.companyWebsite}`,
-    lead.jobTitle && `Title: ${lead.jobTitle}`,
-    lead.industry && `Industry: ${lead.industry}`,
-    lead.companySize && `Company Size: ${lead.companySize}`,
-    lead.sourceDetail && `Source Detail: ${lead.sourceDetail}`,
-    lead.estimatedValue && `Estimated Value: $${lead.estimatedValue}`,
-    `Status: ${lead.status}`,
-    `Source: ${lead.source}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+const MODEL = "claude-sonnet-4-6";
+
+async function fetchDealWithRelations(dealId: string) {
+  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+  if (!deal) throw new Error("Deal not found");
+
+  const [companyRows, contactRows, activities] = await Promise.all([
+    db.select().from(companies).where(eq(companies.id, deal.companyId)),
+    deal.primaryContactId
+      ? db.select().from(contacts).where(eq(contacts.id, deal.primaryContactId))
+      : Promise.resolve([]),
+    db
+      .select()
+      .from(dealActivities)
+      .where(eq(dealActivities.dealId, dealId))
+      .orderBy(dealActivities.createdAt),
+  ]);
+
+  const company = companyRows[0];
+  if (!company) throw new Error("Company not found");
+
+  return { deal, company, contact: contactRows[0] ?? null, activities };
 }
 
-export async function scoreLead(leadId: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
-  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  if (!lead) throw new Error("Lead not found");
-
-  const context = buildLeadContext(lead);
-
-  const response = await gemini.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: `${LEAD_SCORING_SYSTEM}\n\nLead data:\n${context}`,
+async function callClaude(
+  system: string,
+  userContent: string,
+): Promise<string> {
+  const response = await claude.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    system,
+    messages: [{ role: "user", content: userContent }],
   });
-
-  const text = response.text ?? "";
-  // Extract JSON from potential markdown code block
-  const jsonMatch =
-    text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("Invalid scoring response");
-
-  return JSON.parse(jsonMatch[1] ?? jsonMatch[0]);
+  const block = response.content.find((b) => b.type === "text");
+  return block?.text ?? "";
 }
 
-export async function researchCompany(leadId: string) {
+function parseJson(text: string): unknown {
+  const match =
+    text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("Invalid JSON response");
+  return JSON.parse(match[1] ?? match[0]);
+}
+
+export async function scoreDeal(dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  if (!lead) throw new Error("Lead not found");
+  const { deal, company, contact, activities } =
+    await fetchDealWithRelations(dealId);
+  const context = buildDealContext(deal, company, contact, activities);
+
+  const text = await callClaude(
+    DEAL_SCORING_SYSTEM,
+    `Score this deal:\n\n${context}`,
+  );
+  return parseJson(text);
+}
+
+export async function researchCompany(companyId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const [company] = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.id, companyId));
+  if (!company) throw new Error("Company not found");
 
   const prompt = [
-    lead.companyName && `Company: ${lead.companyName}`,
-    lead.companyWebsite && `Website: ${lead.companyWebsite}`,
-    lead.industry && `Industry: ${lead.industry}`,
+    `Company: ${company.name}`,
+    company.website && `Website: ${company.website}`,
+    company.industry && `Industry: ${company.industry}`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const response = await gemini.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: `${COMPANY_RESEARCH_SYSTEM}\n\n${prompt}`,
-  });
-
-  return response.text ?? "";
+  return callClaude(
+    COMPANY_RESEARCH_SYSTEM,
+    `Research this company:\n\n${prompt}`,
+  );
 }
 
-export async function draftOutreach(leadId: string) {
+export async function draftOutreach(dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  if (!lead) throw new Error("Lead not found");
+  const { deal, company, contact, activities } =
+    await fetchDealWithRelations(dealId);
+  const context = buildDealContext(deal, company, contact, activities);
 
-  const context = buildLeadContext(lead);
-
-  const response = await claude.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 512,
-    system: OUTREACH_DRAFT_SYSTEM,
-    messages: [
-      {
-        role: "user",
-        content: `Draft an outreach email for this lead:\n\n${context}`,
-      },
-    ],
-  });
-
-  const textBlock = response.content.find((b) => b.type === "text");
-  return textBlock?.text ?? "";
+  return callClaude(
+    OUTREACH_DRAFT_SYSTEM,
+    `Draft an outreach email for this deal:\n\n${context}`,
+  );
 }
 
-export async function suggestNextSteps(leadId: string) {
+export async function suggestNextSteps(dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  if (!lead) throw new Error("Lead not found");
+  const { deal, company, contact, activities } =
+    await fetchDealWithRelations(dealId);
+  const context = buildDealContext(deal, company, contact, activities);
 
-  const context = buildLeadContext(lead);
-
-  const response = await gemini.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: `${NEXT_STEPS_SYSTEM}\n\nLead data:\n${context}`,
-  });
-
-  const text = response.text ?? "";
-  const jsonMatch =
-    text.match(/```json\s*([\s\S]*?)```/) ?? text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("Invalid response");
-
-  return JSON.parse(jsonMatch[1] ?? jsonMatch[0]);
+  const text = await callClaude(
+    NEXT_STEPS_SYSTEM,
+    `Suggest next steps for this deal:\n\n${context}`,
+  );
+  return parseJson(text);
 }
 
-export async function deleteInsight(insightId: string, leadId: string) {
+export async function deleteInsight(insightId: string, dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
   await db
-    .delete(leadInsights)
+    .delete(dealInsights)
     .where(
-      and(eq(leadInsights.id, insightId), eq(leadInsights.leadId, leadId)),
+      and(eq(dealInsights.id, insightId), eq(dealInsights.dealId, dealId)),
     );
 
-  revalidatePath(`/leads/${leadId}`);
+  revalidatePath(`/deals/${dealId}`);
 }

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Tag } from "@/db/schema";
-import { createTag } from "@/lib/actions/leads";
+import { createTag } from "@/lib/actions/deals";
 
 const TAG_COLORS = [
   "#ef4444",

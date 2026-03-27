@@ -26,7 +26,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Admin | WenInDoubt",
   description:
-    "Internal admin platform for lead management and AI-powered insights",
+    "Internal admin platform for deal management and AI-powered insights",
 };
 
 export default function RootLayout({

@@ -14,5 +14,4 @@ if (process.env.NODE_ENV !== "production") {
   globalForGemini.gemini = gemini;
 }
 
-export const GEMINI_MODEL = "gemini-3.1-pro-preview";
 export const EMBEDDING_MODEL = "gemini-embedding-2-preview";

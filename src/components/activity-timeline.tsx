@@ -10,7 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { LeadActivity } from "@/db/schema";
+import type { DealActivity } from "@/db/schema";
+import { ACTIVITY_TYPES } from "@/lib/constants";
 
 const VISIBLE_COUNT = 10;
 const MODAL_PAGE_SIZE = 15;
@@ -19,7 +20,7 @@ function ActivityItem({
   activity,
   showConnector,
 }: {
-  activity: LeadActivity;
+  activity: DealActivity;
   showConnector: boolean;
 }) {
   return (
@@ -34,8 +35,9 @@ function ActivityItem({
         <p className="text-foreground/90">{activity.description}</p>
         <p className="mt-0.5 text-xs text-muted-foreground/60">
           {new Date(activity.createdAt).toLocaleString()} &middot;{" "}
-          <span className="capitalize">
-            {activity.type.replaceAll("_", " ")}
+          <span>
+            {ACTIVITY_TYPES.find((t) => t.value === activity.type)?.label ??
+              activity.type}
           </span>
         </p>
       </div>
@@ -43,7 +45,7 @@ function ActivityItem({
   );
 }
 
-function AllActivitiesModal({ activities }: { activities: LeadActivity[] }) {
+function AllActivitiesModal({ activities }: { activities: DealActivity[] }) {
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(activities.length / MODAL_PAGE_SIZE);
   const paged = activities.slice(
@@ -144,7 +146,7 @@ function AllActivitiesModal({ activities }: { activities: LeadActivity[] }) {
 export function ActivityTimeline({
   activities,
 }: {
-  activities: LeadActivity[];
+  activities: DealActivity[];
 }) {
   const visible = activities.slice(0, VISIBLE_COUNT);
   const hasMore = activities.length > VISIBLE_COUNT;

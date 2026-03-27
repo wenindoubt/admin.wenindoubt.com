@@ -1,0 +1,292 @@
+import { ExternalLink, Pencil, Plus } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ContactList } from "@/components/contact-list";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getCompany } from "@/lib/actions/companies";
+import {
+  ACTIVITY_TYPES,
+  COMPANY_LIFECYCLES,
+  computeLifecycle,
+  DEAL_STAGES,
+} from "@/lib/constants";
+import { formatCurrency } from "@/lib/utils";
+
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function CompanyDetailPage({ params }: Props) {
+  const { id } = await params;
+  const company = await getCompany(id);
+  if (!company) notFound();
+
+  const lifecycle = computeLifecycle(company.deals);
+  const lifecycleConfig = COMPANY_LIFECYCLES.find((l) => l.value === lifecycle);
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">
+            {company.name}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={lifecycleConfig?.color}>
+              {lifecycleConfig?.label}
+            </Badge>
+            {company.website && (
+              <>
+                <div className="h-4 w-px bg-border/40" />
+                <a
+                  href={company.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-gold-400 transition-colors"
+                >
+                  <ExternalLink className="size-3.5" />
+                  {company.website.replace(/^https?:\/\//, "")}
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={`/companies/${id}/edit`} />}
+          className="border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+        >
+          <Pencil className="size-4" />
+          Edit
+        </Button>
+      </div>
+
+      {/* Details + Contacts row */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Company Details */}
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="gold-underline pb-1 text-base">
+              Company Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            {company.industry && (
+              <div>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                  Industry
+                </span>
+                <p className="mt-0.5">{company.industry}</p>
+              </div>
+            )}
+            {company.size && (
+              <div>
+                <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                  Company Size
+                </span>
+                <p className="mt-0.5">{company.size}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                Created
+              </span>
+              <p className="mt-0.5 tabular-nums">
+                {new Date(company.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+            <div>
+              <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                Deals
+              </span>
+              <p className="mt-0.5 font-heading tabular-nums">
+                {company.deals.length}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contacts */}
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="gold-underline pb-1 text-base">
+              Contacts
+            </CardTitle>
+            <CardDescription>
+              {company.contacts.length} contact
+              {company.contacts.length !== 1 ? "s" : ""} at this company
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ContactList companyId={id} contacts={company.contacts} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Deals — full width */}
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="gold-underline pb-3 text-base">
+              Deals
+            </CardTitle>
+            <CardDescription className="mt-1">
+              {company.deals.length} deal
+              {company.deals.length !== 1 ? "s" : ""}
+            </CardDescription>
+          </div>
+          <Button
+            nativeButton={false}
+            render={<Link href={`/deals/new?companyId=${id}`} />}
+            className="bg-gold-400 text-gold-400-foreground hover:bg-gold-500 border-0"
+            size="sm"
+          >
+            <Plus className="size-4" />
+            Add Deal
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {company.deals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No deals yet</p>
+          ) : (
+            <div className="rounded-lg border border-border/30 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                      Title
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                      Stage
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                      Value
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                      Contact
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
+                      Created
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {company.deals.map((deal) => {
+                    const stageConfig = DEAL_STAGES.find(
+                      (s) => s.value === deal.stage,
+                    );
+                    return (
+                      <TableRow
+                        key={deal.id}
+                        className="border-border/30 hover:bg-accent/50 transition-colors"
+                      >
+                        <TableCell>
+                          <Link
+                            href={`/deals/${deal.id}`}
+                            className="font-medium text-foreground hover:text-gold-400 transition-colors"
+                          >
+                            {deal.title}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={stageConfig?.color}
+                          >
+                            {stageConfig?.label ?? deal.stage}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-heading tabular-nums text-emerald-600">
+                          {deal.estimatedValue ? (
+                            formatCurrency(deal.estimatedValue)
+                          ) : (
+                            <span className="text-muted-foreground/50">
+                              &mdash;
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {deal.primaryContact ? (
+                            `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`
+                          ) : (
+                            <span className="text-muted-foreground/50">
+                              &mdash;
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground tabular-nums">
+                          {new Date(deal.createdAt).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Activity timeline — full width */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="gold-underline pb-3 text-base">
+            Activity
+          </CardTitle>
+          <CardDescription className="mt-1">
+            Recent activity across all deals
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {company.activities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No activity yet</p>
+          ) : (
+            <div className="relative space-y-0">
+              {company.activities.map((activity, i) => (
+                <div
+                  key={activity.id}
+                  className="relative flex gap-3 py-3 text-sm"
+                >
+                  {i < company.activities.length - 1 && (
+                    <div className="absolute left-3 top-9 bottom-0 w-px bg-border/40" />
+                  )}
+                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[10px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+                    {activity.type[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-foreground/90">{activity.description}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground/60">
+                      {new Date(activity.createdAt).toLocaleString()} &middot;{" "}
+                      <span>
+                        {ACTIVITY_TYPES.find((t) => t.value === activity.type)
+                          ?.label ?? activity.type}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

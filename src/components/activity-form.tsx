@@ -12,11 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { addActivity } from "@/lib/actions/leads";
+import { addDealActivity } from "@/lib/actions/deals";
 import { ACTIVITY_TYPES } from "@/lib/constants";
 import { type ActivityFormValues, activityFormSchema } from "@/lib/validations";
 
-export function ActivityForm({ leadId }: { leadId: string }) {
+export function ActivityForm({ dealId }: { dealId: string }) {
   const {
     register,
     handleSubmit,
@@ -25,12 +25,13 @@ export function ActivityForm({ leadId }: { leadId: string }) {
     formState: { errors, isSubmitting },
   } = useForm<ActivityFormValues>({
     resolver: zodResolver(activityFormSchema),
+    mode: "onTouched",
     defaultValues: { type: "note", description: "" },
   });
 
   async function onSubmit(data: ActivityFormValues) {
     try {
-      await addActivity(leadId, data.type, data.description);
+      await addDealActivity(dealId, data.type, data.description);
       toast.success("Activity added");
       reset();
     } catch {
@@ -60,6 +61,9 @@ export function ActivityForm({ leadId }: { leadId: string }) {
           ))}
         </SelectContent>
       </Select>
+      {errors.type && (
+        <p className="text-sm text-destructive">{errors.type.message}</p>
+      )}
       <div className="flex-1 space-y-1">
         <Textarea
           placeholder="Add a note, log a call, etc."

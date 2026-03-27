@@ -1,14 +1,14 @@
 import { Kanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { LeadFilters } from "@/components/lead-filters";
-import { LeadsTable } from "@/components/leads-table";
+import { DealFilters } from "@/components/deal-filters";
+import { DealsTable } from "@/components/deals-table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getLeads, getTags } from "@/lib/actions/leads";
+import { getDeals, getTags } from "@/lib/actions/deals";
 
 type SearchParams = Promise<{
-  status?: string;
+  stage?: string;
   source?: string;
   search?: string;
   assignedTo?: string;
@@ -17,18 +17,17 @@ type SearchParams = Promise<{
   tag?: string | string[];
 }>;
 
-async function LeadsContent({ searchParams }: { searchParams: SearchParams }) {
+async function DealsContent({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
 
-  // Normalize tag param to array
   const tagIds = params.tag
     ? Array.isArray(params.tag)
       ? params.tag
       : [params.tag]
     : undefined;
 
-  const leads = await getLeads({
-    status: params.status,
+  const deals = await getDeals({
+    stage: params.stage,
     source: params.source,
     search: params.search,
     assignedTo: params.assignedTo,
@@ -37,21 +36,21 @@ async function LeadsContent({ searchParams }: { searchParams: SearchParams }) {
     tagIds,
   });
 
-  return <LeadsTable leads={leads} />;
+  return <DealsTable deals={deals} />;
 }
 
 async function FiltersWithTags() {
   const allTags = await getTags();
-  return <LeadFilters allTags={allTags} />;
+  return <DealFilters allTags={allTags} />;
 }
 
-export default async function LeadsPage(props: { searchParams: SearchParams }) {
+export default async function DealsPage(props: { searchParams: SearchParams }) {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-end gap-3">
           <h1 className="font-heading text-3xl font-bold tracking-tight">
-            Leads
+            Deals
           </h1>
           <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
         </div>
@@ -59,7 +58,7 @@ export default async function LeadsPage(props: { searchParams: SearchParams }) {
           <Button
             variant="outline"
             nativeButton={false}
-            render={<Link href="/leads/board" />}
+            render={<Link href="/deals/board" />}
             className="border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
           >
             <Kanban className="size-4" />
@@ -67,11 +66,11 @@ export default async function LeadsPage(props: { searchParams: SearchParams }) {
           </Button>
           <Button
             nativeButton={false}
-            render={<Link href="/leads/new" />}
+            render={<Link href="/deals/new" />}
             className="bg-gold-400 text-gold-400-foreground hover:bg-gold-500 border-0"
           >
             <Plus className="size-4" />
-            Add Lead
+            Add Deal
           </Button>
         </div>
       </div>
@@ -87,7 +86,7 @@ export default async function LeadsPage(props: { searchParams: SearchParams }) {
           </div>
         }
       >
-        <LeadsContent searchParams={props.searchParams} />
+        <DealsContent searchParams={props.searchParams} />
       </Suspense>
     </div>
   );

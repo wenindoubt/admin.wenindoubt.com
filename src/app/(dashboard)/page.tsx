@@ -3,40 +3,33 @@ import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getLeadStats } from "@/lib/actions/leads";
-import { LEAD_STATUSES } from "@/lib/constants";
+import { getDealStats } from "@/lib/actions/deals";
+import { ACTIVE_STAGES, DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
+import { formatCurrency } from "@/lib/utils";
 
 const kpiConfig = [
-  { key: "leads", label: "Total Leads", icon: Users, prefix: "" },
+  { key: "deals", label: "Total Deals", icon: Users, prefix: "" },
   { key: "active", label: "Active Pipeline", icon: DollarSign, prefix: "$" },
   { key: "total", label: "Total Pipeline", icon: TrendingUp, prefix: "$" },
   { key: "won", label: "Won Deals", icon: Activity, prefix: "" },
 ] as const;
 
 async function DashboardContent() {
-  const stats = await getLeadStats();
+  const stats = await getDealStats();
 
   const totalPipelineValue = stats.pipelineValues.reduce(
     (sum, pv) => sum + Number(pv.total),
     0,
   );
 
-  const activeStatuses = [
-    "new",
-    "contacted",
-    "qualifying",
-    "proposal_sent",
-    "negotiating",
-  ];
   const activePipelineValue = stats.pipelineValues
-    .filter((pv) => activeStatuses.includes(pv.status))
+    .filter((pv) => ACTIVE_STAGES.has(pv.stage))
     .reduce((sum, pv) => sum + Number(pv.total), 0);
 
-  const wonCount =
-    stats.statusCounts.find((s) => s.status === "won")?.count ?? 0;
+  const wonCount = stats.stageCounts.find((s) => s.stage === "won")?.count ?? 0;
 
   const kpiValues = {
-    leads: stats.totalLeads.toString(),
+    deals: stats.totalDeals.toString(),
     active: activePipelineValue.toLocaleString(),
     total: totalPipelineValue.toLocaleString(),
     won: wonCount.toString(),
@@ -44,7 +37,7 @@ async function DashboardContent() {
 
   // Calculate max count for pipeline bar widths
   const maxCount = Math.max(
-    ...stats.statusCounts.map((sc) => Number(sc.count)),
+    ...stats.stageCounts.map((sc) => Number(sc.count)),
     1,
   );
 
@@ -77,25 +70,24 @@ async function DashboardContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Pipeline by Status */}
+        {/* Pipeline by Stage */}
         <Card className="animate-fade-up stagger-5">
           <CardHeader>
             <CardTitle className="gold-underline pb-1 text-lg">
-              Pipeline by Status
+              Pipeline by Stage
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {LEAD_STATUSES.map((s) => {
+              {DEAL_STAGES.map((s) => {
                 const count = Number(
-                  stats.statusCounts.find((sc) => sc.status === s.value)
-                    ?.count ?? 0,
+                  stats.stageCounts.find((sc) => sc.stage === s.value)?.count ??
+                    0,
                 );
                 const value =
-                  stats.pipelineValues.find((pv) => pv.status === s.value)
+                  stats.pipelineValues.find((pv) => pv.stage === s.value)
                     ?.total ?? "0";
                 const barWidth = (count / maxCount) * 100;
-                // Extract the accent color from the status config
                 const barColor = s.color
                   .split(" ")[0]
                   .replace("bg-", "bg-")
@@ -108,11 +100,11 @@ async function DashboardContent() {
                           {s.label}
                         </Badge>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {count} lead{count !== 1 ? "s" : ""}
+                          {count} deal{count !== 1 ? "s" : ""}
                         </span>
                       </div>
                       <span className="text-sm font-medium font-heading tabular-nums text-emerald-600">
-                        ${Number(value).toLocaleString()}
+                        {formatCurrency(value)}
                       </span>
                     </div>
                     {/* Progress bar */}
@@ -129,11 +121,11 @@ async function DashboardContent() {
           </CardContent>
         </Card>
 
-        {/* Leads by Source */}
+        {/* Deals by Source */}
         <Card className="animate-fade-up stagger-6">
           <CardHeader>
             <CardTitle className="gold-underline pb-1 text-lg">
-              Leads by Source
+              Deals by Source
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -143,8 +135,9 @@ async function DashboardContent() {
                   key={sc.source}
                   className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0"
                 >
-                  <span className="text-sm capitalize text-muted-foreground">
-                    {sc.source.replaceAll("_", " ")}
+                  <span className="text-sm text-muted-foreground">
+                    {DEAL_SOURCES.find((s) => s.value === sc.source)?.label ??
+                      sc.source}
                   </span>
                   <span className="text-sm font-heading font-semibold tabular-nums">
                     {sc.count}
@@ -172,7 +165,7 @@ async function DashboardContent() {
               <p className="text-sm text-muted-foreground">No activity yet</p>
             )}
             {stats.recentActivities.map(
-              ({ activity, leadFirstName, leadLastName }, i) => (
+              ({ activity, dealTitle, companyName }, i) => (
                 <div
                   key={activity.id}
                   className="relative flex items-start gap-4 py-3 text-sm"
@@ -188,7 +181,10 @@ async function DashboardContent() {
                   <div className="flex-1 min-w-0">
                     <p className="truncate">
                       <span className="font-medium text-foreground">
-                        {leadFirstName} {leadLastName}
+                        {dealTitle}
+                      </span>{" "}
+                      <span className="text-muted-foreground/60 text-xs">
+                        {companyName}
                       </span>{" "}
                       <span className="text-muted-foreground">&mdash;</span>{" "}
                       <span className="text-muted-foreground">

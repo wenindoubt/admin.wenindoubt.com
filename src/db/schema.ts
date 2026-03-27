@@ -12,18 +12,18 @@ import {
 } from "drizzle-orm/pg-core";
 
 // Enums
-export const leadStatusEnum = pgEnum("lead_status", [
+export const dealStageEnum = pgEnum("deal_stage", [
   "new",
   "contacted",
   "qualifying",
   "proposal_sent",
   "negotiating",
+  "nurture",
   "won",
   "lost",
-  "churned",
 ]);
 
-export const leadSourceEnum = pgEnum("lead_source", [
+export const dealSourceEnum = pgEnum("deal_source", [
   "website",
   "referral",
   "linkedin",
@@ -32,56 +32,93 @@ export const leadSourceEnum = pgEnum("lead_source", [
   "other",
 ]);
 
-// Core lead record
-export const leads = pgTable(
-  "leads",
+// Companies (accounts/organizations)
+export const companies = pgTable(
+  "companies",
   {
     id: uuid().primaryKey().defaultRandom(),
-    // identity
-    firstName: text("first_name").notNull(),
-    lastName: text("last_name").notNull(),
-    email: text(),
-    phone: text(),
-    linkedinUrl: text("linkedin_url"),
-    // company
-    companyName: text("company_name"),
-    companyWebsite: text("company_website"),
-    jobTitle: text("job_title"),
+    name: text().notNull(),
+    website: text(),
     industry: text(),
-    companySize: text("company_size"),
-    // lead meta
-    status: leadStatusEnum().notNull().default("new"),
-    source: leadSourceEnum().notNull().default("other"),
-    sourceDetail: text("source_detail"),
-    estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
-    // ownership
-    assignedTo: text("assigned_to"),
-    // timestamps
+    size: text("company_size"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+  },
+  (table) => [index("idx_companies_name").on(table.name)],
+);
+
+// Contacts (people at a company)
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text(),
+    phone: text(),
+    linkedinUrl: text("linkedin_url"),
+    jobTitle: text("job_title"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_contacts_company_id").on(table.companyId)],
+);
+
+// Deals (sales opportunities / contracts)
+export const deals = pgTable(
+  "deals",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    primaryContactId: uuid("primary_contact_id").references(() => contacts.id, {
+      onDelete: "set null",
+    }),
+    title: text().notNull(),
+    stage: dealStageEnum().notNull().default("new"),
+    source: dealSourceEnum().notNull().default("other"),
+    sourceDetail: text("source_detail"),
+    estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
+    assignedTo: text("assigned_to"),
+    followUpAt: timestamp("follow_up_at", { withTimezone: true }),
     convertedAt: timestamp("converted_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     lastContactedAt: timestamp("last_contacted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
-    index("idx_leads_status").on(table.status),
-    index("idx_leads_assigned_to").on(table.assignedTo),
-    index("idx_leads_created_at").on(table.createdAt),
-    index("idx_leads_company").on(table.companyName),
+    index("idx_deals_stage").on(table.stage),
+    index("idx_deals_company_id").on(table.companyId),
+    index("idx_deals_assigned_to").on(table.assignedTo),
+    index("idx_deals_created_at").on(table.createdAt),
   ],
 );
 
-// AI-generated insights
-export const leadInsights = pgTable(
-  "lead_insights",
+// AI-generated insights (per deal)
+export const dealInsights = pgTable(
+  "deal_insights",
   {
     id: uuid().primaryKey().defaultRandom(),
-    leadId: uuid("lead_id")
+    dealId: uuid("deal_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "cascade" }),
+      .references(() => deals.id, { onDelete: "cascade" }),
     prompt: text(),
     rawInput: text("raw_input"),
     analysisText: text("analysis_text").notNull(),
@@ -95,17 +132,17 @@ export const leadInsights = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("idx_lead_insights_lead_id").on(table.leadId)],
+  (table) => [index("idx_deal_insights_deal_id").on(table.dealId)],
 );
 
-// Activity log
-export const leadActivities = pgTable(
-  "lead_activities",
+// Activity log (per deal)
+export const dealActivities = pgTable(
+  "deal_activities",
   {
     id: uuid().primaryKey().defaultRandom(),
-    leadId: uuid("lead_id")
+    dealId: uuid("deal_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "cascade" }),
+      .references(() => deals.id, { onDelete: "cascade" }),
     type: text().notNull(),
     description: text().notNull(),
     metadata: jsonb(),
@@ -115,8 +152,8 @@ export const leadActivities = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("idx_lead_activities_lead_id").on(table.leadId),
-    index("idx_lead_activities_created_at").on(table.createdAt),
+    index("idx_deal_activities_deal_id").on(table.dealId),
+    index("idx_deal_activities_created_at").on(table.createdAt),
   ],
 );
 
@@ -127,25 +164,42 @@ export const tags = pgTable("tags", {
   color: text(),
 });
 
-export const leadTags = pgTable(
-  "lead_tags",
+export const dealTags = pgTable(
+  "deal_tags",
   {
-    leadId: uuid("lead_id")
+    dealId: uuid("deal_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "cascade" }),
+      .references(() => deals.id, { onDelete: "cascade" }),
     tagId: uuid("tag_id")
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.leadId, table.tagId] })],
+  (table) => [primaryKey({ columns: [table.dealId, table.tagId] })],
+);
+
+export const companyTags = pgTable(
+  "company_tags",
+  {
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.companyId, table.tagId] })],
 );
 
 // Type exports
-export type Lead = typeof leads.$inferSelect;
-export type NewLead = typeof leads.$inferInsert;
-export type LeadInsight = typeof leadInsights.$inferSelect;
-export type NewLeadInsight = typeof leadInsights.$inferInsert;
-export type LeadActivity = typeof leadActivities.$inferSelect;
-export type NewLeadActivity = typeof leadActivities.$inferInsert;
+export type Company = typeof companies.$inferSelect;
+export type NewCompany = typeof companies.$inferInsert;
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
+export type Deal = typeof deals.$inferSelect;
+export type NewDeal = typeof deals.$inferInsert;
+export type DealInsight = typeof dealInsights.$inferSelect;
+export type NewDealInsight = typeof dealInsights.$inferInsert;
+export type DealActivity = typeof dealActivities.$inferSelect;
+export type NewDealActivity = typeof dealActivities.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;

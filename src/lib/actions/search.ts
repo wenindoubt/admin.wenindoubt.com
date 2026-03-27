@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { cosineDistance, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { leadInsights, leads } from "@/db/schema";
+import { companies, dealInsights, deals } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 
 export async function semanticSearch(query: string, limit = 10) {
@@ -12,65 +12,69 @@ export async function semanticSearch(query: string, limit = 10) {
 
   const queryEmbedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
 
-  const similarity = sql<number>`1 - (${cosineDistance(leadInsights.embedding, queryEmbedding)})`;
+  const similarity = sql<number>`1 - (${cosineDistance(dealInsights.embedding, queryEmbedding)})`;
 
   const results = await db
     .select({
-      insight: leadInsights,
-      lead: leads,
+      insight: dealInsights,
+      deal: deals,
+      company: companies,
       similarity,
     })
-    .from(leadInsights)
-    .innerJoin(leads, eq(leadInsights.leadId, leads.id))
-    .where(sql`${leadInsights.embedding} IS NOT NULL`)
+    .from(dealInsights)
+    .innerJoin(deals, eq(dealInsights.dealId, deals.id))
+    .innerJoin(companies, eq(deals.companyId, companies.id))
+    .where(sql`${dealInsights.embedding} IS NOT NULL`)
     .orderBy(desc(similarity))
     .limit(limit);
 
   return results.map((r) => ({
-    leadId: r.lead.id,
-    leadName: `${r.lead.firstName} ${r.lead.lastName}`,
-    companyName: r.lead.companyName,
+    dealId: r.deal.id,
+    dealTitle: r.deal.title,
+    companyName: r.company.name,
     summary: r.insight.summary,
     similarity: r.similarity,
   }));
 }
 
-export async function findSimilarLeads(leadId: string, limit = 5) {
+export async function findSimilarDeals(dealId: string, limit = 5) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  // Get the embedding for the source lead
+  // Get the embedding for the source deal
   const [sourceInsight] = await db
     .select()
-    .from(leadInsights)
-    .where(eq(leadInsights.leadId, leadId))
-    .orderBy(desc(leadInsights.generatedAt))
+    .from(dealInsights)
+    .where(eq(dealInsights.dealId, dealId))
+    .orderBy(desc(dealInsights.generatedAt))
     .limit(1);
 
   if (!sourceInsight?.embedding) {
     return [];
   }
 
-  const similarity = sql<number>`1 - (${cosineDistance(leadInsights.embedding, sourceInsight.embedding)})`;
+  const similarity = sql<number>`1 - (${cosineDistance(dealInsights.embedding, sourceInsight.embedding)})`;
 
   const results = await db
     .select({
-      insight: leadInsights,
-      lead: leads,
+      insight: dealInsights,
+      deal: deals,
+      company: companies,
       similarity,
     })
-    .from(leadInsights)
-    .innerJoin(leads, eq(leadInsights.leadId, leads.id))
+    .from(dealInsights)
+    .innerJoin(deals, eq(dealInsights.dealId, deals.id))
+    .innerJoin(companies, eq(deals.companyId, companies.id))
     .where(
-      sql`${leadInsights.leadId} != ${leadId} AND ${leadInsights.embedding} IS NOT NULL`,
+      sql`${dealInsights.dealId} != ${dealId} AND ${dealInsights.embedding} IS NOT NULL`,
     )
     .orderBy(desc(similarity))
     .limit(limit);
 
   return results.map((r) => ({
-    leadId: r.lead.id,
-    leadName: `${r.lead.firstName} ${r.lead.lastName}`,
-    companyName: r.lead.companyName,
+    dealId: r.deal.id,
+    dealTitle: r.deal.title,
+    companyName: r.company.name,
     summary: r.insight.summary,
     similarity: r.similarity,
   }));

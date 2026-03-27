@@ -19,9 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Tag as TagType } from "@/db/schema";
-import { LEAD_SOURCES, LEAD_STATUSES } from "@/lib/constants";
+import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
 
-export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
+export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -31,7 +31,7 @@ export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
 
   const hasFilters =
     searchParams.has("search") ||
-    searchParams.has("status") ||
+    searchParams.has("stage") ||
     searchParams.has("source") ||
     searchParams.has("sortBy") ||
     searchParams.has("tag");
@@ -44,7 +44,7 @@ export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
       } else {
         params.delete(key);
       }
-      router.push(`/leads?${params.toString()}`);
+      router.push(`/deals?${params.toString()}`);
     },
     [router, searchParams],
   );
@@ -66,14 +66,14 @@ export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
         params.append("tag", tagId);
       }
 
-      router.push(`/leads?${params.toString()}`);
+      router.push(`/deals?${params.toString()}`);
     },
     [router, searchParams],
   );
 
   const clearFilters = useCallback(() => {
     if (searchRef.current) searchRef.current.value = "";
-    router.push("/leads");
+    router.push("/deals");
   }, [router]);
 
   return (
@@ -83,7 +83,7 @@ export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
         <Input
           key={searchParams.get("search") ?? ""}
           ref={searchRef}
-          placeholder="Search leads..."
+          placeholder="Search deals..."
           defaultValue={searchParams.get("search") ?? ""}
           onChange={(e) => {
             clearTimeout(debounceRef.current);
@@ -97,15 +97,20 @@ export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
         />
       </div>
       <Select
-        value={searchParams.get("status") || "all"}
-        onValueChange={(v) => updateFilter("status", v ?? "all")}
+        value={searchParams.get("stage") || "all"}
+        onValueChange={(v) => updateFilter("stage", v ?? "all")}
       >
-        <SelectTrigger className="w-40 bg-card/50 border-border/50">
-          <SelectValue placeholder="Status" />
+        <SelectTrigger className="w-44 bg-card/50 border-border/50">
+          <SelectValue>
+            {searchParams.get("stage")
+              ? (DEAL_STAGES.find((s) => s.value === searchParams.get("stage"))
+                  ?.label ?? "All Stages")
+              : "All Stages"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          {LEAD_STATUSES.map((s) => (
+          <SelectItem value="all">All Stages</SelectItem>
+          {DEAL_STAGES.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
@@ -116,12 +121,18 @@ export function LeadFilters({ allTags = [] }: { allTags?: TagType[] }) {
         value={searchParams.get("source") || "all"}
         onValueChange={(v) => updateFilter("source", v ?? "all")}
       >
-        <SelectTrigger className="w-40 bg-card/50 border-border/50">
-          <SelectValue placeholder="Source" />
+        <SelectTrigger className="w-44 bg-card/50 border-border/50">
+          <SelectValue>
+            {searchParams.get("source")
+              ? (DEAL_SOURCES.find(
+                  (s) => s.value === searchParams.get("source"),
+                )?.label ?? "All Sources")
+              : "All Sources"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Sources</SelectItem>
-          {LEAD_SOURCES.map((s) => (
+          {DEAL_SOURCES.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
