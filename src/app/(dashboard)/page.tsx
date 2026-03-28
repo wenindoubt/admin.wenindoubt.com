@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Activity, DollarSign, TrendingUp, Users } from "lucide-react";
 import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";

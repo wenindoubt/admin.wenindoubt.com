@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { List } from "lucide-react";
 import Link from "next/link";
 import { KanbanBoard } from "@/components/kanban-board";

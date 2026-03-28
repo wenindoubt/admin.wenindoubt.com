@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { TagManager } from "@/components/tag-manager";
 import { getTags } from "@/lib/actions/deals";
 

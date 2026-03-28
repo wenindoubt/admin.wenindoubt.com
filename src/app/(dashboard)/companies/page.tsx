@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { ClickableRow } from "@/components/clickable-row";

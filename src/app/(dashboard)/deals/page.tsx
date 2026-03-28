@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Kanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";

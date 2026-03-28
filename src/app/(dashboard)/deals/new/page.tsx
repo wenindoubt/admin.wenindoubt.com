@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { DealForm } from "@/components/deal-form";
 import { getCompanies } from "@/lib/actions/companies";
 
