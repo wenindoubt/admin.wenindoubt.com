@@ -114,7 +114,7 @@ export default async function CompaniesPage() {
                     <TableCell className="font-heading tabular-nums">
                       {company.dealCount}
                     </TableCell>
-                    <TableCell className="font-heading tabular-nums text-emerald-600">
+                    <TableCell className="tabular-nums text-emerald-600">
                       {company.pipelineValue > 0 ? (
                         formatCurrency(company.pipelineValue)
                       ) : (

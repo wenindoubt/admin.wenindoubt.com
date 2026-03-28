@@ -138,7 +138,7 @@ export default async function DealDetailPage({ params }: Props) {
                 <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
                   Est. Value
                 </span>
-                <p className="mt-0.5 font-heading font-semibold text-emerald-600">
+                <p className="mt-0.5 font-semibold text-emerald-600">
                   {formatCurrency(deal.estimatedValue)}
                 </p>
               </div>

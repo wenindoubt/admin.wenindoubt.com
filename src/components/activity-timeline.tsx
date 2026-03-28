@@ -28,7 +28,7 @@ function ActivityItem({
       {showConnector && (
         <div className="absolute left-3 top-9 bottom-0 w-px bg-border/40" />
       )}
-      <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[10px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+      <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[15px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
         {activity.type[0]}
       </div>
       <div className="flex-1 min-w-0">

@@ -156,7 +156,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
             <Tag className="size-3.5" />
             Tags
             {selectedTagIds.length > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-gold-400/20 text-[10px] font-semibold text-gold-600">
+              <span className="flex size-5 items-center justify-center rounded-full bg-gold-400/20 text-[15px] font-semibold text-gold-600">
                 {selectedTagIds.length}
               </span>
             )}

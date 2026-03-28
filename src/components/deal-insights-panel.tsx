@@ -150,19 +150,19 @@ const PRINT_STYLES = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; color: #1a1a2e; padding: 48px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
   h2, h3 { font-family: 'DM Serif Display', serif; }
-  h2 { font-size: 20px; margin-top: 28px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #c9a84c; }
-  h3 { font-size: 16px; margin-top: 20px; margin-bottom: 8px; }
-  h4 { font-size: 12px; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7230; margin-top: 18px; margin-bottom: 6px; }
-  p { font-size: 13px; margin-bottom: 10px; color: #333; }
+  h2 { font-size: 30px; margin-top: 28px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #c9a84c; }
+  h3 { font-size: 24px; margin-top: 20px; margin-bottom: 8px; }
+  h4 { font-size: 18px; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7230; margin-top: 18px; margin-bottom: 6px; }
+  p { font-size: 20px; margin-bottom: 10px; color: #333; }
   strong { color: #1a1a2e; }
   ul { list-style: none; padding-left: 0; margin-bottom: 12px; }
-  ul li { padding-left: 16px; position: relative; margin-bottom: 4px; font-size: 13px; color: #333; }
+  ul li { padding-left: 16px; position: relative; margin-bottom: 4px; font-size: 20px; color: #333; }
   ul li::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #c9a84c; }
   ol { padding-left: 20px; margin-bottom: 12px; }
-  ol li { margin-bottom: 4px; font-size: 13px; color: #333; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px; }
+  ol li { margin-bottom: 4px; font-size: 20px; color: #333; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 18px; }
   thead { background: #f8f4eb; }
-  th { text-align: left; padding: 6px 10px; border-bottom: 2px solid #c9a84c; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7230; }
+  th { text-align: left; padding: 6px 10px; border-bottom: 2px solid #c9a84c; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7230; }
   td { padding: 6px 10px; border-bottom: 1px solid #eee; color: #444; }
   hr { border: 0; height: 1px; background: #c9a84c; opacity: 0.3; margin: 20px 0; }
   blockquote { border-left: 3px solid #c9a84c; padding-left: 16px; font-style: italic; color: #666; margin-bottom: 12px; }
@@ -224,7 +224,7 @@ function ExportToolbar({
 
   return (
     <div className="flex items-center gap-1 border-t border-border/30 pt-3 mt-1">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 mr-2">
+      <span className="text-[15px] uppercase tracking-wider text-muted-foreground/40 mr-2">
         Export
       </span>
       <Button
@@ -322,7 +322,7 @@ function HistoryInsightCard({
             <p className="text-xs font-medium text-foreground/70">
               {isCustom ? "Custom Query" : "Full Analysis"}
             </p>
-            <p className="text-[10px] text-muted-foreground/50">
+            <p className="text-[15px] text-muted-foreground/50">
               {new Date(insight.generatedAt).toLocaleString()} &middot;{" "}
               {insight.analysisModel}
             </p>

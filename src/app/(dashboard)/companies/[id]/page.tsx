@@ -1,6 +1,7 @@
 import { ExternalLink, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ClickableRow } from "@/components/clickable-row";
 import { ContactList } from "@/components/contact-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -194,8 +195,9 @@ export default async function CompanyDetailPage({ params }: Props) {
                       (s) => s.value === deal.stage,
                     );
                     return (
-                      <TableRow
+                      <ClickableRow
                         key={deal.id}
+                        href={`/deals/${deal.id}`}
                         className="border-border/30 hover:bg-accent/50 transition-colors"
                       >
                         <TableCell>
@@ -214,7 +216,7 @@ export default async function CompanyDetailPage({ params }: Props) {
                             {stageConfig?.label ?? deal.stage}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-heading tabular-nums text-emerald-600">
+                        <TableCell className="tabular-nums text-emerald-600">
                           {deal.estimatedValue ? (
                             formatCurrency(deal.estimatedValue)
                           ) : (
@@ -235,7 +237,7 @@ export default async function CompanyDetailPage({ params }: Props) {
                         <TableCell className="text-xs text-muted-foreground tabular-nums">
                           {new Date(deal.createdAt).toLocaleDateString()}
                         </TableCell>
-                      </TableRow>
+                      </ClickableRow>
                     );
                   })}
                 </TableBody>
@@ -268,7 +270,7 @@ export default async function CompanyDetailPage({ params }: Props) {
                   {i < company.activities.length - 1 && (
                     <div className="absolute left-3 top-9 bottom-0 w-px bg-border/40" />
                   )}
-                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[10px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[15px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
                     {activity.type[0]}
                   </div>
                   <div className="flex-1 min-w-0">

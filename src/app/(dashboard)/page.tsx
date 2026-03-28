@@ -61,7 +61,7 @@ async function DashboardContent() {
             </CardHeader>
             <CardContent>
               <p
-                className={`font-heading text-3xl font-bold tracking-tight ${kpi.prefix === "$" ? "text-emerald-600" : ""}`}
+                className={`text-3xl font-bold tracking-tight ${kpi.prefix === "$" ? "text-emerald-600" : "font-heading"}`}
               >
                 {kpi.prefix}
                 {kpiValues[kpi.key]}
@@ -105,7 +105,7 @@ async function DashboardContent() {
                           {count} deal{count !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <span className="text-sm font-medium font-heading tabular-nums text-emerald-600">
+                      <span className="text-sm font-medium tabular-nums text-emerald-600">
                         {formatCurrency(value)}
                       </span>
                     </div>
@@ -177,7 +177,7 @@ async function DashboardContent() {
                     <div className="absolute left-3 top-9 bottom-0 w-px bg-border/50" />
                   )}
                   {/* Activity type icon */}
-                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[10px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[15px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
                     {activity.type[0]}
                   </div>
                   <div className="flex-1 min-w-0">

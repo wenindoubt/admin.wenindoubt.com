@@ -45,7 +45,7 @@ export function AppSidebar() {
             <span className="text-sm font-semibold tracking-wide text-foreground">
               WenInDoubt
             </span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="text-[15px] uppercase tracking-[0.2em] text-muted-foreground">
               Admin
             </span>
           </div>

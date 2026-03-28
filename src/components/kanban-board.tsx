@@ -6,9 +6,15 @@ import {
   Droppable,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -229,6 +235,77 @@ export function KanbanBoard({
     visible.size === ACTIVE_STAGES.size &&
     [...ACTIVE_STAGES].every((s) => visible.has(s));
 
+  // ─── Horizontal scroll helpers ───
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragScrollLeft = useRef(0);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [updateScrollState, visibleColumns.length]);
+
+  const scrollBy = useCallback((dir: -1 | 1) => {
+    scrollRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
+  }, []);
+
+  // Click-and-drag to pan
+  const DRAG_THRESHOLD = 5;
+  const didDrag = useRef(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    const el = scrollRef.current;
+    if (!el || e.button !== 0) return;
+    // Don't capture when clicking inside a card — let links and DnD work
+    if ((e.target as HTMLElement).closest("[data-rfd-draggable-id]")) return;
+    isDragging.current = true;
+    didDrag.current = false;
+    dragStartX.current = e.clientX;
+    dragScrollLeft.current = el.scrollLeft;
+    el.setPointerCapture(e.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const dx = e.clientX - dragStartX.current;
+    if (Math.abs(dx) > DRAG_THRESHOLD) {
+      didDrag.current = true;
+      el.style.cursor = "grabbing";
+    }
+    if (didDrag.current) {
+      el.scrollLeft = dragScrollLeft.current - dx;
+    }
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    isDragging.current = false;
+    const el = scrollRef.current;
+    if (el) {
+      el.style.cursor = "";
+      el.releasePointerCapture(e.pointerId);
+    }
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Filter pills */}
@@ -239,7 +316,7 @@ export function KanbanBoard({
             type="button"
             onClick={showActive}
             className={cn(
-              "px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide uppercase transition-all",
+              "px-2.5 py-1 rounded-md text-[16px] font-medium tracking-wide uppercase transition-all",
               activeOnly && !allVisible
                 ? "bg-gold-400/15 text-gold-600 ring-1 ring-gold-400/25"
                 : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50",
@@ -251,7 +328,7 @@ export function KanbanBoard({
             type="button"
             onClick={showAll}
             className={cn(
-              "px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide uppercase transition-all",
+              "px-2.5 py-1 rounded-md text-[16px] font-medium tracking-wide uppercase transition-all",
               allVisible
                 ? "bg-gold-400/15 text-gold-600 ring-1 ring-gold-400/25"
                 : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50",
@@ -306,106 +383,148 @@ export function KanbanBoard({
         </div>
       </div>
 
-      {/* Board */}
+      {/* Board with scroll controls */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          {visibleColumns.map((column) => (
-            <div key={column.status} className="w-72 shrink-0">
-              <div className="mb-3 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className={column.color}>
-                    {column.label}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground/60 tabular-nums">
-                    {column.deals.length}
-                  </span>
-                </div>
-                <p className="text-xs leading-snug text-muted-foreground/50 px-0.5">
-                  {column.description}
-                </p>
-              </div>
-              <Droppable droppableId={column.status}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={cn(
-                      "min-h-[200px] space-y-2 rounded-lg border p-2 transition-colors",
-                      snapshot.isDraggingOver
-                        ? "border-gold-400/30 bg-gold-400/[0.03]"
-                        : "border-border/30 bg-card/30",
-                    )}
-                  >
-                    {column.deals.map((deal, index) => (
-                      <Draggable
-                        key={deal.id}
-                        draggableId={deal.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <Card
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={cn(
-                              "cursor-grab border-border/40 transition-all",
-                              snapshot.isDragging
-                                ? "shadow-lg shadow-black/30 ring-1 ring-gold-400/20"
-                                : "hover:border-border/60",
-                            )}
-                          >
-                            <CardContent className="p-3">
-                              <Link
-                                href={`/deals/${deal.id}`}
-                                className="font-medium text-sm hover:text-gold-400 transition-colors"
-                              >
-                                {deal.title}
-                              </Link>
-                              {deal.company.name && (
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {deal.company.name}
-                                </p>
-                              )}
-                              {deal.estimatedValue && (
-                                <p className="mt-1.5 text-base font-heading font-semibold text-emerald-600 tabular-nums">
-                                  {formatCurrency(deal.estimatedValue)}
-                                </p>
-                              )}
-                              {deal.stage === "nurture" && deal.followUpAt && (
-                                <p className="mt-1 text-xs text-teal-600 flex items-center gap-1">
-                                  <Clock className="size-3" />
-                                  Follow up{" "}
-                                  {new Date(
-                                    deal.followUpAt,
-                                  ).toLocaleDateString()}
-                                </p>
-                              )}
-                            </CardContent>
-                          </Card>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-          ))}
-
-          {visibleColumns.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center w-full">
-              <p className="text-sm text-muted-foreground/60">
-                No columns selected
-              </p>
+        <div className="relative">
+          {/* Left fade + arrow */}
+          {canScrollLeft && (
+            <div className="absolute left-0 top-0 bottom-0 z-10 flex items-start pt-10 pointer-events-none">
+              <div className="h-full w-16 bg-gradient-to-r from-background to-transparent" />
               <button
                 type="button"
-                onClick={showActive}
-                className="mt-2 text-xs text-gold-500 hover:text-gold-400 transition-colors"
+                onClick={() => scrollBy(-1)}
+                className="pointer-events-auto absolute left-1 top-1/3 flex size-9 items-center justify-center rounded-full bg-card/90 border border-border/60 shadow-md shadow-black/10 text-muted-foreground hover:text-foreground hover:border-border transition-all"
               >
-                Show active pipeline
+                <ChevronLeft className="size-5" />
               </button>
             </div>
           )}
+
+          {/* Right fade + arrow */}
+          {canScrollRight && (
+            <div className="absolute right-0 top-0 bottom-0 z-10 flex items-start pt-10 pointer-events-none">
+              <div className="h-full w-16 bg-gradient-to-l from-background to-transparent" />
+              <button
+                type="button"
+                onClick={() => scrollBy(1)}
+                className="pointer-events-auto absolute right-1 top-1/3 flex size-9 items-center justify-center rounded-full bg-card/90 border border-border/60 shadow-md shadow-black/10 text-muted-foreground hover:text-foreground hover:border-border transition-all"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          )}
+
+          {/* Scrollable board */}
+          <div
+            ref={scrollRef}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            className="flex gap-3 overflow-x-auto pb-4 scroll-smooth [scrollbar-width:thin] [scrollbar-color:oklch(0_0_0/12%)_transparent]"
+          >
+            {visibleColumns.map((column) => (
+              <div key={column.status} className="w-72 shrink-0">
+                <div className="mb-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={column.color}>
+                      {column.label}
+                    </Badge>
+                    <span className="flex size-7 items-center justify-center rounded-full bg-muted/60 text-sm font-medium tabular-nums text-muted-foreground/70">
+                      {column.deals.length}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground/50 px-0.5" title={column.description}>
+                    {column.description}
+                  </p>
+                </div>
+                <Droppable droppableId={column.status}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={cn(
+                        "min-h-[200px] space-y-2 rounded-lg border p-2 transition-colors",
+                        snapshot.isDraggingOver
+                          ? "border-gold-400/30 bg-gold-400/[0.03]"
+                          : "border-border/30 bg-card/30",
+                      )}
+                    >
+                      {column.deals.map((deal, index) => (
+                        <Draggable
+                          key={deal.id}
+                          draggableId={deal.id}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <Card
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={cn(
+                                "group cursor-grab border-border/40 transition-all",
+                                snapshot.isDragging
+                                  ? "shadow-lg shadow-black/30 ring-1 ring-gold-400/20"
+                                  : "hover:border-border/60",
+                              )}
+                            >
+                              <Link
+                              href={`/deals/${deal.id}`}
+                              onClick={(e) => { if (didDrag.current) e.preventDefault(); }}
+                              className="block"
+                              draggable={false}
+                            >
+                              <CardContent className="p-3">
+                                <p className="font-medium text-sm group-hover:text-gold-400 transition-colors">
+                                  {deal.title}
+                                </p>
+                                {deal.company.name && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {deal.company.name}
+                                  </p>
+                                )}
+                                {deal.estimatedValue && (
+                                  <p className="mt-1.5 text-base font-semibold text-emerald-600 tabular-nums">
+                                    {formatCurrency(deal.estimatedValue)}
+                                  </p>
+                                )}
+                                {deal.stage === "nurture" && deal.followUpAt && (
+                                  <p className="mt-1 text-xs text-teal-600 flex items-center gap-1">
+                                    <Clock className="size-3" />
+                                    Follow up{" "}
+                                    {new Date(
+                                      deal.followUpAt,
+                                    ).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </CardContent>
+                            </Link>
+                            </Card>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            ))}
+
+            {visibleColumns.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center w-full">
+                <p className="text-sm text-muted-foreground/60">
+                  No columns selected
+                </p>
+                <button
+                  type="button"
+                  onClick={showActive}
+                  className="mt-2 text-xs text-gold-500 hover:text-gold-400 transition-colors"
+                >
+                  Show active pipeline
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </DragDropContext>
     </div>

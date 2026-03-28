@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { ClickableRow } from "@/components/clickable-row";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,8 +182,9 @@ export function DealsTable({ deals }: { deals: DealRow[] }) {
         </TableHeader>
         <TableBody>
           {deals.map((deal) => (
-            <TableRow
+            <ClickableRow
               key={deal.id}
+              href={`/deals/${deal.id}`}
               className="border-border/30 hover:bg-accent/50 transition-colors"
             >
               <TableCell>
@@ -239,7 +241,7 @@ export function DealsTable({ deals }: { deals: DealRow[] }) {
                 {DEAL_SOURCES.find((s) => s.value === deal.source)?.label ??
                   deal.source}
               </TableCell>
-              <TableCell className="font-heading tabular-nums text-emerald-600">
+              <TableCell className="tabular-nums text-emerald-600">
                 {deal.estimatedValue ? (
                   formatCurrency(deal.estimatedValue)
                 ) : (
@@ -279,7 +281,7 @@ export function DealsTable({ deals }: { deals: DealRow[] }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
-            </TableRow>
+            </ClickableRow>
           ))}
         </TableBody>
       </Table>
