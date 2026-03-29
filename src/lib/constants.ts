@@ -91,6 +91,10 @@ export const COMPANY_SIZES = [
   "500+",
 ] as const;
 
+export function stageLabel(value: string) {
+  return DEAL_STAGES.find((s) => s.value === value)?.label ?? value;
+}
+
 /** Active pipeline stages (not terminal) */
 export const ACTIVE_STAGES = new Set([
   "new",

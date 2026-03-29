@@ -13,6 +13,7 @@ import {
   dealTags,
   tags,
 } from "@/db/schema";
+import { stageLabel } from "@/lib/constants";
 import {
   addDealActivitySchema,
   type CreateDealInput,
@@ -272,7 +273,7 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
     await db.insert(dealActivities).values({
       dealId: id,
       type: "status_change",
-      description: `Stage changed from "${existing.stage}" to "${data.stage}"`,
+      description: `Stage changed from "${stageLabel(existing.stage)}" to "${stageLabel(data.stage)}"`,
       createdBy: userId,
       metadata: { from_stage: existing.stage, to_stage: data.stage },
     });

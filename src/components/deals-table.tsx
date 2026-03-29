@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Deal, Tag } from "@/db/schema";
 import { deleteDeal, updateDeal } from "@/lib/actions/deals";
-import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
+import { DEAL_SOURCES, DEAL_STAGES, stageLabel } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 
 type DealRow = Deal & {
@@ -60,7 +60,7 @@ function StageDropdown({ deal }: { deal: Deal }) {
       await updateDeal(deal.id, {
         stage: newStage as Deal["stage"],
       });
-      toast.success(`Stage updated to ${newStage}`);
+      toast.success(`Stage updated to ${stageLabel(newStage)}`);
     } catch {
       toast.error("Failed to update stage");
     }
