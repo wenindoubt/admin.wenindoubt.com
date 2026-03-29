@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { TiptapEditor } from "@/components/tiptap-editor";
+import { LazyTiptapEditor as TiptapEditor } from "@/components/lazy";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

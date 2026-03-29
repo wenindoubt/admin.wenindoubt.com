@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { CompanyForm } from "@/components/company-form";
-import { getCompany } from "@/lib/actions/companies";
+import { getCompanyForEdit } from "@/lib/actions/companies";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -8,7 +8,7 @@ type Props = {
 
 export default async function EditCompanyPage({ params }: Props) {
   const { id } = await params;
-  const company = await getCompany(id);
+  const company = await getCompanyForEdit(id);
   if (!company) notFound();
 
   return (

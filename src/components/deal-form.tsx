@@ -32,12 +32,7 @@ import { type DealFormValues, dealFormSchema } from "@/lib/validations";
 type CompanyOption = Pick<Company, "id" | "name">;
 
 type DealWithCompany = Deal & {
-  company: Company;
-  primaryContact: {
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-  } | null;
+  company: Pick<Company, "id" | "name">;
 };
 
 type DealFormProps = {

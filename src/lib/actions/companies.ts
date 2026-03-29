@@ -164,6 +164,17 @@ export async function getCompanyList() {
     .orderBy(asc(companies.name));
 }
 
+export async function getCompanyForEdit(id: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const [company] = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.id, id));
+  return company ?? null;
+}
+
 export async function getCompany(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");

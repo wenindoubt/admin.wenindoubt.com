@@ -67,7 +67,6 @@ export function NotesSection({
   );
 
   // Re-sync when server data changes (create/delete triggers revalidation)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-sync on initialTotal change
   useEffect(() => {
     setNotes(initialNotes);
     setTotal(initialTotal);
@@ -83,19 +82,25 @@ export function NotesSection({
     };
   }, []);
 
-  function handlePageChange(newPage: number) {
-    setPage(newPage);
-    fetchPage(newPage, search);
-  }
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      setPage(newPage);
+      fetchPage(newPage, search);
+    },
+    [fetchPage, search],
+  );
 
-  function handleSearch(query: string) {
-    setSearch(query);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      fetchPage(1, query);
-    }, 300);
-  }
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearch(query);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setPage(1);
+        fetchPage(1, query);
+      }, 300);
+    },
+    [fetchPage],
+  );
 
   return (
     <div className="space-y-4">

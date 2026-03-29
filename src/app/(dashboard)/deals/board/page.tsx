@@ -2,13 +2,12 @@ export const dynamic = "force-dynamic";
 
 import { List } from "lucide-react";
 import Link from "next/link";
-import { KanbanBoard } from "@/components/kanban-board";
+import { Suspense } from "react";
+import { KanbanBoardSkeleton } from "@/components/skeletons/kanban-board-skeleton";
 import { Button } from "@/components/ui/button";
-import { getDeals } from "@/lib/actions/deals";
+import { BoardContent } from "./_components/board-content";
 
-export default async function BoardPage() {
-  const { data: deals } = await getDeals();
-
+export default function BoardPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -28,7 +27,9 @@ export default async function BoardPage() {
           List View
         </Button>
       </div>
-      <KanbanBoard initialDeals={deals} />
+      <Suspense fallback={<KanbanBoardSkeleton />}>
+        <BoardContent />
+      </Suspense>
     </div>
   );
 }

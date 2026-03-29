@@ -41,7 +41,7 @@ src/app/                  # Pages + API routes (App Router)
 src/app/(dashboard)/      # Auth-protected dashboard pages
 src/app/api/ai/           # Streaming Claude endpoints (analyze, outreach)
 src/app/api/gmail/        # Gmail OAuth2 flow (authorize, callback)
-src/components/           # App components + ui/ (shadcn)
+src/components/           # App components + ui/ (shadcn) + skeletons/ + kanban/
 src/db/                   # Drizzle schema + connection singleton
 src/lib/actions/          # Server actions (deals, companies, contacts, notes, ai, search, gmail)
 src/lib/ai/               # AI client singletons, prompts, embeddings, token counting
@@ -61,6 +61,9 @@ scripts/                  # Seed + backfill scripts
 - **Next.js 16 params**: page `params` and `searchParams` are `Promise<>` — must be awaited
 - **Pagination**: server actions for lists return `{ data, total }` with `limit`/`offset` support. Pages read `page` from searchParams. Constants in `src/lib/types.ts` (`PAGE_SIZE=25`, `PAGE_SIZE_ACTIVITY=5`, `PAGE_SIZE_NOTES=10`). Shared `Pagination` component (URL-driven) and `PaginationBar` (callback-driven) in `src/components/pagination.tsx`. Filter/sort changes reset `page` param.
 - **Naming**: camelCase for variables/functions, PascalCase for components/types
+- **Suspense streaming**: detail pages use `<Suspense>` with async server component children (e.g., `EntityNotesSection`) to stream heavy sections independently. Skeletons in `src/components/skeletons/` match layout dimensions.
+- **Dynamic imports**: heavy client components (Tiptap, MarkdownRenderer) lazy-loaded via shared exports in `src/components/lazy.tsx`. Use `LazyTiptapEditor` / `LazyMarkdownRenderer` instead of direct imports.
+- **`after()` for fire-and-forget**: use `after()` from `next/server` for post-response work (embeddings, token counting). See `enrichNoteAfterResponse` in `notes.ts` and analyze route.
 - **Fonts**: `font-heading` (DM Serif Text) is for headings only — h1, CardTitle, DialogTitle, SheetTitle, branding. All data, numbers, labels, and buttons use `font-sans` (Inter). Never apply `font-heading` to numeric/data content.
 
 ## Environment

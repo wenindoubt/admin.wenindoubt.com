@@ -1,11 +1,12 @@
 import { ExternalLink, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { ClickableRow } from "@/components/clickable-row";
 import { ContactList } from "@/components/contact-list";
-import { NotesSection } from "@/components/notes-section";
-import { TokenStatsBadge } from "@/components/token-stats-badge";
+import { EntityNotesSection } from "@/components/entity-notes-section";
+import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCompany } from "@/lib/actions/companies";
-import { getNotes, getNoteTokenStats } from "@/lib/actions/notes";
 import {
   COMPANY_LIFECYCLES,
   computeLifecycle,
@@ -38,11 +38,7 @@ type Props = {
 
 export default async function CompanyDetailPage({ params }: Props) {
   const { id } = await params;
-  const [company, notesResult, tokenStats] = await Promise.all([
-    getCompany(id),
-    getNotes({ companyId: id, limit: 10, offset: 0 }),
-    getNoteTokenStats("company", id),
-  ]);
+  const company = await getCompany(id);
   if (!company) notFound();
 
   const lifecycle = computeLifecycle(company.deals);
@@ -251,23 +247,13 @@ export default async function CompanyDetailPage({ params }: Props) {
       </Card>
 
       {/* Notes */}
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
-          <CardDescription>
-            Notes, transcripts, and documents
-            <TokenStatsBadge stats={tokenStats} />
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <NotesSection
-            entityType="company"
-            entityId={id}
-            initialNotes={notesResult.data}
-            initialTotal={notesResult.total}
-          />
-        </CardContent>
-      </Card>
+      <Suspense fallback={<NotesSkeleton />}>
+        <EntityNotesSection
+          entityType="company"
+          entityId={id}
+          linkedCompany={{ id: company.id, name: company.name }}
+        />
+      </Suspense>
 
       {/* Activity timeline — full width */}
       <Card className="border-border/50">

@@ -18,9 +18,16 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
-import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { LazyMarkdownRenderer as MarkdownRenderer } from "@/components/lazy";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,7 +45,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Company, Deal, DealInsight } from "@/db/schema";
+import type {
+  Company,
+  Deal,
+  DealInsight as FullDealInsight,
+} from "@/db/schema";
+
+type DealInsight = Omit<FullDealInsight, "embedding">;
+
 import { deleteInsight } from "@/lib/actions/ai";
 import { buildDealContext } from "@/lib/ai/context";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -407,19 +421,26 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
   const latestInsight = insights[0];
   const olderInsights = insights.slice(1);
 
-  const contactForContext = contact
-    ? {
-        firstName: contact.firstName ?? "",
-        lastName: contact.lastName ?? "",
-        email: contact.email,
-        phone: contact.phone,
-        jobTitle: contact.jobTitle,
-      }
-    : null;
+  const contactForContext = useMemo(
+    () =>
+      contact
+        ? {
+            firstName: contact.firstName ?? "",
+            lastName: contact.lastName ?? "",
+            email: contact.email,
+            phone: contact.phone,
+            jobTitle: contact.jobTitle,
+          }
+        : null,
+    [contact],
+  );
 
   // Detect which fields changed since last analysis
-  const currentContext = buildDealContext(deal, company, contactForContext);
-  const staleChanges = (() => {
+  const currentContext = useMemo(
+    () => buildDealContext(deal, company, contactForContext),
+    [deal, company, contactForContext],
+  );
+  const staleChanges = useMemo(() => {
     if (dismissedStale) return [];
     if (!latestInsight?.rawInput) return [];
     if (latestInsight.rawInput === currentContext) return [];
@@ -450,7 +471,7 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
       }
     }
     return changes;
-  })();
+  }, [currentContext, latestInsight, dismissedStale]);
   const isStale = staleChanges.length > 0;
 
   async function runAnalysis(prompt?: string) {

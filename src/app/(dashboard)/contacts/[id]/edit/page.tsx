@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { ContactForm } from "@/components/contact-form";
-import { getCompanyList } from "@/lib/actions/companies";
+import { Suspense } from "react";
+import { FormSkeleton } from "@/components/skeletons/form-skeleton";
 import { getContact } from "@/lib/actions/contacts";
+import { ContactEditForm } from "./_components/contact-edit-form";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -9,10 +10,7 @@ type Props = {
 
 export default async function EditContactPage({ params }: Props) {
   const { id } = await params;
-  const [contact, companies] = await Promise.all([
-    getContact(id),
-    getCompanyList(),
-  ]);
+  const contact = await getContact(id);
   if (!contact) notFound();
 
   return (
@@ -23,7 +21,9 @@ export default async function EditContactPage({ params }: Props) {
         </h1>
         <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
       </div>
-      <ContactForm contact={contact} companies={companies} />
+      <Suspense fallback={<FormSkeleton />}>
+        <ContactEditForm contact={contact} />
+      </Suspense>
     </div>
   );
 }

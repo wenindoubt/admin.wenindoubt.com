@@ -64,7 +64,10 @@ async function getGmailClient(clerkUserId: string) {
     client.setCredentials(credentials);
   }
 
-  return { gmail: google.gmail({ version: "v1", auth: client }), email: token.email };
+  return {
+    gmail: google.gmail({ version: "v1", auth: client }),
+    email: token.email,
+  };
 }
 
 /** Create a Gmail draft (always uses the authenticated user's Gmail) */
@@ -138,10 +141,8 @@ export async function confirmStageTransitionWithDraft(
     // 1. Create Gmail draft first — if this fails, don't move the deal
     const { draftId } = await createGmailDraft(userId, to, subject, body);
 
-    // 2. Update deal stage
+    // 2. Update deal stage, then log activity (sequential to avoid concurrent writes to deals row)
     await updateDeal(dealId, { stage: toStage as Deal["stage"] });
-
-    // 3. Log email activity
     await addDealActivity(
       dealId,
       "email",

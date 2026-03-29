@@ -4,9 +4,12 @@ import { File, FileText, Mic, Pencil, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { MarkdownRenderer } from "@/components/markdown-renderer";
+import {
+  LazyMarkdownRenderer as MarkdownRenderer,
+  LazyTiptapEditor as TiptapEditor,
+} from "@/components/lazy";
 import { PaginationBar } from "@/components/pagination";
-import { TiptapEditor } from "@/components/tiptap-editor";
+
 import { Button } from "@/components/ui/button";
 import type { Note } from "@/db/schema";
 import { deleteNote, updateNote } from "@/lib/actions/notes";

@@ -175,7 +175,17 @@ export async function getDeal(id: string) {
       .where(eq(dealActivities.dealId, id))
       .orderBy(desc(dealActivities.createdAt)),
     db
-      .select()
+      .select({
+        id: dealInsights.id,
+        dealId: dealInsights.dealId,
+        prompt: dealInsights.prompt,
+        rawInput: dealInsights.rawInput,
+        analysisText: dealInsights.analysisText,
+        summary: dealInsights.summary,
+        analysisModel: dealInsights.analysisModel,
+        embeddingModel: dealInsights.embeddingModel,
+        generatedAt: dealInsights.generatedAt,
+      })
       .from(dealInsights)
       .where(eq(dealInsights.dealId, id))
       .orderBy(desc(dealInsights.generatedAt)),
@@ -202,6 +212,27 @@ export async function getDeal(id: string) {
     activities,
     insights,
     tags: dealTagRows.map((r) => r.tag),
+  };
+}
+
+export async function getDealForEdit(id: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const [row] = await db
+    .select({
+      deal: deals,
+      companyId: companies.id,
+      companyName: companies.name,
+    })
+    .from(deals)
+    .innerJoin(companies, eq(deals.companyId, companies.id))
+    .where(eq(deals.id, id));
+
+  if (!row) return null;
+  return {
+    ...row.deal,
+    company: { id: row.companyId, name: row.companyName },
   };
 }
 
@@ -312,18 +343,25 @@ export async function addDealActivity(
     throw new Error(parsed.error.issues[0].message);
   }
 
+  if (["email", "call", "meeting"].includes(type)) {
+    const [[activity]] = await Promise.all([
+      db
+        .insert(dealActivities)
+        .values({ dealId, type, description, createdBy: userId, metadata })
+        .returning(),
+      db
+        .update(deals)
+        .set({ lastContactedAt: new Date(), updatedAt: new Date() })
+        .where(eq(deals.id, dealId)),
+    ]);
+    revalidatePath(`/deals/${dealId}`);
+    return activity;
+  }
+
   const [activity] = await db
     .insert(dealActivities)
     .values({ dealId, type, description, createdBy: userId, metadata })
     .returning();
-
-  if (["email", "call", "meeting"].includes(type)) {
-    await db
-      .update(deals)
-      .set({ lastContactedAt: new Date(), updatedAt: new Date() })
-      .where(eq(deals.id, dealId));
-  }
-
   revalidatePath(`/deals/${dealId}`);
   return activity;
 }
@@ -388,6 +426,9 @@ export async function getRecentActivities(filters?: {
 
 // Tags
 export async function getTags() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
   return db.select().from(tags).orderBy(tags.name);
 }
 

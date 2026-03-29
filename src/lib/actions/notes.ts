@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { db } from "@/db";
 import { deals, notes } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
@@ -115,7 +116,7 @@ export async function createNote(data: CreateNoteInput) {
     .returning();
 
   revalidateNotePaths(parsed.data);
-  enrichNoteAsync(note.id, note.content);
+  enrichNoteAfterResponse(note.id, note.content);
 
   return note;
 }
@@ -138,7 +139,7 @@ export async function updateNote(id: string, data: UpdateNoteInput) {
   revalidateNotePaths(updated);
 
   if (parsed.data.content) {
-    enrichNoteAsync(id, updated.content);
+    enrichNoteAfterResponse(id, updated.content);
   }
 
   return updated;
@@ -249,16 +250,22 @@ async function resolveDealEntities(dealId: string) {
   return deal ?? null;
 }
 
-/** Fire-and-forget: generate embedding + count tokens, then update the note */
-function enrichNoteAsync(noteId: string, content: string) {
-  Promise.all([generateEmbedding(content), countTokens(content)])
-    .then(async ([embedding, tokenCount]) => {
+/** Generate embedding + count tokens after the response is sent */
+function enrichNoteAfterResponse(noteId: string, content: string) {
+  after(async () => {
+    try {
+      const [embedding, tokenCount] = await Promise.all([
+        generateEmbedding(content),
+        countTokens(content),
+      ]);
       await db
         .update(notes)
         .set({ embedding, tokenCount })
         .where(eq(notes.id, noteId));
-    })
-    .catch(console.error);
+    } catch (error) {
+      console.error(`Failed to enrich note ${noteId}:`, error);
+    }
+  });
 }
 
 function revalidateNotePaths(note: {

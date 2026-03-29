@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,29 +30,32 @@ export function TagPicker({
   );
   const [isPending, startTransition] = useTransition();
 
-  function toggleTag(tagId: string) {
-    const prev = new Set(selectedIds);
-    const next = new Set(selectedIds);
-    if (next.has(tagId)) {
-      next.delete(tagId);
-    } else {
-      next.add(tagId);
-    }
-    setSelectedIds(next);
-
-    startTransition(async () => {
-      try {
-        if (entityType === "deal") {
-          await setDealTags(entityId, [...next]);
-        } else {
-          await setCompanyTags(entityId, [...next]);
-        }
-      } catch {
-        setSelectedIds(prev);
-        toast.error("Failed to update tags");
+  const toggleTag = useCallback(
+    (tagId: string) => {
+      const prev = new Set(selectedIds);
+      const next = new Set(selectedIds);
+      if (next.has(tagId)) {
+        next.delete(tagId);
+      } else {
+        next.add(tagId);
       }
-    });
-  }
+      setSelectedIds(next);
+
+      startTransition(async () => {
+        try {
+          if (entityType === "deal") {
+            await setDealTags(entityId, [...next]);
+          } else {
+            await setCompanyTags(entityId, [...next]);
+          }
+        } catch {
+          setSelectedIds(prev);
+          toast.error("Failed to update tags");
+        }
+      });
+    },
+    [selectedIds, entityType, entityId],
+  );
 
   const selectedTags = allTags.filter((t) => selectedIds.has(t.id));
 

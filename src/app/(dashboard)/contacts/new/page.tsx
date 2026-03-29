@@ -1,5 +1,6 @@
-import { ContactForm } from "@/components/contact-form";
-import { getCompanyList } from "@/lib/actions/companies";
+import { Suspense } from "react";
+import { FormSkeleton } from "@/components/skeletons/form-skeleton";
+import { NewContactForm } from "./_components/new-contact-form";
 
 type SearchParams = Promise<{ companyId?: string }>;
 
@@ -7,7 +8,6 @@ export default async function NewContactPage(props: {
   searchParams: SearchParams;
 }) {
   const { companyId } = await props.searchParams;
-  const companies = await getCompanyList();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -17,7 +17,9 @@ export default async function NewContactPage(props: {
         </h1>
         <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
       </div>
-      <ContactForm companyId={companyId} companies={companies} />
+      <Suspense fallback={<FormSkeleton />}>
+        <NewContactForm defaultCompanyId={companyId} />
+      </Suspense>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { db } from "@/db";
 import {
   companies,
@@ -127,20 +127,27 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Save insight to DB
-        const summary = fullText.substring(0, 200).split("\n")[0];
-        const embedding = await generateEmbedding(fullText);
-
-        await db.insert(dealInsights).values({
-          dealId,
-          prompt: isCustom ? prompt.trim() : null,
-          rawInput: dealFields,
-          analysisText: fullText,
-          summary,
-          embedding,
-          analysisModel: getClaudeModel(),
+        const capturedText = fullText;
+        after(async () => {
+          try {
+            const summary = capturedText.substring(0, 200).split("\n")[0];
+            const embedding = await generateEmbedding(capturedText);
+            await db.insert(dealInsights).values({
+              dealId,
+              prompt: isCustom ? prompt.trim() : null,
+              rawInput: dealFields,
+              analysisText: capturedText,
+              summary,
+              embedding,
+              analysisModel: getClaudeModel(),
+            });
+          } catch (error) {
+            console.error(
+              `Failed to persist insight for deal ${dealId}:`,
+              error,
+            );
+          }
         });
-
         controller.close();
       } catch (error) {
         controller.error(error);

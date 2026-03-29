@@ -8,9 +8,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ClickableRow } from "@/components/clickable-row";
-import { NotesSection } from "@/components/notes-section";
-import { TokenStatsBadge } from "@/components/token-stats-badge";
+import { EntityNotesSection } from "@/components/entity-notes-section";
+import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getContact } from "@/lib/actions/contacts";
-import { getNotes, getNoteTokenStats } from "@/lib/actions/notes";
 import { DEAL_STAGES } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -39,11 +39,7 @@ type Props = {
 
 export default async function ContactDetailPage({ params }: Props) {
   const { id } = await params;
-  const [contact, notesResult, tokenStats] = await Promise.all([
-    getContact(id),
-    getNotes({ contactId: id, limit: 10, offset: 0 }),
-    getNoteTokenStats("contact", id),
-  ]);
+  const contact = await getContact(id);
   if (!contact) notFound();
 
   return (
@@ -247,23 +243,16 @@ export default async function ContactDetailPage({ params }: Props) {
         </CardContent>
       </Card>
       {/* Notes */}
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
-          <CardDescription>
-            Notes, transcripts, and documents
-            <TokenStatsBadge stats={tokenStats} />
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <NotesSection
-            entityType="contact"
-            entityId={id}
-            initialNotes={notesResult.data}
-            initialTotal={notesResult.total}
-          />
-        </CardContent>
-      </Card>
+      <Suspense fallback={<NotesSkeleton />}>
+        <EntityNotesSection
+          entityType="contact"
+          entityId={id}
+          linkedContact={{
+            id: contact.id,
+            name: `${contact.firstName} ${contact.lastName}`,
+          }}
+        />
+      </Suspense>
     </div>
   );
 }

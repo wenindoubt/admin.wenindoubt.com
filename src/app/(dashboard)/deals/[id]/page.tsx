@@ -6,14 +6,16 @@ import {
   Phone,
   User,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ActivityForm } from "@/components/activity-form";
 import { ActivityTimeline } from "@/components/activity-timeline";
-import { DealInsightsPanel } from "@/components/deal-insights-panel";
-import { NotesSection } from "@/components/notes-section";
+import { EntityNotesSection } from "@/components/entity-notes-section";
+import { InsightsPanelSkeleton } from "@/components/skeletons/insights-panel-skeleton";
+import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
 import { TagPicker } from "@/components/tag-picker";
-import { TokenStatsBadge } from "@/components/token-stats-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,9 +27,14 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getDeal, getTags } from "@/lib/actions/deals";
-import { getNotesForDeal, getNoteTokenStats } from "@/lib/actions/notes";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
+
+const DealInsightsPanel = dynamic(
+  () =>
+    import("@/components/deal-insights-panel").then((m) => m.DealInsightsPanel),
+  { ssr: false, loading: () => <InsightsPanelSkeleton /> },
+);
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -42,10 +49,6 @@ export default async function DealDetailPage({ params }: Props) {
     primaryContactId: deal.primaryContact?.id ?? null,
     companyId: deal.company.id,
   };
-  const [notesResult, tokenStats] = await Promise.all([
-    getNotesForDeal(id, { limit: 10, offset: 0, ...resolvedDeal }),
-    getNoteTokenStats("deal", id, resolvedDeal),
-  ]);
 
   const stageConfig = DEAL_STAGES.find((s) => s.value === deal.stage);
 
@@ -268,32 +271,22 @@ export default async function DealDetailPage({ params }: Props) {
       />
 
       {/* Notes */}
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
-          <CardDescription>
-            Notes, transcripts, and documents
-            <TokenStatsBadge stats={tokenStats} />
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <NotesSection
-            entityType="deal"
-            entityId={id}
-            initialNotes={notesResult.data}
-            initialTotal={notesResult.total}
-            linkedContact={
-              deal.primaryContact
-                ? {
-                    id: deal.primaryContact.id,
-                    name: `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`,
-                  }
-                : undefined
-            }
-            linkedCompany={{ id: deal.company.id, name: deal.company.name }}
-          />
-        </CardContent>
-      </Card>
+      <Suspense fallback={<NotesSkeleton />}>
+        <EntityNotesSection
+          entityType="deal"
+          entityId={id}
+          resolvedDeal={resolvedDeal}
+          linkedContact={
+            deal.primaryContact
+              ? {
+                  id: deal.primaryContact.id,
+                  name: `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`,
+                }
+              : undefined
+          }
+          linkedCompany={{ id: deal.company.id, name: deal.company.name }}
+        />
+      </Suspense>
 
       {/* Activity timeline */}
       <Card className="border-border/50">

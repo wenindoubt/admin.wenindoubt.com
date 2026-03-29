@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { DealForm } from "@/components/deal-form";
-import { getCompanyList } from "@/lib/actions/companies";
-import { getDeal } from "@/lib/actions/deals";
+import { Suspense } from "react";
+import { FormSkeleton } from "@/components/skeletons/form-skeleton";
+import { getDealForEdit } from "@/lib/actions/deals";
+import { DealEditForm } from "./_components/deal-edit-form";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -9,7 +10,7 @@ type Props = {
 
 export default async function EditDealPage({ params }: Props) {
   const { id } = await params;
-  const [deal, companies] = await Promise.all([getDeal(id), getCompanyList()]);
+  const deal = await getDealForEdit(id);
   if (!deal) notFound();
 
   return (
@@ -20,7 +21,9 @@ export default async function EditDealPage({ params }: Props) {
         </h1>
         <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
       </div>
-      <DealForm deal={deal} companies={companies} />
+      <Suspense fallback={<FormSkeleton />}>
+        <DealEditForm deal={deal} />
+      </Suspense>
     </div>
   );
 }
