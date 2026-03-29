@@ -263,7 +263,7 @@ function enrichNoteAfterResponse(noteId: string, content: string) {
         .set({ embedding, tokenCount })
         .where(eq(notes.id, noteId));
     } catch (error) {
-      console.error(`Failed to enrich note ${noteId}:`, error);
+      console.error("Failed to enrich note", noteId, error);
     }
   });
 }

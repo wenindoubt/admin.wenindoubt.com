@@ -45,8 +45,16 @@ description = "Run all quality checks"
 depends = ["lint", "typecheck"]
 
 [tasks."check:ci"]
-description = "Run all quality checks (CI)"
-depends = ["lint", "typecheck", "build"]
+description = "Run all CI pipeline checks (lint, typecheck, build, audit, semgrep)"
+depends = ["lint", "typecheck", "build", "audit", "semgrep"]
+
+[tasks.audit]
+description = "npm audit (high+ severity, prod deps only)"
+run = "npm audit --audit-level=high --omit=dev"
+
+[tasks.semgrep]
+description = "SAST scan via Semgrep (Docker, matches CI)"
+run = "docker run --rm -v \"$(pwd):/src\" semgrep/semgrep:1.156.0 semgrep scan --config auto --error"
 
 [tasks.seed]
 description = "Seed sample data"

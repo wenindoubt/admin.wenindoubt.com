@@ -142,10 +142,7 @@ export async function POST(req: NextRequest) {
               analysisModel: getClaudeModel(),
             });
           } catch (error) {
-            console.error(
-              `Failed to persist insight for deal ${dealId}:`,
-              error,
-            );
+            console.error("Failed to persist insight for deal", dealId, error);
           }
         });
         controller.close();

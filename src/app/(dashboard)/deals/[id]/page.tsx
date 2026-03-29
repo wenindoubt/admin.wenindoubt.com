@@ -6,14 +6,13 @@ import {
   Phone,
   User,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ActivityForm } from "@/components/activity-form";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { EntityNotesSection } from "@/components/entity-notes-section";
-import { InsightsPanelSkeleton } from "@/components/skeletons/insights-panel-skeleton";
+import { LazyDealInsightsPanel as DealInsightsPanel } from "@/components/lazy";
 import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
 import { TagPicker } from "@/components/tag-picker";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +28,6 @@ import { Separator } from "@/components/ui/separator";
 import { getDeal, getTags } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
-
-const DealInsightsPanel = dynamic(
-  () =>
-    import("@/components/deal-insights-panel").then((m) => m.DealInsightsPanel),
-  { ssr: false, loading: () => <InsightsPanelSkeleton /> },
-);
 
 type Props = {
   params: Promise<{ id: string }>;
