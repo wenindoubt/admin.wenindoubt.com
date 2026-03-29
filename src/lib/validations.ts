@@ -1,23 +1,30 @@
 import { z } from "zod";
+import { stripCommas } from "./utils";
 
 // ── Company ──
 
+// Field constraints defined once, shared between form + server schemas
+const company = {
+  name: z.string().min(1, "Company name is required").max(200),
+  website: z.string().url("Invalid URL"),
+  industry: z.string().max(100),
+  size: z.string(),
+};
+
 export const companyFormSchema = z.object({
-  name: z.string().min(1, "Company name is required"),
-  website: z.string().url("Invalid URL").or(z.literal("")).optional(),
-  industry: z.string().optional(),
-  size: z.string().optional(),
+  name: company.name,
+  website: company.website.or(z.literal("")).optional(),
+  industry: company.industry.optional(),
+  size: company.size.optional(),
 });
 
 export type CompanyFormValues = z.infer<typeof companyFormSchema>;
 
-const nullable = z.string().nullable().optional();
-
 export const createCompanySchema = z.object({
-  name: z.string().min(1, "Company name is required"),
-  website: z.string().url("Invalid URL").nullable().optional(),
-  industry: nullable,
-  size: nullable,
+  name: company.name,
+  website: company.website.nullable().optional(),
+  industry: company.industry.nullable().optional(),
+  size: company.size.nullable().optional(),
 });
 
 export type CreateCompanyInput = z.infer<typeof createCompanySchema>;
@@ -26,26 +33,36 @@ export type UpdateCompanyInput = z.infer<typeof updateCompanySchema>;
 
 // ── Contact ──
 
-export const contactFormSchema = z.object({
+const contact = {
   companyId: z.string().uuid("Company is required"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email").min(1, "Email is required"),
-  phone: z.string().optional(),
-  linkedinUrl: z.string().url("Invalid URL").or(z.literal("")).optional(),
-  jobTitle: z.string().optional(),
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  email: z.string().max(255),
+  phone: z.string().max(50),
+  linkedinUrl: z.string().url("Invalid URL"),
+  jobTitle: z.string().max(200),
+};
+
+export const contactFormSchema = z.object({
+  companyId: contact.companyId,
+  firstName: contact.firstName,
+  lastName: contact.lastName,
+  email: contact.email.email("Invalid email").min(1, "Email is required"),
+  phone: contact.phone.optional(),
+  linkedinUrl: contact.linkedinUrl.or(z.literal("")).optional(),
+  jobTitle: contact.jobTitle.optional(),
 });
 
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 export const createContactSchema = z.object({
-  companyId: z.string().uuid("Company is required"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Email is required"),
-  phone: nullable,
-  linkedinUrl: z.string().url("Invalid URL").nullable().optional(),
-  jobTitle: nullable,
+  companyId: contact.companyId,
+  firstName: contact.firstName,
+  lastName: contact.lastName,
+  email: contact.email.email("Email is required"),
+  phone: contact.phone.nullable().optional(),
+  linkedinUrl: contact.linkedinUrl.nullable().optional(),
+  jobTitle: contact.jobTitle.nullable().optional(),
 });
 
 export type CreateContactInput = z.infer<typeof createContactSchema>;
@@ -74,30 +91,47 @@ const dealSources = [
   "other",
 ] as const;
 
-export const dealFormSchema = z.object({
+const deal = {
   companyId: z.string().uuid("Company is required"),
   primaryContactId: z.string().uuid("Primary contact is required"),
-  title: z.string().min(1, "Deal title is required"),
+  title: z.string().min(1, "Deal title is required").max(300),
   stage: z.enum(dealStages),
   source: z.enum(dealSources),
-  sourceDetail: z.string().optional(),
-  estimatedValue: z.string().optional(),
-  assignedTo: z.string().optional(),
-  followUpAt: z.string().optional(),
+  sourceDetail: z.string().max(1000),
+  estimatedValue: z.string(),
+  assignedTo: z.string(),
+  followUpAt: z.string(),
+};
+
+export const dealFormSchema = z.object({
+  companyId: deal.companyId,
+  primaryContactId: deal.primaryContactId,
+  title: deal.title,
+  stage: deal.stage,
+  source: deal.source,
+  sourceDetail: deal.sourceDetail.optional(),
+  estimatedValue: deal.estimatedValue
+    .optional()
+    .refine(
+      (v) => !v || !isNaN(Number(stripCommas(v))),
+      "Must be a valid dollar amount",
+    ),
+  assignedTo: deal.assignedTo.optional(),
+  followUpAt: deal.followUpAt.optional(),
 });
 
 export type DealFormValues = z.infer<typeof dealFormSchema>;
 
 export const createDealSchema = z.object({
-  companyId: z.string().uuid("Company is required"),
-  primaryContactId: z.string().uuid("Primary contact is required"),
-  title: z.string().min(1, "Deal title is required"),
-  stage: z.enum(dealStages),
-  source: z.enum(dealSources),
-  sourceDetail: nullable,
-  estimatedValue: nullable,
-  assignedTo: nullable,
-  followUpAt: z.string().nullable().optional(),
+  companyId: deal.companyId,
+  primaryContactId: deal.primaryContactId,
+  title: deal.title,
+  stage: deal.stage,
+  source: deal.source,
+  sourceDetail: deal.sourceDetail.nullable().optional(),
+  estimatedValue: deal.estimatedValue.nullable().optional(),
+  assignedTo: deal.assignedTo.nullable().optional(),
+  followUpAt: deal.followUpAt.nullable().optional(),
 });
 
 export type CreateDealInput = z.infer<typeof createDealSchema>;
@@ -106,9 +140,13 @@ export type UpdateDealInput = z.infer<typeof updateDealSchema>;
 
 // ── Activity ──
 
+const activity = {
+  description: z.string().min(1, "Description is required").max(5000),
+};
+
 export const activityFormSchema = z.object({
   type: z.enum(["note", "email", "call", "meeting"]),
-  description: z.string().min(1, "Description is required"),
+  description: activity.description,
 });
 
 export type ActivityFormValues = z.infer<typeof activityFormSchema>;
@@ -116,5 +154,5 @@ export type ActivityFormValues = z.infer<typeof activityFormSchema>;
 export const addDealActivitySchema = z.object({
   dealId: z.string().uuid("Invalid deal ID"),
   type: z.enum(["note", "email", "call", "meeting", "status_change"]),
-  description: z.string().min(1, "Description is required"),
+  description: activity.description,
 });

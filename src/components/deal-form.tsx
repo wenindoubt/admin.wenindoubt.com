@@ -21,7 +21,12 @@ import type { Company, Contact, Deal } from "@/db/schema";
 import { getContactsForCompany } from "@/lib/actions/contacts";
 import { createDeal, updateDeal } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
-import { FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "@/lib/utils";
+import {
+  FORM_INPUT_CLASSES,
+  FORM_LABEL_CLASSES,
+  formatCurrencyInput,
+  stripCommas,
+} from "@/lib/utils";
 import { type DealFormValues, dealFormSchema } from "@/lib/validations";
 
 type CompanyOption = Pick<Company, "id" | "name">;
@@ -64,7 +69,9 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
           stage: deal.stage,
           source: deal.source,
           sourceDetail: deal.sourceDetail ?? "",
-          estimatedValue: deal.estimatedValue ?? "",
+          estimatedValue: deal.estimatedValue
+            ? formatCurrencyInput(deal.estimatedValue)
+            : "",
           assignedTo: deal.assignedTo ?? "",
           followUpAt: deal.followUpAt
             ? new Date(deal.followUpAt).toISOString().split("T")[0]
@@ -124,7 +131,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
         ...data,
         primaryContactId: data.primaryContactId,
         sourceDetail: data.sourceDetail || null,
-        estimatedValue: data.estimatedValue || null,
+        estimatedValue: data.estimatedValue ? stripCommas(data.estimatedValue) || null : null,
         assignedTo: data.assignedTo || null,
         followUpAt: data.followUpAt || null,
       };
@@ -145,6 +152,23 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
 
   const inputClasses = FORM_INPUT_CLASSES;
   const labelClasses = FORM_LABEL_CLASSES;
+
+  const estimatedValueReg = register("estimatedValue");
+  const estimatedValueProps = {
+    ref: estimatedValueReg.ref,
+    name: estimatedValueReg.name,
+    onBlur: estimatedValueReg.onBlur,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const input = e.target;
+      const pos = input.selectionStart ?? 0;
+      const prevLen = input.value.length;
+      const formatted = formatCurrencyInput(input.value);
+      input.value = formatted;
+      const newPos = Math.max(0, pos + (formatted.length - prevLen));
+      requestAnimationFrame(() => input.setSelectionRange(newPos, newPos));
+      estimatedValueReg.onChange(e);
+    },
+  };
 
   return (
     <form
@@ -256,9 +280,10 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
             </Label>
             <Input
               id="estimatedValue"
-              type="number"
-              step="0.01"
-              {...register("estimatedValue")}
+              type="text"
+              inputMode="decimal"
+              placeholder="0"
+              {...estimatedValueProps}
               className={inputClasses}
             />
           </div>
