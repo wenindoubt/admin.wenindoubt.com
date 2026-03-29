@@ -22,6 +22,8 @@ import {
 
 export type CompanyFilters = {
   search?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export async function getCompanies(filters?: CompanyFilters) {
@@ -34,7 +36,12 @@ export async function getCompanies(filters?: CompanyFilters) {
     conditions.push(ilike(companies.name, `%${filters.search}%`));
   }
 
-  let query = db.select().from(companies).orderBy(asc(companies.name));
+  let query = db
+    .select()
+    .from(companies)
+    .orderBy(asc(companies.name))
+    .limit(filters?.limit ?? 500)
+    .offset(filters?.offset ?? 0);
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }

@@ -25,7 +25,7 @@ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizz
 - **Auth**: Clerk middleware in `src/proxy.ts` protects all routes except `/sign-in`, `/sign-up`. Server actions validate via `auth()`.
 - **DB**: Drizzle ORM + `postgres` driver. Schema in `src/db/schema.ts`. Connection uses `prepare: false` for Supabase pooler compatibility.
 - **AI**: Claude (`@anthropic-ai/sdk`) for lead analysis + outreach drafting. Gemini (`@google/genai`) for scoring, research, embeddings (768-dim vectors).
-- **Realtime**: Supabase client-side subscriptions for Kanban board live updates.
+- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled on `deals` table.
 - **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
 
@@ -61,6 +61,6 @@ Required: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON
 ## Gotchas
 
 - Middleware is in `src/proxy.ts`, not `middleware.ts` — Clerk convention
-- `@anthropic-ai/sdk` is in `serverExternalPackages` in next.config.ts — don't remove
+- `@anthropic-ai/sdk` and `googleapis` are in `serverExternalPackages` in next.config.ts — don't remove
 - Server action body limit is 10MB (configured in next.config.ts)
 - Drizzle uses `prepare: false` — required for Supabase Supavisor transaction pooling

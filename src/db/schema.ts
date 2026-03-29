@@ -9,6 +9,7 @@ import {
   timestamp,
   uuid,
   vector,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // Enums
@@ -72,7 +73,10 @@ export const contacts = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("idx_contacts_company_id").on(table.companyId)],
+  (table) => [
+    index("idx_contacts_company_id").on(table.companyId),
+    uniqueIndex("idx_contacts_company_email").on(table.companyId, table.email),
+  ],
 );
 
 // Deals (sales opportunities / contracts)
@@ -108,6 +112,7 @@ export const deals = pgTable(
     index("idx_deals_company_id").on(table.companyId),
     index("idx_deals_assigned_to").on(table.assignedTo),
     index("idx_deals_created_at").on(table.createdAt),
+    index("idx_deals_primary_contact_id").on(table.primaryContactId),
   ],
 );
 
@@ -132,7 +137,13 @@ export const dealInsights = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("idx_deal_insights_deal_id").on(table.dealId)],
+  (table) => [
+    index("idx_deal_insights_deal_id").on(table.dealId),
+    index("idx_deal_insights_embedding").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops"),
+    ),
+  ],
 );
 
 // Activity log (per deal)
@@ -174,7 +185,10 @@ export const dealTags = pgTable(
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.dealId, table.tagId] })],
+  (table) => [
+    primaryKey({ columns: [table.dealId, table.tagId] }),
+    index("idx_deal_tags_tag_id").on(table.tagId),
+  ],
 );
 
 export const companyTags = pgTable(
@@ -187,7 +201,10 @@ export const companyTags = pgTable(
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.companyId, table.tagId] })],
+  (table) => [
+    primaryKey({ columns: [table.companyId, table.tagId] }),
+    index("idx_company_tags_tag_id").on(table.tagId),
+  ],
 );
 
 // Gmail OAuth tokens (per Clerk user)

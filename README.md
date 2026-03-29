@@ -51,7 +51,7 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 |---------|-------------|
 | `npm run dev` | Start development server |
 | `npm run build` | Production build |
-| `npm run lint` | Run ESLint |
+| `npm run lint` | Run Biome (lint + format) |
 | `supabase start` | Start local Postgres + services |
 | `supabase stop` | Stop local stack |
 | `npx tsx scripts/seed.ts` | Seed sample data |
@@ -66,7 +66,7 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 | Database | PostgreSQL + Drizzle ORM |
 | AI | Claude (analysis, outreach) + Gemini (scoring, embeddings) |
 | Realtime | Supabase (Kanban live sync) |
-| UI | shadcn v4, Tailwind CSS v4, next-themes |
+| UI | shadcn v4, Tailwind CSS v4 |
 | Forms | react-hook-form + Zod |
 | Drag & Drop | @hello-pangea/dnd |
 

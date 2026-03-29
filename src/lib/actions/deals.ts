@@ -39,6 +39,8 @@ export type DealFilters = {
   tagIds?: string[];
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
 };
 
 export async function getDeals(filters?: DealFilters) {
@@ -65,16 +67,18 @@ export async function getDeals(filters?: DealFilters) {
   }
   if (filters?.search) {
     const term = `%${filters.search}%`;
-    conditions.push(
-      or(
-        ilike(deals.title, term),
-        ilike(companies.name, term),
-        ilike(contacts.firstName, term),
-        ilike(contacts.lastName, term),
-        ilike(deals.sourceDetail, term),
-        sql`CAST(${deals.estimatedValue} AS TEXT) LIKE ${term}`,
-      )!,
-    );
+    const textConditions = [
+      ilike(deals.title, term),
+      ilike(companies.name, term),
+      ilike(contacts.firstName, term),
+      ilike(contacts.lastName, term),
+      ilike(deals.sourceDetail, term),
+    ];
+    const numericValue = Number(filters.search);
+    if (!Number.isNaN(numericValue)) {
+      textConditions.push(eq(deals.estimatedValue, String(numericValue)));
+    }
+    conditions.push(or(...textConditions)!);
   }
   if (filters?.tagIds && filters.tagIds.length > 0) {
     const dealsWithTags = db
@@ -106,7 +110,9 @@ export async function getDeals(filters?: DealFilters) {
     .from(deals)
     .innerJoin(companies, eq(deals.companyId, companies.id))
     .innerJoin(contacts, eq(deals.primaryContactId, contacts.id))
-    .orderBy(orderBy);
+    .orderBy(orderBy)
+    .limit(filters?.limit ?? 500)
+    .offset(filters?.offset ?? 0);
 
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;

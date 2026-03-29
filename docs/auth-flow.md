@@ -1,6 +1,6 @@
 # Auth Flow
 
-Clerk handles authentication with middleware-level route protection and server action validation.
+Clerk handles authentication with middleware-level route protection, server action validation, and Supabase RLS for Realtime.
 
 ```mermaid
 flowchart TD
@@ -15,6 +15,9 @@ flowchart TD
     Page -->|POST /api/ai/analyze| APIAuth{auth check}
     APIAuth -->|no userId| Error
     APIAuth -->|valid userId| Claude([Claude API])
+    Page -->|Realtime subscribe| SupaAuth{Supabase JWKS}
+    SupaAuth -->|invalid JWT| Blocked[Anon role - RLS blocks]
+    SupaAuth -->|valid Clerk JWT| Realtime[Live deal updates]
 ```
 
 ## Key Details
@@ -23,4 +26,5 @@ flowchart TD
 - **Public routes**: `/sign-in(.*)`, `/sign-up(.*)` — everything else is protected
 - **Server actions** independently validate auth — defense in depth, not just middleware
 - **API route** (`/api/ai/analyze`) also validates auth before streaming Claude responses
+- **Supabase Realtime** — the client-side `useSupabase()` hook passes Clerk session tokens via the `accessToken` callback. Supabase verifies them against Clerk's JWKS endpoint. RLS on the `deals` table grants access only to the `authenticated` role, blocking anonymous subscriptions.
 - **Matcher** skips Next.js internals (`/_next/`) and static files but always runs for `/api/` routes

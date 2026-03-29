@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Deal } from "@/db/schema";
 import { checkStageTransition, updateDeal } from "@/lib/actions/deals";
 import { ACTIVE_STAGES, DEAL_STAGES } from "@/lib/constants";
-import { supabase } from "@/lib/supabase/realtime";
+import { useSupabase } from "@/lib/supabase/realtime";
 import { cn, formatCurrency } from "@/lib/utils";
 import { EmailDraftModal } from "./email-draft-modal";
 
@@ -96,6 +96,7 @@ export function KanbanBoard({
 }: {
   initialDeals: DealWithRelations[];
 }) {
+  const supabase = useSupabase();
   const [columns, setColumns] = useState(() => buildColumns(initialDeals));
   const [visible, setVisible] = useState<Set<string>>(getInitialVisible);
 
@@ -167,7 +168,7 @@ export function KanbanBoard({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [supabase]);
 
   const toggleVisible = useCallback((status: string) => {
     setVisible((prev) => {

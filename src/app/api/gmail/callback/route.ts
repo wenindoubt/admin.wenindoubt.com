@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
 import { google } from "googleapis";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
@@ -45,21 +44,13 @@ export async function GET(req: NextRequest) {
     };
 
     // Upsert token row
-    const [existing] = await db
-      .select()
-      .from(gmailTokens)
-      .where(eq(gmailTokens.clerkUserId, userId));
-
-    if (existing) {
-      await db
-        .update(gmailTokens)
-        .set(tokenData)
-        .where(eq(gmailTokens.clerkUserId, userId));
-    } else {
-      await db
-        .insert(gmailTokens)
-        .values({ clerkUserId: userId, ...tokenData });
-    }
+    await db
+      .insert(gmailTokens)
+      .values({ clerkUserId: userId, ...tokenData })
+      .onConflictDoUpdate({
+        target: gmailTokens.clerkUserId,
+        set: tokenData,
+      });
 
     return NextResponse.redirect(
       new URL("/deals/board?gmail=connected", req.url),
