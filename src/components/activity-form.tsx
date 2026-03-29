@@ -28,7 +28,7 @@ export function ActivityForm({ dealId }: { dealId: string }) {
   } = useForm<ActivityFormValues>({
     resolver: zodResolver(activityFormSchema),
     mode: "onTouched",
-    defaultValues: { type: "note", description: "" },
+    defaultValues: { type: "call", description: "" },
   });
 
   const currentType = watch("type");
@@ -48,7 +48,7 @@ export function ActivityForm({ dealId }: { dealId: string }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex gap-3">
       <Select
-        defaultValue="note"
+        defaultValue="call"
         onValueChange={(v) =>
           v && setValue("type", v as ActivityFormValues["type"])
         }
@@ -71,7 +71,7 @@ export function ActivityForm({ dealId }: { dealId: string }) {
       )}
       <div className="flex-1 space-y-1">
         <Textarea
-          placeholder="Add a note, log a call, etc."
+          placeholder="Log a call, email, or meeting..."
           className={`min-h-[60px] ${inputClasses}`}
           {...register("description")}
         />

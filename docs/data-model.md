@@ -1,6 +1,6 @@
 # Data Model
 
-Drizzle ORM schema with 9 tables. Defined in `src/db/schema.ts`.
+Drizzle ORM schema with 10 tables. Defined in `src/db/schema.ts`.
 
 ```mermaid
 erDiagram
@@ -79,6 +79,21 @@ erDiagram
         uuid company_id PK,FK
         uuid tag_id PK,FK
     }
+    notes {
+        uuid id PK
+        text type
+        text title
+        text content
+        uuid deal_id FK
+        uuid contact_id FK
+        uuid company_id FK
+        vector embedding
+        integer token_count
+        tsvector search_vector
+        text created_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
     gmail_tokens {
         uuid id PK
         text clerk_user_id UK
@@ -99,6 +114,9 @@ erDiagram
     companies ||--o{ company_tags : "tagged with"
     tags ||--o{ deal_tags : "applied to"
     tags ||--o{ company_tags : "applied to"
+    deals ||--o{ notes : "has notes"
+    contacts ||--o{ notes : "has notes"
+    companies ||--o{ notes : "has notes"
 ```
 
 ## Key Details
@@ -108,6 +126,7 @@ erDiagram
 - **Unique constraint**: `contacts(company_id, email)` prevents duplicate contacts per company
 - **Vector column**: `deal_insights.embedding` is 768-dim (Gemini `gemini-embedding-2-preview`) with HNSW index (`vector_cosine_ops`) for semantic search
 - **RLS**: enabled on `deals` table -- authenticated Clerk users get full access, anon role blocked. Enforced on Supabase Realtime subscriptions.
+- **Notes**: multi-entity association via nullable FKs (`deal_id`, `contact_id`, `company_id`). CHECK constraint requires at least one non-null FK. Types: `note`, `transcript`, `document`. Content stored as markdown. 768-dim embedding (Gemini) with HNSW index for semantic search. `token_count` column stores exact Claude token count. Auto-surfaced on deal pages across deal + contact + company.
 - **Activity metadata**: `jsonb` stores structured data like `{ from_stage: "new", to_stage: "contacted" }` for stage changes
 - **Indexes**: stage, company_id, assigned_to, created_at, primary_contact_id on deals; deal_id on insights and activities; tag_id on junction tables; GIN indexes on search_vector for companies, contacts, and deals
 - **Gmail tokens**: `gmail_tokens` table stores per-user OAuth credentials (clerk_user_id unique) for outreach integration

@@ -1,6 +1,7 @@
 import {
   customType,
   index,
+  integer,
   jsonb,
   numeric,
   pgEnum,
@@ -223,6 +224,45 @@ export const companyTags = pgTable(
   ],
 );
 
+// Notes (multi-entity: deal, contact, company)
+export const notes = pgTable(
+  "notes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    type: text().notNull().default("note"),
+    title: text(),
+    content: text().notNull(),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id").references(() => contacts.id, {
+      onDelete: "cascade",
+    }),
+    companyId: uuid("company_id").references(() => companies.id, {
+      onDelete: "cascade",
+    }),
+    embedding: vector({ dimensions: 768 }),
+    tokenCount: integer("token_count"),
+    searchVector: tsvector("search_vector"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_notes_deal_id").on(table.dealId),
+    index("idx_notes_contact_id").on(table.contactId),
+    index("idx_notes_company_id").on(table.companyId),
+    index("idx_notes_created_at").on(table.createdAt),
+    index("idx_notes_embedding").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops"),
+    ),
+    index("idx_notes_search_vector").using("gin", table.searchVector),
+  ],
+);
+
 // Gmail OAuth tokens (per Clerk user)
 export const gmailTokens = pgTable("gmail_tokens", {
   id: uuid().primaryKey().defaultRandom(),
@@ -252,5 +292,7 @@ export type DealActivity = typeof dealActivities.$inferSelect;
 export type NewDealActivity = typeof dealActivities.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;
 export type GmailToken = typeof gmailTokens.$inferSelect;
 export type NewGmailToken = typeof gmailTokens.$inferInsert;

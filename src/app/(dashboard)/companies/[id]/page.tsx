@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { ClickableRow } from "@/components/clickable-row";
 import { ContactList } from "@/components/contact-list";
+import { NotesSection } from "@/components/notes-section";
+import { TokenStatsBadge } from "@/components/token-stats-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCompany } from "@/lib/actions/companies";
+import { getNotes, getNoteTokenStats } from "@/lib/actions/notes";
 import {
   COMPANY_LIFECYCLES,
   computeLifecycle,
@@ -35,7 +38,11 @@ type Props = {
 
 export default async function CompanyDetailPage({ params }: Props) {
   const { id } = await params;
-  const company = await getCompany(id);
+  const [company, notesResult, tokenStats] = await Promise.all([
+    getCompany(id),
+    getNotes({ companyId: id, limit: 10, offset: 0 }),
+    getNoteTokenStats("company", id),
+  ]);
   if (!company) notFound();
 
   const lifecycle = computeLifecycle(company.deals);
@@ -240,6 +247,25 @@ export default async function CompanyDetailPage({ params }: Props) {
               </Table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Notes */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
+          <CardDescription>
+            Notes, transcripts, and documents
+            <TokenStatsBadge stats={tokenStats} />
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <NotesSection
+            entityType="company"
+            entityId={id}
+            initialNotes={notesResult.data}
+            initialTotal={notesResult.total}
+          />
         </CardContent>
       </Card>
 

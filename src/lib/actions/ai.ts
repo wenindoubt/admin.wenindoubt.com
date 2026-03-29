@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -10,6 +10,7 @@ import {
   dealActivities,
   dealInsights,
   deals,
+  notes,
 } from "@/db/schema";
 import { claude, getClaudeModel } from "@/lib/ai/claude";
 import { buildDealContext } from "@/lib/ai/context";
@@ -19,12 +20,19 @@ import {
   NEXT_STEPS_SYSTEM,
   OUTREACH_DRAFT_SYSTEM,
 } from "@/lib/ai/prompts";
+import { buildDealNoteConditions } from "@/lib/note-utils";
 
 async function fetchDealWithRelations(dealId: string) {
   const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
   if (!deal) throw new Error("Deal not found");
 
-  const [companyRows, contactRows, activities] = await Promise.all([
+  const noteWhere = buildDealNoteConditions(
+    dealId,
+    deal.primaryContactId,
+    deal.companyId,
+  );
+
+  const [companyRows, contactRows, activities, dealNotes] = await Promise.all([
     db.select().from(companies).where(eq(companies.id, deal.companyId)),
     deal.primaryContactId
       ? db.select().from(contacts).where(eq(contacts.id, deal.primaryContactId))
@@ -34,12 +42,19 @@ async function fetchDealWithRelations(dealId: string) {
       .from(dealActivities)
       .where(eq(dealActivities.dealId, dealId))
       .orderBy(dealActivities.createdAt),
+    db.select().from(notes).where(noteWhere),
   ]);
 
   const company = companyRows[0];
   if (!company) throw new Error("Company not found");
 
-  return { deal, company, contact: contactRows[0] ?? null, activities };
+  return {
+    deal,
+    company,
+    contact: contactRows[0] ?? null,
+    activities,
+    notes: dealNotes,
+  };
 }
 
 async function callClaude(
@@ -67,9 +82,14 @@ export async function scoreDeal(dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const { deal, company, contact, activities } =
-    await fetchDealWithRelations(dealId);
-  const context = buildDealContext(deal, company, contact, activities);
+  const rel = await fetchDealWithRelations(dealId);
+  const context = buildDealContext(
+    rel.deal,
+    rel.company,
+    rel.contact,
+    rel.activities,
+    rel.notes,
+  );
 
   const text = await callClaude(
     DEAL_SCORING_SYSTEM,
@@ -106,9 +126,14 @@ export async function draftOutreach(dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const { deal, company, contact, activities } =
-    await fetchDealWithRelations(dealId);
-  const context = buildDealContext(deal, company, contact, activities);
+  const rel = await fetchDealWithRelations(dealId);
+  const context = buildDealContext(
+    rel.deal,
+    rel.company,
+    rel.contact,
+    rel.activities,
+    rel.notes,
+  );
 
   return callClaude(
     OUTREACH_DRAFT_SYSTEM,
@@ -120,9 +145,14 @@ export async function suggestNextSteps(dealId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const { deal, company, contact, activities } =
-    await fetchDealWithRelations(dealId);
-  const context = buildDealContext(deal, company, contact, activities);
+  const rel = await fetchDealWithRelations(dealId);
+  const context = buildDealContext(
+    rel.deal,
+    rel.company,
+    rel.contact,
+    rel.activities,
+    rel.notes,
+  );
 
   const text = await callClaude(
     NEXT_STEPS_SYSTEM,

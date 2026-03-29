@@ -1,9 +1,11 @@
-import type { Company, Contact, Deal, DealActivity } from "@/db/schema";
+import type { Company, Contact, Deal, DealActivity, Note } from "@/db/schema";
 
 type ContactContext = Pick<
   Contact,
   "firstName" | "lastName" | "email" | "phone" | "jobTitle"
 >;
+
+type NoteContext = Pick<Note, "title" | "content" | "type" | "createdAt">;
 
 /** Build a text summary of deal + company + contact fields for AI context and staleness detection */
 export function buildDealContext(
@@ -11,6 +13,7 @@ export function buildDealContext(
   company: Company,
   contact: ContactContext | null,
   activities?: DealActivity[],
+  notes?: NoteContext[],
 ): string {
   const fields = [
     `Deal: ${deal.title}`,
@@ -32,15 +35,35 @@ export function buildDealContext(
     .filter(Boolean)
     .join("\n");
 
-  if (!activities || activities.length === 0) return fields;
+  let result = fields;
 
-  const recent = activities.slice(0, 10);
-  const activityLog = recent
-    .map(
-      (a) =>
-        `- [${new Date(a.createdAt).toLocaleDateString()}] ${a.type}: ${a.description}`,
-    )
-    .join("\n");
+  if (activities && activities.length > 0) {
+    const recent = activities.slice(0, 10);
+    const activityLog = recent
+      .map(
+        (a) =>
+          `- [${new Date(a.createdAt).toLocaleDateString()}] ${a.type}: ${a.description}`,
+      )
+      .join("\n");
+    result += `\n\nRecent Activity (newest first):\n${activityLog}`;
+  }
 
-  return `${fields}\n\nRecent Activity (newest first):\n${activityLog}`;
+  if (notes && notes.length > 0) {
+    // Sort chronologically oldest→newest so the AI reads them in narrative order
+    // and naturally treats the last note as the most current state
+    const sorted = [...notes].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    const noteLog = sorted
+      .map((n) => {
+        const ts = new Date(n.createdAt).toISOString();
+        const title = n.title ? ` ${n.title}:` : ":";
+        return `- [${ts}] (${n.type})${title} ${n.content}`;
+      })
+      .join("\n");
+    result += `\n\nRelated Notes (${sorted.length} total, chronological):\n${noteLog}`;
+  }
+
+  return result;
 }

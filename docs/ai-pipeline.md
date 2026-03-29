@@ -10,9 +10,19 @@ sequenceDiagram
     participant Gemini as Gemini API
     participant DB as PostgreSQL
 
-    Browser->>API: POST {dealId}
-    API->>DB: Fetch deal data
+    Browser->>API: POST {dealId, prompt?}
+    API->>DB: Fetch deal + company + contact + activities
     activate API
+    alt Full analysis
+        API->>DB: Fetch all notes (deal + contact + company)
+    else Custom query
+        API->>Gemini: Embed query (768-dim)
+        Gemini-->>API: Query vector
+        API->>DB: Semantic search notes (cosine similarity)
+        API->>DB: Fetch 5 most recent notes
+        Note over API: Merge + deduplicate
+    end
+    Note over API: Sort notes chronologically (oldest first)
     API->>Claude: Stream analysis (max 4096 tokens)
     activate Claude
     Claude-->>API: Text deltas
@@ -39,11 +49,15 @@ sequenceDiagram
 | Outreach draft | Claude | `ANTHROPIC_MODEL` env var | Personalized email under 150 words |
 | Outreach rewrite | Claude | `ANTHROPIC_MODEL` env var | Full or partial email regeneration |
 | Next steps | Claude | `ANTHROPIC_MODEL` env var | 2-3 actionable steps with timelines (JSON output) |
-| Embeddings | Gemini | gemini-embedding-2-preview | 768-dim vectors for semantic search |
+| Token counting | Claude | `ANTHROPIC_MODEL` env var | Exact token count per note (fire-and-forget on create/update) |
+| Embeddings | Gemini | gemini-embedding-2-preview | 768-dim vectors for semantic search (insights + notes) |
+| Semantic note retrieval | Gemini | gemini-embedding-2-preview | Embed custom query → cosine similarity against note embeddings |
 
 ## Key Details
 
 - **Streaming**: Both `/api/ai/analyze` and `/api/ai/outreach` stream Claude responses. Other AI actions return complete responses via server actions.
-- **Embedding pipeline**: After Claude generates analysis text, Gemini embeds it into a 768-dim vector stored alongside the insight. This powers `semanticSearch()` and `findSimilarDeals()`. HNSW index on `vector_cosine_ops` accelerates similarity queries.
-- **Prompts**: All system prompts are in `src/lib/ai/prompts.ts` -- structured with explicit output format instructions.
+- **Embedding pipeline**: After Claude generates analysis text, Gemini embeds it into a 768-dim vector stored alongside the insight. This powers `semanticSearch()` and `findSimilarDeals()`. Notes also get embeddings (fire-and-forget on create/update) powering `findRelevantNotes()`. HNSW indexes on `vector_cosine_ops` accelerate similarity queries.
+- **Notes in AI context**: Full analysis includes all auto-surfaced notes (deal + contact + company), sorted chronologically oldest→newest. Custom queries use semantic retrieval (embed question → cosine similarity search → merge with 5 most recent → sort chronologically). Prompts instruct the AI that most recent notes take precedence when information conflicts.
+- **Token counting**: `claude.messages.countTokens()` provides exact token counts per note (stored in `notes.token_count`). Displayed as a badge on detail pages. Fire-and-forget alongside embedding generation.
+- **Prompts**: All system prompts are in `src/lib/ai/prompts.ts` — structured with explicit output format instructions, temporal precedence rules for notes.
 - **Token limits**: Streaming analysis capped at 4096 tokens, streaming outreach at 1024 tokens, server action calls at 2048 tokens.

@@ -6,17 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+All commands run via `mise run <task>`. Env vars are auto-loaded from `.env.local` by mise.
+
 ```bash
-npm run dev        # start dev server (requires local Supabase running)
-npm run build      # production build
-npm run lint       # biome check (lint + format)
-npm run lint:fix   # biome auto-fix
-mise run check     # lint + typecheck
-supabase start     # start local Postgres + Supabase services
-supabase stop      # stop local stack
-npx tsx scripts/seed.ts          # seed sample data
-npx tsx scripts/seed.ts --clean  # remove sample data
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizzle-kit push  # push schema to local db
+mise run dev             # start dev server (requires local Supabase running)
+mise run build           # production build
+mise run lint            # biome check (lint + format)
+mise run lint:fix        # biome auto-fix
+mise run check           # lint + typecheck
+mise run db:start        # start local Postgres + Supabase services
+mise run db:stop         # stop local stack
+mise run db:push         # push Drizzle schema to local DB
+mise run seed            # seed sample data
+mise run seed:clean      # remove sample data
+mise run backfill:embeddings  # backfill embeddings + token counts (run after seeding)
+mise run backfill:assigned-to # backfill assigned-to field
 ```
 
 ## Architecture
@@ -24,7 +28,8 @@ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizz
 - **Next.js 16** App Router with React 19 — server components by default, `"use client"` only where needed
 - **Auth**: Clerk middleware in `src/proxy.ts` protects all routes except `/sign-in`, `/sign-up`. Server actions validate via `auth()`.
 - **DB**: Drizzle ORM + `postgres` driver. Schema in `src/db/schema.ts`. Connection uses `prepare: false` for Supabase pooler compatibility.
-- **AI**: Claude (`@anthropic-ai/sdk`) for analysis, scoring, research, outreach drafting. Gemini (`@google/genai`) for embeddings only (768-dim vectors). Model configured via `ANTHROPIC_MODEL` env var.
+- **AI**: Claude (`@anthropic-ai/sdk`) for analysis, scoring, research, outreach drafting, token counting. Gemini (`@google/genai`) for embeddings only (768-dim vectors). Model configured via `ANTHROPIC_MODEL` env var.
+- **Notes**: Centralized `notes` table with multi-entity association (deal/contact/company). Rich text via Tiptap (`tiptap-markdown`), stored as markdown. Gemini embeddings for semantic retrieval. Auto-surfaces related notes across entity graph on deal pages.
 - **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled on `deals` table.
 - **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
@@ -38,11 +43,12 @@ src/app/api/ai/           # Streaming Claude endpoints (analyze, outreach)
 src/app/api/gmail/        # Gmail OAuth2 flow (authorize, callback)
 src/components/           # App components + ui/ (shadcn)
 src/db/                   # Drizzle schema + connection singleton
-src/lib/actions/          # Server actions (deals, companies, contacts, ai, search, gmail)
-src/lib/ai/               # AI client singletons + prompts
+src/lib/actions/          # Server actions (deals, companies, contacts, notes, ai, search, gmail)
+src/lib/ai/               # AI client singletons, prompts, embeddings, token counting
 src/lib/google/           # Gmail OAuth2 client
 src/lib/supabase/         # Supabase realtime client
-scripts/                  # Seed script
+src/lib/note-utils.ts     # Shared note query helpers (auto-surface conditions)
+scripts/                  # Seed + backfill scripts
 ```
 
 ## Code Patterns
@@ -53,7 +59,7 @@ scripts/                  # Seed script
 - **Styling**: Tailwind utility classes, `cn()` helper from `src/lib/utils.ts` for conditional classes
 - **Components**: shadcn v4 uses `@base-ui/react` primitives — `render` prop pattern instead of `asChild`
 - **Next.js 16 params**: page `params` and `searchParams` are `Promise<>` — must be awaited
-- **Pagination**: server actions for lists return `{ data, total }` with `limit`/`offset` support. Pages read `page` from searchParams. Constants in `src/lib/types.ts` (`PAGE_SIZE=25`, `PAGE_SIZE_ACTIVITY=5`). Shared `Pagination` component (URL-driven) and `PaginationBar` (callback-driven) in `src/components/pagination.tsx`. Filter/sort changes reset `page` param.
+- **Pagination**: server actions for lists return `{ data, total }` with `limit`/`offset` support. Pages read `page` from searchParams. Constants in `src/lib/types.ts` (`PAGE_SIZE=25`, `PAGE_SIZE_ACTIVITY=5`, `PAGE_SIZE_NOTES=10`). Shared `Pagination` component (URL-driven) and `PaginationBar` (callback-driven) in `src/components/pagination.tsx`. Filter/sort changes reset `page` param.
 - **Naming**: camelCase for variables/functions, PascalCase for components/types
 - **Fonts**: `font-heading` (DM Serif Text) is for headings only — h1, CardTitle, DialogTitle, SheetTitle, branding. All data, numbers, labels, and buttons use `font-sans` (Inter). Never apply `font-heading` to numeric/data content.
 

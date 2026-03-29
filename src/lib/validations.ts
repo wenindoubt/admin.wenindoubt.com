@@ -138,6 +138,42 @@ export type CreateDealInput = z.infer<typeof createDealSchema>;
 export const updateDealSchema = createDealSchema.partial();
 export type UpdateDealInput = z.infer<typeof updateDealSchema>;
 
+// ── Note ──
+
+const noteTypes = ["note", "transcript", "document"] as const;
+
+export const noteFormSchema = z.object({
+  type: z.enum(noteTypes),
+  title: z.string().max(300).optional(),
+  content: z.string().min(1, "Content is required").max(50000),
+});
+
+export type NoteFormValues = z.infer<typeof noteFormSchema>;
+
+export const createNoteSchema = z
+  .object({
+    type: z.enum(noteTypes),
+    title: z.string().max(300).nullable().optional(),
+    content: z.string().min(1, "Content is required").max(50000),
+    dealId: z.string().uuid().nullable().optional(),
+    contactId: z.string().uuid().nullable().optional(),
+    companyId: z.string().uuid().nullable().optional(),
+  })
+  .refine(
+    (d) => d.dealId || d.contactId || d.companyId,
+    "At least one entity (deal, contact, or company) is required",
+  );
+
+export type CreateNoteInput = z.infer<typeof createNoteSchema>;
+
+export const updateNoteSchema = z.object({
+  type: z.enum(noteTypes).optional(),
+  title: z.string().max(300).nullable().optional(),
+  content: z.string().min(1).max(50000).optional(),
+});
+
+export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;
+
 // ── Activity ──
 
 const activity = {
@@ -145,7 +181,7 @@ const activity = {
 };
 
 export const activityFormSchema = z.object({
-  type: z.enum(["note", "email", "call", "meeting"]),
+  type: z.enum(["email", "call", "meeting"]),
   description: activity.description,
 });
 
@@ -153,6 +189,6 @@ export type ActivityFormValues = z.infer<typeof activityFormSchema>;
 
 export const addDealActivitySchema = z.object({
   dealId: z.string().uuid("Invalid deal ID"),
-  type: z.enum(["note", "email", "call", "meeting", "status_change"]),
+  type: z.enum(["email", "call", "meeting", "status_change"]),
   description: activity.description,
 });

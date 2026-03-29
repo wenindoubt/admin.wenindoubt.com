@@ -4,10 +4,6 @@
  * Run:   npx tsx scripts/seed.ts
  * Clean: npx tsx scripts/seed.ts --clean
  */
-import { config } from "dotenv";
-
-config({ path: ".env.local" });
-
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -18,6 +14,7 @@ import {
   dealActivities,
   deals,
   dealTags,
+  notes,
   tags,
 } from "../src/db/schema";
 
@@ -301,15 +298,6 @@ const sampleDeals = [
 
 const activityTemplates = [
   {
-    type: "note",
-    descriptions: [
-      "Initial research completed — strong fit for our enterprise tier",
-      "Reviewed their recent Series B announcement",
-      "Checked LinkedIn — mutual connections with our advisory board",
-      "Internal discussion: team agrees this is a high-priority deal",
-    ],
-  },
-  {
     type: "email",
     descriptions: [
       "Sent introductory email with case study attached",
@@ -337,6 +325,130 @@ const activityTemplates = [
     ],
   },
 ];
+
+const noteTemplates = [
+  {
+    type: "note" as const,
+    title: "Initial Research",
+    content: `## Company Background
+
+Reviewed their website and recent press. Strong product-market fit in their segment.
+
+**Key findings:**
+- Growing 30%+ YoY based on LinkedIn headcount trend
+- Recently expanded into enterprise market
+- Current tech stack appears outdated — opportunity for modernization
+
+## Internal Assessment
+
+Team consensus: high-priority prospect. Their pain points align well with our platform consulting offering.`,
+  },
+  {
+    type: "transcript" as const,
+    title: "Discovery Call Notes",
+    content: `## Discovery Call — 30 minutes
+
+**Attendees:** Jeffrey, contact lead
+
+### Pain Points Discussed
+1. Manual data entry across 3 systems — roughly 15 hours/week wasted
+2. No visibility into pipeline metrics without pulling spreadsheets
+3. Customer onboarding takes 2 weeks, should take 2 days
+
+### Budget & Timeline
+- Budget approved for Q2, need to finalize vendor by end of month
+- Previous vendor engagement fell through — they want someone hands-on
+- Decision committee: CEO + VP Ops + Head of Engineering
+
+### Next Steps
+- Send case study from similar engagement
+- Schedule technical deep-dive with their eng team
+- Prepare preliminary scope and pricing`,
+  },
+  {
+    type: "document" as const,
+    title: "Competitive Analysis",
+    content: `## Competitive Landscape
+
+### Current Alternatives They're Evaluating
+- **Agency A**: Full-service but expensive ($200K+ engagements), slow to start
+- **Internal hire**: Considering a senior engineer, but time-to-impact is 3-6 months
+
+### Our Differentiators
+1. Fixed-price, incremental approach — they see results in week one
+2. Deep automation expertise (not just strategy decks)
+3. Can start immediately vs. 2-month agency onboarding
+
+### Risks
+- They may go with the cheaper internal hire option
+- Agency A has an existing relationship with the CFO`,
+  },
+  {
+    type: "note" as const,
+    title: "Meeting Follow-Up",
+    content: `Quick debrief after the on-site meeting today.
+
+**Positive signals:**
+- The VP was nodding throughout the demo
+- They asked about implementation timeline — buying signal
+- Already introduced us to their IT lead unprompted
+
+**Concerns to address:**
+- CFO wasn't in the room — need exec buy-in before proposal
+- They mentioned a tight Q3 budget freeze, so timing matters
+- Asked about data security and SOC 2 — prepare compliance docs`,
+  },
+  {
+    type: "transcript" as const,
+    title: "Technical Deep-Dive",
+    content: `## Technical Assessment Call — 45 minutes
+
+**Attendees:** Jeffrey, their engineering lead, their senior developer
+
+### Current Architecture
+- Monolithic Rails app, PostgreSQL, hosted on Heroku
+- 3 microservices split off last year (auth, notifications, billing)
+- Manual deployment process — no CI/CD pipeline
+
+### Integration Points
+- Stripe for billing (well-documented API)
+- Salesforce CRM — they want to deprecate this
+- Custom reporting dashboard built in Retool
+
+### Technical Recommendations
+1. **Quick win**: Automate deployment pipeline first (1-2 week effort)
+2. **Medium term**: Build API layer between Rails and microservices
+3. **Long term**: Gradual migration off Heroku to AWS/GCP
+
+The engineering team seemed very receptive. They mentioned being "frustrated with the pace of change" multiple times.`,
+  },
+  {
+    type: "document" as const,
+    title: "Proposal Draft Notes",
+    content: `## Proposal Outline
+
+### Phase 1: Assessment & Quick Wins (Weeks 1-2)
+- Audit current systems and workflows
+- Identify top 3 automation opportunities
+- Implement first automation (estimated 10+ hours/week saved)
+- **Deliverable**: Assessment report + first automation live
+
+### Phase 2: Core Integration (Weeks 3-6)
+- Build central API layer connecting their key systems
+- Replace manual data entry workflows
+- Set up monitoring and alerting
+- **Deliverable**: Integrated system with dashboard
+
+### Pricing Considerations
+- Fixed price per phase, not hourly
+- Phase 1 at a lower entry point to build trust
+- Include 30 days of post-launch support per phase`,
+  },
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 // ─── Seed Logic ───
 
@@ -432,15 +544,13 @@ async function seed() {
   }
   console.log(`  Co. tags:   ${ctCount} created`);
 
-  // Activities (2-5 per deal)
+  // Activities (2-4 per deal, no "note" type)
   let actCount = 0;
   for (const deal of insertedDeals) {
-    const num = 2 + Math.floor(Math.random() * 4);
+    const num = 2 + Math.floor(Math.random() * 3);
     for (let i = 0; i < num; i++) {
-      const tmpl =
-        activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
-      const desc =
-        tmpl.descriptions[Math.floor(Math.random() * tmpl.descriptions.length)];
+      const tmpl = pickRandom(activityTemplates);
+      const desc = pickRandom(tmpl.descriptions);
       const daysAgo = Math.floor(Math.random() * 30);
       await db.insert(dealActivities).values({
         dealId: deal.id,
@@ -454,11 +564,48 @@ async function seed() {
   }
   console.log(`  Activities: ${actCount} created`);
 
+  // Notes (2-3 per deal, some linked to contacts/companies too)
+  let noteCount = 0;
+  for (let i = 0; i < insertedDeals.length; i++) {
+    const deal = insertedDeals[i];
+    const contact = insertedContacts[i];
+    const company = insertedCompanies[i];
+    const num = 2 + Math.floor(Math.random() * 2);
+
+    for (let j = 0; j < num; j++) {
+      const tmpl = pickRandom(noteTemplates);
+      const daysAgo = Math.floor(Math.random() * 30);
+      // Some notes link to contact and/or company in addition to deal
+      const alsoLinkContact = Math.random() > 0.5;
+      const alsoLinkCompany = Math.random() > 0.5;
+
+      await db.insert(notes).values({
+        type: tmpl.type,
+        title: tmpl.title,
+        content: tmpl.content,
+        dealId: deal.id,
+        contactId: alsoLinkContact ? contact.id : null,
+        companyId: alsoLinkCompany ? company.id : null,
+        createdBy: SEED_MARKER,
+        createdAt: new Date(Date.now() - daysAgo * 86400000),
+      });
+      noteCount++;
+    }
+  }
+  console.log(`  Notes:      ${noteCount} created`);
+
   console.log("\nDone!");
 }
 
 async function clean() {
   console.log("Removing seed data...\n");
+
+  // Delete seed notes first
+  const deletedNotes = await db
+    .delete(notes)
+    .where(eq(notes.createdBy, SEED_MARKER))
+    .returning();
+  console.log(`  Deleted ${deletedNotes.length} seed notes`);
 
   const seedActivities = await db
     .select({ dealId: dealActivities.dealId })

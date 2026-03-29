@@ -60,6 +60,7 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 | `supabase stop` | Stop local stack |
 | `npx tsx scripts/seed.ts` | Seed sample data |
 | `npx tsx scripts/seed.ts --clean` | Remove sample data |
+| `npx tsx scripts/backfill-note-embeddings.ts` | Backfill note embeddings + token counts (run after seeding) |
 
 ## 🔧 Tech Stack
 
@@ -68,7 +69,8 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 | Framework | Next.js 16, React 19 |
 | Auth | Clerk |
 | Database | PostgreSQL + Drizzle ORM |
-| AI | Claude (analysis, scoring, research, outreach) + Gemini (embeddings) |
+| AI | Claude (analysis, scoring, research, outreach, token counting) + Gemini (embeddings, semantic retrieval) |
+| Rich Text | Tiptap + tiptap-markdown (notes editor) |
 | Realtime | Supabase (Kanban live sync) |
 | UI | shadcn v4, Tailwind CSS v4 |
 | Forms | react-hook-form + Zod |

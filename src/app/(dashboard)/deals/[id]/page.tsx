@@ -11,7 +11,9 @@ import { notFound } from "next/navigation";
 import { ActivityForm } from "@/components/activity-form";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { DealInsightsPanel } from "@/components/deal-insights-panel";
+import { NotesSection } from "@/components/notes-section";
 import { TagPicker } from "@/components/tag-picker";
+import { TokenStatsBadge } from "@/components/token-stats-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getDeal, getTags } from "@/lib/actions/deals";
+import { getNotesForDeal, getNoteTokenStats } from "@/lib/actions/notes";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -34,6 +37,15 @@ export default async function DealDetailPage({ params }: Props) {
   const { id } = await params;
   const [deal, allTags] = await Promise.all([getDeal(id), getTags()]);
   if (!deal) notFound();
+
+  const resolvedDeal = {
+    primaryContactId: deal.primaryContact?.id ?? null,
+    companyId: deal.company.id,
+  };
+  const [notesResult, tokenStats] = await Promise.all([
+    getNotesForDeal(id, { limit: 10, offset: 0, ...resolvedDeal }),
+    getNoteTokenStats("deal", id, resolvedDeal),
+  ]);
 
   const stageConfig = DEAL_STAGES.find((s) => s.value === deal.stage);
 
@@ -255,15 +267,41 @@ export default async function DealDetailPage({ params }: Props) {
         insights={deal.insights}
       />
 
+      {/* Notes */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
+          <CardDescription>
+            Notes, transcripts, and documents
+            <TokenStatsBadge stats={tokenStats} />
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <NotesSection
+            entityType="deal"
+            entityId={id}
+            initialNotes={notesResult.data}
+            initialTotal={notesResult.total}
+            linkedContact={
+              deal.primaryContact
+                ? {
+                    id: deal.primaryContact.id,
+                    name: `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`,
+                  }
+                : undefined
+            }
+            linkedCompany={{ id: deal.company.id, name: deal.company.name }}
+          />
+        </CardContent>
+      </Card>
+
       {/* Activity timeline */}
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="neon-underline pb-1 text-base">
             Activity
           </CardTitle>
-          <CardDescription>
-            Log notes, calls, emails, and meetings
-          </CardDescription>
+          <CardDescription>Log calls, emails, and meetings</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <ActivityForm dealId={id} />

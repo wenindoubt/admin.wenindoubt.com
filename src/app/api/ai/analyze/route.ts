@@ -8,7 +8,9 @@ import {
   dealActivities,
   dealInsights,
   deals,
+  notes,
 } from "@/db/schema";
+import { findRelevantNotes } from "@/lib/actions/search";
 import { claude, getClaudeModel } from "@/lib/ai/claude";
 import { buildDealContext } from "@/lib/ai/context";
 import { generateEmbedding } from "@/lib/ai/embeddings";
@@ -16,6 +18,7 @@ import {
   DEAL_ANALYSIS_SYSTEM,
   DEAL_CUSTOM_ANALYSIS_SYSTEM,
 } from "@/lib/ai/prompts";
+import { buildDealNoteConditions } from "@/lib/note-utils";
 
 const MAX_PROMPT_LENGTH = 500;
 
@@ -52,7 +55,14 @@ export async function POST(req: NextRequest) {
     return new Response("Company not found", { status: 404 });
   }
 
-  const [contactRows, activities] = await Promise.all([
+  const entityFilter = {
+    dealId,
+    contactId: deal.primaryContactId ?? undefined,
+    companyId: deal.companyId,
+  };
+
+  // Custom query: semantic retrieval. Full analysis: all notes.
+  const [contactRows, activities, contextNotes] = await Promise.all([
     deal.primaryContactId
       ? db.select().from(contacts).where(eq(contacts.id, deal.primaryContactId))
       : Promise.resolve([]),
@@ -61,10 +71,28 @@ export async function POST(req: NextRequest) {
       .from(dealActivities)
       .where(eq(dealActivities.dealId, dealId))
       .orderBy(dealActivities.createdAt),
+    isCustom
+      ? findRelevantNotes(prompt.trim(), entityFilter)
+      : db
+          .select()
+          .from(notes)
+          .where(
+            buildDealNoteConditions(
+              dealId,
+              deal.primaryContactId,
+              deal.companyId,
+            ),
+          ),
   ]);
   const contact = contactRows[0] ?? null;
 
-  const dealFields = buildDealContext(deal, company, contact, activities);
+  const dealFields = buildDealContext(
+    deal,
+    company,
+    contact,
+    activities,
+    contextNotes,
+  );
   const context = `<deal_data>\n${dealFields}\n</deal_data>`;
 
   const systemPrompt = isCustom

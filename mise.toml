@@ -1,6 +1,12 @@
 [tools]
 node = "24"
 
+[env]
+_.file = ".env.local"
+
+[hooks]
+enter = "npm ci --prefer-offline --silent 2>/dev/null || true"
+
 [tasks.install]
 description = "Install dependencies (clean, from lockfile)"
 run = "npm ci"
@@ -33,6 +39,7 @@ run = "npm run format"
 [tasks.typecheck]
 description = "Type check with TypeScript"
 run = "npx tsc --noEmit"
+sources = ["src/**/*.ts", "src/**/*.tsx"]
 
 [tasks.check]
 description = "Run all quality checks"
@@ -52,7 +59,7 @@ run = "npx tsx scripts/seed.ts --clean"
 
 [tasks."db:push"]
 description = "Push Drizzle schema to local DB"
-run = 'DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizzle-kit push'
+run = "npx drizzle-kit push"
 
 [tasks."db:start"]
 description = "Start local Supabase"
@@ -81,6 +88,14 @@ run = "npx playwright test"
 [tasks."test:e2e:ui"]
 description = "Run Playwright E2E tests with UI"
 run = "npx playwright test --ui"
+
+[tasks."backfill:assigned-to"]
+description = "Backfill assigned-to field"
+run = "npx tsx scripts/backfill-assigned-to.ts"
+
+[tasks."backfill:embeddings"]
+description = "Backfill note embeddings"
+run = "npx tsx scripts/backfill-note-embeddings.ts"
 
 [tasks.inspect]
 description = "Headless page inspection (screenshot + errors + a11y tree)"
