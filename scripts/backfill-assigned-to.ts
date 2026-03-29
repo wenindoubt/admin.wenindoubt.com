@@ -1,6 +1,6 @@
 import { isNull } from "drizzle-orm";
-import { db } from "../src/db/index.ts";
-import { deals } from "../src/db/schema.ts";
+import { db } from "../src/db";
+import { deals } from "../src/db/schema";
 
 const CLERK_USER_ID = process.argv[2];
 if (!CLERK_USER_ID) {

@@ -105,7 +105,7 @@ export async function getDeals(filters?: DealFilters) {
     })
     .from(deals)
     .innerJoin(companies, eq(deals.companyId, companies.id))
-    .leftJoin(contacts, eq(deals.primaryContactId, contacts.id))
+    .innerJoin(contacts, eq(deals.primaryContactId, contacts.id))
     .orderBy(orderBy);
 
   if (conditions.length > 0) {
@@ -156,7 +156,7 @@ export async function getDeal(id: string) {
     })
     .from(deals)
     .innerJoin(companies, eq(deals.companyId, companies.id))
-    .leftJoin(contacts, eq(deals.primaryContactId, contacts.id))
+    .innerJoin(contacts, eq(deals.primaryContactId, contacts.id))
     .where(eq(deals.id, id));
 
   if (!row) return null;

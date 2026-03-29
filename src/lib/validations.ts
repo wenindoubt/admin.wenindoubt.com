@@ -30,7 +30,7 @@ export const contactFormSchema = z.object({
   companyId: z.string().uuid("Company is required"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email").or(z.literal("")).optional(),
+  email: z.string().email("Invalid email").min(1, "Email is required"),
   phone: z.string().optional(),
   linkedinUrl: z.string().url("Invalid URL").or(z.literal("")).optional(),
   jobTitle: z.string().optional(),
@@ -42,7 +42,7 @@ export const createContactSchema = z.object({
   companyId: z.string().uuid("Company is required"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email").nullable().optional(),
+  email: z.string().email("Email is required"),
   phone: nullable,
   linkedinUrl: z.string().url("Invalid URL").nullable().optional(),
   jobTitle: nullable,
@@ -76,7 +76,7 @@ const dealSources = [
 
 export const dealFormSchema = z.object({
   companyId: z.string().uuid("Company is required"),
-  primaryContactId: z.string().uuid().or(z.literal("")).optional(),
+  primaryContactId: z.string().uuid("Primary contact is required"),
   title: z.string().min(1, "Deal title is required"),
   stage: z.enum(dealStages),
   source: z.enum(dealSources),
@@ -90,7 +90,7 @@ export type DealFormValues = z.infer<typeof dealFormSchema>;
 
 export const createDealSchema = z.object({
   companyId: z.string().uuid("Company is required"),
-  primaryContactId: z.string().uuid().nullable().optional(),
+  primaryContactId: z.string().uuid("Primary contact is required"),
   title: z.string().min(1, "Deal title is required"),
   stage: z.enum(dealStages),
   source: z.enum(dealSources),

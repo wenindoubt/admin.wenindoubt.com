@@ -61,7 +61,7 @@ export const contacts = pgTable(
       .references(() => companies.id, { onDelete: "cascade" }),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
-    email: text(),
+    email: text().notNull(),
     phone: text(),
     linkedinUrl: text("linkedin_url"),
     jobTitle: text("job_title"),
@@ -83,9 +83,9 @@ export const deals = pgTable(
     companyId: uuid("company_id")
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
-    primaryContactId: uuid("primary_contact_id").references(() => contacts.id, {
-      onDelete: "set null",
-    }),
+    primaryContactId: uuid("primary_contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
     title: text().notNull(),
     stage: dealStageEnum().notNull().default("new"),
     source: dealSourceEnum().notNull().default("other"),

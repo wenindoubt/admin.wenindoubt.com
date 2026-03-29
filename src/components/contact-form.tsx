@@ -51,7 +51,7 @@ export function ContactForm({
         companyId: data.companyId,
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.email || null,
+        email: data.email,
         phone: data.phone || null,
         jobTitle: data.jobTitle || null,
       };
@@ -113,7 +113,7 @@ export function ContactForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label htmlFor="email" className={labelClasses}>
-            Email
+            Email *
           </Label>
           <Input
             id="email"

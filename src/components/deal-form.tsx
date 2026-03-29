@@ -120,7 +120,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
     try {
       const payload = {
         ...data,
-        primaryContactId: data.primaryContactId || null,
+        primaryContactId: data.primaryContactId,
         sourceDetail: data.sourceDetail || null,
         estimatedValue: data.estimatedValue || null,
         assignedTo: data.assignedTo || null,
@@ -302,7 +302,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
-            <Label className={labelClasses}>Contact</Label>
+            <Label className={labelClasses}>Contact *</Label>
             <Select
               key={currentCompanyId}
               defaultValue={deal?.primaryContactId ?? undefined}
