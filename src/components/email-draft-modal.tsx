@@ -86,6 +86,7 @@ function SelectionToolbar({
 
   return (
     <div
+      role="toolbar"
       onMouseDown={(e) => e.preventDefault()}
       className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background p-1.5 shadow-lg ring-1 ring-black/5"
     >

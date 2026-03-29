@@ -7,9 +7,9 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   vector,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // Enums

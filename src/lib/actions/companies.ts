@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, count, desc, eq, ilike, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -10,7 +10,6 @@ import {
   contacts,
   dealActivities,
   deals,
-  tags,
 } from "@/db/schema";
 import { computeLifecycle } from "@/lib/constants";
 import {
@@ -36,14 +35,15 @@ export async function getCompanies(filters?: CompanyFilters) {
     conditions.push(ilike(companies.name, `%${filters.search}%`));
   }
 
-  let query = db
-    .select()
-    .from(companies)
-    .orderBy(asc(companies.name))
-    .limit(filters?.limit ?? 500)
-    .offset(filters?.offset ?? 0);
+  let query = db.select().from(companies).orderBy(asc(companies.name));
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit) as typeof query;
+  }
+  if (filters?.offset) {
+    query = query.offset(filters.offset) as typeof query;
   }
 
   const rows = await query;

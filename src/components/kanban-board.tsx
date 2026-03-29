@@ -300,7 +300,7 @@ export function KanbanBoard({
       el.removeEventListener("scroll", updateScrollState);
       ro.disconnect();
     };
-  }, [updateScrollState, visibleColumns.length]);
+  }, [updateScrollState]);
 
   const scrollBy = useCallback((dir: -1 | 1) => {
     scrollRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
