@@ -190,6 +190,22 @@ export const companyTags = pgTable(
   (table) => [primaryKey({ columns: [table.companyId, table.tagId] })],
 );
 
+// Gmail OAuth tokens (per Clerk user)
+export const gmailTokens = pgTable("gmail_tokens", {
+  id: uuid().primaryKey().defaultRandom(),
+  clerkUserId: text("clerk_user_id").notNull().unique(),
+  email: text().notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // Type exports
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -203,3 +219,5 @@ export type DealActivity = typeof dealActivities.$inferSelect;
 export type NewDealActivity = typeof dealActivities.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+export type GmailToken = typeof gmailTokens.$inferSelect;
+export type NewGmailToken = typeof gmailTokens.$inferInsert;

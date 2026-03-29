@@ -8,21 +8,16 @@ import {
 } from "@hello-pangea/dnd";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Deal } from "@/db/schema";
-import { updateDeal } from "@/lib/actions/deals";
+import { checkStageTransition, updateDeal } from "@/lib/actions/deals";
 import { ACTIVE_STAGES, DEAL_STAGES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase/realtime";
 import { cn, formatCurrency } from "@/lib/utils";
+import { EmailDraftModal } from "./email-draft-modal";
 
 const STORAGE_KEY = "kanban-visible-columns";
 
@@ -103,6 +98,16 @@ export function KanbanBoard({
 }) {
   const [columns, setColumns] = useState(() => buildColumns(initialDeals));
   const [visible, setVisible] = useState<Set<string>>(getInitialVisible);
+
+  // Email draft modal state (new→contacted transition)
+  const [draftModal, setDraftModal] = useState<{
+    dealId: string;
+    dealTitle: string;
+    toStage: string;
+    contactEmail: string;
+    contactName: string;
+    previousColumns: KanbanColumn[];
+  } | null>(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...visible]));
@@ -189,46 +194,79 @@ export function KanbanBoard({
     [columns, visible],
   );
 
-  const handleDragEnd = useCallback(async (result: DropResult) => {
-    const { draggableId, destination, source } = result;
+  const handleDragEnd = useCallback(
+    async (result: DropResult) => {
+      const { draggableId, destination, source } = result;
 
-    if (!destination) return;
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    )
-      return;
+      if (!destination) return;
+      if (
+        destination.droppableId === source.droppableId &&
+        destination.index === source.index
+      )
+        return;
 
-    const newStage = destination.droppableId;
+      const newStage = destination.droppableId;
 
-    setColumns((prev) => {
-      const updated = prev.map((col) => ({
-        ...col,
-        deals: col.deals.filter((d) => d.id !== draggableId),
-      }));
+      // Save previous state for rollback
+      const previousColumns = columns;
 
-      const targetCol = updated.find((c) => c.status === newStage);
-      const deal = prev
-        .flatMap((c) => c.deals)
-        .find((d) => d.id === draggableId);
+      // Optimistic UI update
+      setColumns((prev) => {
+        const updated = prev.map((col) => ({
+          ...col,
+          deals: col.deals.filter((d) => d.id !== draggableId),
+        }));
 
-      if (targetCol && deal) {
-        const movedDeal = { ...deal, stage: newStage as Deal["stage"] };
-        targetCol.deals.splice(destination.index, 0, movedDeal);
+        const targetCol = updated.find((c) => c.status === newStage);
+        const deal = prev
+          .flatMap((c) => c.deals)
+          .find((d) => d.id === draggableId);
+
+        if (targetCol && deal) {
+          const movedDeal = { ...deal, stage: newStage as Deal["stage"] };
+          targetCol.deals.splice(destination.index, 0, movedDeal);
+        }
+
+        return updated;
+      });
+
+      // Check if this transition requires an email draft
+      try {
+        const requirement = await checkStageTransition(draggableId, newStage);
+        if (requirement?.type === "email_draft") {
+          const deal = previousColumns
+            .flatMap((c) => c.deals)
+            .find((d) => d.id === draggableId);
+          setDraftModal({
+            dealId: draggableId,
+            dealTitle: deal?.title ?? "Untitled",
+            toStage: newStage,
+            contactEmail: requirement.contactEmail,
+            contactName: requirement.contactName,
+            previousColumns,
+          });
+          return; // Modal handles updateDeal
+        }
+      } catch (error) {
+        setColumns(buildColumns(previousColumns.flatMap((c) => c.deals)));
+        toast.error(
+          error instanceof Error ? error.message : "Cannot move deal",
+        );
+        return;
       }
 
-      return updated;
-    });
-
-    try {
-      await updateDeal(draggableId, {
-        stage: newStage as Deal["stage"],
-      });
-    } catch {
-      setColumns((prev) => buildColumns(prev.flatMap((c) => c.deals)));
-      toast.error("Failed to update stage");
-    }
-  }, []);
+      // Normal stage change (no intervention)
+      try {
+        await updateDeal(draggableId, {
+          stage: newStage as Deal["stage"],
+        });
+      } catch {
+        setColumns(buildColumns(previousColumns.flatMap((c) => c.deals)));
+        toast.error("Failed to update stage");
+      }
+    },
+    [columns],
+  );
 
   const allVisible = visible.size === DEAL_STAGES.length;
   const activeOnly =
@@ -434,7 +472,10 @@ export function KanbanBoard({
                       {column.deals.length}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-muted-foreground/50 px-0.5" title={column.description}>
+                  <p
+                    className="truncate text-xs text-muted-foreground/50 px-0.5"
+                    title={column.description}
+                  >
                     {column.description}
                   </p>
                 </div>
@@ -469,36 +510,39 @@ export function KanbanBoard({
                               )}
                             >
                               <Link
-                              href={`/deals/${deal.id}`}
-                              onClick={(e) => { if (didDrag.current) e.preventDefault(); }}
-                              className="block"
-                              draggable={false}
-                            >
-                              <CardContent className="p-3">
-                                <p className="font-medium text-sm group-hover:text-gold-400 transition-colors">
-                                  {deal.title}
-                                </p>
-                                {deal.company.name && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    {deal.company.name}
+                                href={`/deals/${deal.id}`}
+                                onClick={(e) => {
+                                  if (didDrag.current) e.preventDefault();
+                                }}
+                                className="block"
+                                draggable={false}
+                              >
+                                <CardContent className="p-3">
+                                  <p className="font-medium text-sm group-hover:text-gold-400 transition-colors">
+                                    {deal.title}
                                   </p>
-                                )}
-                                {deal.estimatedValue && (
-                                  <p className="mt-1.5 text-base font-semibold text-emerald-600 tabular-nums">
-                                    {formatCurrency(deal.estimatedValue)}
-                                  </p>
-                                )}
-                                {deal.stage === "nurture" && deal.followUpAt && (
-                                  <p className="mt-1 text-xs text-teal-600 flex items-center gap-1">
-                                    <Clock className="size-3" />
-                                    Follow up{" "}
-                                    {new Date(
-                                      deal.followUpAt,
-                                    ).toLocaleDateString()}
-                                  </p>
-                                )}
-                              </CardContent>
-                            </Link>
+                                  {deal.company.name && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {deal.company.name}
+                                    </p>
+                                  )}
+                                  {deal.estimatedValue && (
+                                    <p className="mt-1.5 text-base font-semibold text-emerald-600 tabular-nums">
+                                      {formatCurrency(deal.estimatedValue)}
+                                    </p>
+                                  )}
+                                  {deal.stage === "nurture" &&
+                                    deal.followUpAt && (
+                                      <p className="mt-1 text-xs text-teal-600 flex items-center gap-1">
+                                        <Clock className="size-3" />
+                                        Follow up{" "}
+                                        {new Date(
+                                          deal.followUpAt,
+                                        ).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                </CardContent>
+                              </Link>
                             </Card>
                           )}
                         </Draggable>
@@ -527,6 +571,25 @@ export function KanbanBoard({
           </div>
         </div>
       </DragDropContext>
+
+      {/* Email draft modal for new→contacted transition */}
+      {draftModal && (
+        <EmailDraftModal
+          dealId={draftModal.dealId}
+          dealTitle={draftModal.dealTitle}
+          toStage={draftModal.toStage}
+          contactEmail={draftModal.contactEmail}
+          contactName={draftModal.contactName}
+          onConfirmAction={() => setDraftModal(null)}
+          onCancelAction={() => {
+            // Rollback optimistic update
+            setColumns(
+              buildColumns(draftModal.previousColumns.flatMap((c) => c.deals)),
+            );
+            setDraftModal(null);
+          }}
+        />
+      )}
     </div>
   );
 }

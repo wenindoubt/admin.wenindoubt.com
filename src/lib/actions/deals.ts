@@ -210,6 +210,7 @@ export async function createDeal(data: CreateDealInput) {
   const { followUpAt: followUpStr, ...rest } = parsed.data;
   const values = {
     ...rest,
+    assignedTo: rest.assignedTo || userId,
     followUpAt: followUpStr ? new Date(followUpStr) : null,
     convertedAt: parsed.data.stage === "won" ? new Date() : null,
     closedAt:
@@ -380,6 +381,72 @@ export async function createTag(name: string, color?: string) {
 
   const [tag] = await db.insert(tags).values({ name, color }).returning();
   return tag;
+}
+
+// Stage transition hooks — extensible for future transitions
+export type StageTransitionRequirement = {
+  type: "email_draft";
+  dealId: string;
+  fromStage: string;
+  toStage: string;
+  contactEmail: string;
+  contactName: string;
+};
+
+export async function checkStageTransition(
+  dealId: string,
+  toStage: string,
+): Promise<StageTransitionRequirement | null> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const [deal] = await db
+    .select({
+      id: deals.id,
+      stage: deals.stage,
+      assignedTo: deals.assignedTo,
+      primaryContactId: deals.primaryContactId,
+    })
+    .from(deals)
+    .where(eq(deals.id, dealId));
+
+  if (!deal) throw new Error("Deal not found");
+
+  // new → contacted requires email draft
+  if (deal.stage === "new" && toStage === "contacted") {
+    if (!deal.primaryContactId) {
+      throw new Error(
+        "Deal must have a primary contact before moving to Contacted",
+      );
+    }
+
+    const [contact] = await db
+      .select({
+        email: contacts.email,
+        firstName: contacts.firstName,
+        lastName: contacts.lastName,
+      })
+      .from(contacts)
+      .where(eq(contacts.id, deal.primaryContactId));
+
+    if (!contact?.email) {
+      throw new Error("Primary contact must have an email address");
+    }
+
+    return {
+      type: "email_draft",
+      dealId: deal.id,
+      fromStage: deal.stage,
+      toStage,
+      contactEmail: contact.email,
+      contactName: `${contact.firstName} ${contact.lastName}`,
+    };
+  }
+
+  // Future: add more transitions here
+  // if (deal.stage === "qualifying" && toStage === "proposal_sent") { ... }
+
+  return null;
 }
 
 export async function setDealTags(dealId: string, tagIds: string[]) {

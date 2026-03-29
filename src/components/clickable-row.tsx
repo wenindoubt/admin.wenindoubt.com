@@ -21,7 +21,8 @@ export function ClickableRow({
       onClick={(e) => {
         // Don't navigate when clicking interactive elements inside the row
         const target = e.target as HTMLElement;
-        if (target.closest("button, a, select, input, [role='menuitem']")) return;
+        if (target.closest("button, a, select, input, [role='menuitem']"))
+          return;
         router.push(href);
       }}
     >

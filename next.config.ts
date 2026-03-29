@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
-  serverExternalPackages: ["@anthropic-ai/sdk"],
+  serverExternalPackages: ["@anthropic-ai/sdk", "googleapis"],
   allowedDevOrigins: ["admin.wenindoubt.com"],
   experimental: {
     serverActions: {
