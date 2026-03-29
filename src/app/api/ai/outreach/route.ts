@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { db } from "@/db";
 import { companies, contacts, dealActivities, deals } from "@/db/schema";
-import { claude } from "@/lib/ai/claude";
+import { claude, getClaudeModel } from "@/lib/ai/claude";
 import { buildDealContext } from "@/lib/ai/context";
 import {
   OUTREACH_DRAFT_SYSTEM,
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       try {
         const response = claude.messages.stream({
-          model: "claude-sonnet-4-6",
+          model: getClaudeModel(),
           max_tokens: 1024,
           system: systemPrompt,
           messages: [{ role: "user", content: userMessage }],

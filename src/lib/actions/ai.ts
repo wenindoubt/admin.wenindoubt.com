@@ -11,7 +11,7 @@ import {
   dealInsights,
   deals,
 } from "@/db/schema";
-import { claude } from "@/lib/ai/claude";
+import { claude, getClaudeModel } from "@/lib/ai/claude";
 import { buildDealContext } from "@/lib/ai/context";
 import {
   COMPANY_RESEARCH_SYSTEM,
@@ -19,8 +19,6 @@ import {
   NEXT_STEPS_SYSTEM,
   OUTREACH_DRAFT_SYSTEM,
 } from "@/lib/ai/prompts";
-
-const MODEL = "claude-sonnet-4-6";
 
 async function fetchDealWithRelations(dealId: string) {
   const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
@@ -49,7 +47,7 @@ async function callClaude(
   userContent: string,
 ): Promise<string> {
   const response = await claude.messages.create({
-    model: MODEL,
+    model: getClaudeModel(),
     max_tokens: 2048,
     system,
     messages: [{ role: "user", content: userContent }],

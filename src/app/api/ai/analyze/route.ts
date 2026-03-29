@@ -9,7 +9,7 @@ import {
   dealInsights,
   deals,
 } from "@/db/schema";
-import { claude } from "@/lib/ai/claude";
+import { claude, getClaudeModel } from "@/lib/ai/claude";
 import { buildDealContext } from "@/lib/ai/context";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import {
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       try {
         const response = claude.messages.stream({
-          model: "claude-sonnet-4-6",
+          model: getClaudeModel(),
           max_tokens: 4096,
           system: systemPrompt,
           messages: [{ role: "user", content: userMessage }],
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           analysisText: fullText,
           summary,
           embedding,
-          analysisModel: "claude-sonnet-4-6",
+          analysisModel: getClaudeModel(),
         });
 
         controller.close();
