@@ -64,6 +64,7 @@ scripts/                  # Seed + backfill scripts
 - **Suspense streaming**: detail pages use `<Suspense>` with async server component children (e.g., `EntityNotesSection`) to stream heavy sections independently. Skeletons in `src/components/skeletons/` match layout dimensions.
 - **Dynamic imports**: heavy client components (Tiptap, MarkdownRenderer) lazy-loaded via shared exports in `src/components/lazy.tsx`. Use `LazyTiptapEditor` / `LazyMarkdownRenderer` instead of direct imports.
 - **`after()` for fire-and-forget**: use `after()` from `next/server` for post-response work (embeddings, token counting). See `enrichNoteAfterResponse` in `notes.ts` and analyze route.
+- **Navigation-persistent streaming**: AI analysis fetch lives in a module-level store (`src/lib/analysis-store.ts`) outside component lifecycle. The fetch survives App Router client-side navigation; components reconnect via `subscribeAnalysis()` on remount.
 - **Fonts**: `font-heading` (DM Serif Text) is for headings only — h1, CardTitle, DialogTitle, SheetTitle, branding. All data, numbers, labels, and buttons use `font-sans` (Inter). Never apply `font-heading` to numeric/data content.
 
 ## Environment

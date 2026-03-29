@@ -55,6 +55,11 @@ type DealInsight = Omit<FullDealInsight, "embedding">;
 
 import { deleteInsight } from "@/lib/actions/ai";
 import { buildDealContext } from "@/lib/ai/context";
+import {
+  getActiveAnalysis,
+  startAnalysis,
+  subscribeAnalysis,
+} from "@/lib/analysis-store";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 type Props = {
@@ -416,6 +421,7 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState("");
   const [dismissedStale, setDismissedStale] = useState(false);
+  const [analysisKey, setAnalysisKey] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const latestInsight = insights[0];
@@ -474,51 +480,54 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
   }, [currentContext, latestInsight, dismissedStale]);
   const isStale = staleChanges.length > 0;
 
-  async function runAnalysis(prompt?: string) {
+  function runAnalysis(prompt?: string) {
+    if (isAnalyzing) return;
     setIsAnalyzing(true);
     setStreamedText("");
     setActivePrompt(prompt ?? null);
-
-    try {
-      const body: Record<string, string> = { dealId };
-      if (prompt) body.prompt = prompt;
-
-      const res = await fetch("/api/ai/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error("Analysis failed");
-      if (!res.body) throw new Error("No response body");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        setStreamedText((prev) => prev + chunk);
-      }
-
-      toast.success("Analysis complete");
-      router.refresh();
-    } catch {
-      toast.error("Analysis failed");
-    } finally {
-      setIsAnalyzing(false);
-      setActivePrompt(null);
-    }
+    startAnalysis(dealId, prompt);
+    setAnalysisKey((k) => k + 1);
   }
 
-  // Auto-trigger analysis for new deals with no insights.
+  // Reconnect to in-progress or recently-completed analysis (survives navigation)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reconnect on mount or after starting new analysis
+  useEffect(() => {
+    const existing = getActiveAnalysis(dealId);
+    if (!existing) return;
+
+    if (existing.done) {
+      if (!existing.error) router.refresh();
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setStreamedText(existing.text);
+    setActivePrompt(existing.prompt);
+
+    return subscribeAnalysis(dealId, (text, done, error) => {
+      setStreamedText(text);
+      if (done) {
+        setIsAnalyzing(false);
+        setActivePrompt(null);
+        if (error) toast.error("Analysis failed");
+        else {
+          toast.success("Analysis complete");
+          router.refresh();
+        }
+      }
+    });
+  }, [dealId, analysisKey]);
+
+  // Auto-trigger analysis for new deals with no insights
   const hasRunAutoAnalysis = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref-guarded one-shot effect
   useEffect(() => {
     if (insights.length === 0 && !hasRunAutoAnalysis.current) {
       hasRunAutoAnalysis.current = true;
-      runAnalysis();
+      // Skip if analysis already in-progress from before navigation
+      if (!getActiveAnalysis(dealId)) {
+        runAnalysis();
+      }
     }
   }, [insights.length]);
 
