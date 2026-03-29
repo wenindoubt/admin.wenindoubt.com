@@ -281,18 +281,9 @@ export const gmailTokens = pgTable("gmail_tokens", {
 
 // Type exports
 export type Company = typeof companies.$inferSelect;
-export type NewCompany = typeof companies.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;
-export type NewContact = typeof contacts.$inferInsert;
 export type Deal = typeof deals.$inferSelect;
-export type NewDeal = typeof deals.$inferInsert;
 export type DealInsight = typeof dealInsights.$inferSelect;
-export type NewDealInsight = typeof dealInsights.$inferInsert;
 export type DealActivity = typeof dealActivities.$inferSelect;
-export type NewDealActivity = typeof dealActivities.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
-export type NewTag = typeof tags.$inferInsert;
 export type Note = typeof notes.$inferSelect;
-export type NewNote = typeof notes.$inferInsert;
-export type GmailToken = typeof gmailTokens.$inferSelect;
-export type NewGmailToken = typeof gmailTokens.$inferInsert;

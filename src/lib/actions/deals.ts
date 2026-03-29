@@ -400,7 +400,7 @@ export async function createTag(name: string, color?: string) {
 }
 
 // Stage transition hooks — extensible for future transitions
-export type StageTransitionRequirement = {
+type StageTransitionRequirement = {
   type: "email_draft";
   dealId: string;
   fromStage: string;

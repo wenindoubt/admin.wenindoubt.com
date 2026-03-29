@@ -23,7 +23,6 @@ export function CompanyFilters() {
 
   const hasFilters =
     searchParams.has("search") ||
-    searchParams.has("industry") ||
     searchParams.has("size") ||
     searchParams.has("lifecycle") ||
     searchParams.has("sortBy");

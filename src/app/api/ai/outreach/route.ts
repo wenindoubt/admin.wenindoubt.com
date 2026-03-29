@@ -2,9 +2,10 @@ import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { db } from "@/db";
-import { companies, contacts, dealActivities, deals } from "@/db/schema";
+import { companies, contacts, dealActivities, deals, notes } from "@/db/schema";
 import { claude, getClaudeModel } from "@/lib/ai/claude";
 import { buildDealContext } from "@/lib/ai/context";
+import { buildDealNoteConditions } from "@/lib/note-utils";
 import {
   OUTREACH_DRAFT_SYSTEM,
   OUTREACH_PARTIAL_REGENERATE_SYSTEM,
@@ -24,34 +25,43 @@ export async function POST(req: NextRequest) {
     return new Response("Missing dealId", { status: 400 });
   }
 
-  // Fetch deal context
   const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
   if (!deal) {
     return new Response("Deal not found", { status: 404 });
   }
 
-  const [company] = await db
-    .select()
-    .from(companies)
-    .where(eq(companies.id, deal.companyId));
+  const [companyRows, contactRows, activities, contextNotes] =
+    await Promise.all([
+      db.select().from(companies).where(eq(companies.id, deal.companyId)),
+      deal.primaryContactId
+        ? db
+            .select()
+            .from(contacts)
+            .where(eq(contacts.id, deal.primaryContactId))
+        : Promise.resolve([]),
+      db
+        .select()
+        .from(dealActivities)
+        .where(eq(dealActivities.dealId, dealId))
+        .orderBy(dealActivities.createdAt),
+      db
+        .select()
+        .from(notes)
+        .where(
+          buildDealNoteConditions(
+            dealId,
+            deal.primaryContactId,
+            deal.companyId,
+          ),
+        ),
+    ]);
+  const company = companyRows[0];
   if (!company) {
     return new Response("Company not found", { status: 404 });
   }
-
-  const [contactRows, activities] = await Promise.all([
-    deal.primaryContactId
-      ? db.select().from(contacts).where(eq(contacts.id, deal.primaryContactId))
-      : Promise.resolve([]),
-    db
-      .select()
-      .from(dealActivities)
-      .where(eq(dealActivities.dealId, dealId))
-      .orderBy(dealActivities.createdAt),
-  ]);
   const contact = contactRows[0] ?? null;
-  const context = buildDealContext(deal, company, contact, activities);
+  const context = buildDealContext(deal, company, contact, activities, contextNotes);
 
-  // Select prompt and build user message based on mode
   let systemPrompt: string;
   let userMessage: string;
 

@@ -14,7 +14,6 @@ import { lastPageUrl, PAGE_SIZE } from "@/lib/types";
 
 type SearchParams = Promise<{
   search?: string;
-  industry?: string;
   size?: string;
   lifecycle?: string;
   sortBy?: string;
@@ -33,7 +32,6 @@ async function CompaniesContent({
 
   const { data: companies, total } = await getCompanies({
     search: params.search,
-    industry: params.industry,
     size: params.size,
     lifecycle: params.lifecycle,
     sortBy: params.sortBy,

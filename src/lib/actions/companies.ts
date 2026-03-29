@@ -22,7 +22,6 @@ import {
 
 export type CompanyFilters = {
   search?: string;
-  industry?: string;
   size?: string;
   lifecycle?: string;
   sortBy?: string;

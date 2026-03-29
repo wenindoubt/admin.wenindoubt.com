@@ -5,7 +5,6 @@ node = "24"
 _.file = ".env.local"
 
 [hooks]
-enter = "npm ci --prefer-offline --silent 2>/dev/null || true"
 
 [tasks.install]
 description = "Install dependencies (clean, from lockfile)"

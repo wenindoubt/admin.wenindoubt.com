@@ -1,5 +1,3 @@
-export type PaginatedResult<T> = { data: T[]; total: number };
-
 export const PAGE_SIZE = 25;
 export const PAGE_SIZE_ACTIVITY = 5;
 export const PAGE_SIZE_NOTES = 10;

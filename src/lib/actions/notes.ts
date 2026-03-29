@@ -94,14 +94,6 @@ export async function getNotesForDeal(
   return { data: rows, total };
 }
 
-export async function getNote(id: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
-  const [note] = await db.select().from(notes).where(eq(notes.id, id));
-  return note ?? null;
-}
-
 export async function createNote(data: CreateNoteInput) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
