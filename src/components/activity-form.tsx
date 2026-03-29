@@ -22,6 +22,7 @@ export function ActivityForm({ dealId }: { dealId: string }) {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ActivityFormValues>({
@@ -29,6 +30,8 @@ export function ActivityForm({ dealId }: { dealId: string }) {
     mode: "onTouched",
     defaultValues: { type: "note", description: "" },
   });
+
+  const currentType = watch("type");
 
   async function onSubmit(data: ActivityFormValues) {
     try {
@@ -51,7 +54,9 @@ export function ActivityForm({ dealId }: { dealId: string }) {
         }
       >
         <SelectTrigger className={`w-32 ${inputClasses}`}>
-          <SelectValue />
+          <SelectValue>
+            {ACTIVITY_TYPES.find((t) => t.value === currentType)?.label}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {ACTIVITY_TYPES.map((t) => (

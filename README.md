@@ -31,17 +31,21 @@ npm run dev
 
 ### Environment Variables
 
-Copy `.env.local.example` or set these in `.env.local`:
+Set these in `.env.local`:
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `ANTHROPIC_API_KEY` | Claude API key (lead analysis) |
-| `GOOGLE_AI_API_KEY` | Gemini API key (scoring, embeddings) |
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `ANTHROPIC_MODEL` | Claude model ID (e.g. `claude-sonnet-4-6`) |
+| `GOOGLE_AI_API_KEY` | Gemini API key (embeddings) |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk auth public key |
 | `CLERK_SECRET_KEY` | Clerk auth secret key |
+| `GOOGLE_GMAIL_CLIENT_ID` | Gmail OAuth2 client ID (optional) |
+| `GOOGLE_GMAIL_CLIENT_SECRET` | Gmail OAuth2 client secret (optional) |
+| `GOOGLE_GMAIL_REDIRECT_URI` | Gmail OAuth2 redirect URI (optional) |
 
 Local dev uses Supabase CLI defaults. Production values go in Vercel.
 
@@ -64,7 +68,7 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 | Framework | Next.js 16, React 19 |
 | Auth | Clerk |
 | Database | PostgreSQL + Drizzle ORM |
-| AI | Claude (analysis, outreach) + Gemini (scoring, embeddings) |
+| AI | Claude (analysis, scoring, research, outreach) + Gemini (embeddings) |
 | Realtime | Supabase (Kanban live sync) |
 | UI | shadcn v4, Tailwind CSS v4 |
 | Forms | react-hook-form + Zod |

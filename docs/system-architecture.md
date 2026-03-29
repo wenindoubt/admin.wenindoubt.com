@@ -9,7 +9,7 @@ flowchart LR
 
     App -->|server actions| DB[(PostgreSQL)]
     App -->|streaming analysis| Claude([Claude API])
-    App -->|scoring + embeddings| Gemini([Gemini API])
+    App -->|embeddings| Gemini([Gemini API])
     App -->|realtime subscriptions| Supabase([Supabase Realtime])
     App -->|outreach drafts| Gmail([Gmail API])
 
@@ -26,5 +26,5 @@ flowchart LR
 - **Clerk middleware** (`src/proxy.ts`) intercepts all requests before they reach page components
 - **Server actions** handle all DB mutations — no client-side DB access. Each action validates auth via `auth()`
 - **Supabase** is used only for Realtime subscriptions (Kanban board live sync). DB queries go through Drizzle ORM directly to Postgres. Realtime is authenticated via Clerk third-party JWT — Supabase verifies tokens against Clerk's JWKS endpoint. RLS on `deals` restricts anonymous access.
-- **AI calls** are server-side only — API keys never reach the client. The `/api/ai/analyze` route streams Claude responses to the browser via `ReadableStream`
+- **AI calls** are server-side only — API keys never reach the client. Both `/api/ai/analyze` and `/api/ai/outreach` stream Claude responses to the browser via `ReadableStream`
 - **Gmail integration** — OAuth2 flow via `googleapis`, tokens stored in `gmail_tokens` table. Used to auto-draft outreach emails on deal stage transitions (new → contacted)

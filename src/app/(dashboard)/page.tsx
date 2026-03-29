@@ -61,7 +61,7 @@ async function DashboardContent() {
             </CardHeader>
             <CardContent>
               <p
-                className={`text-3xl font-bold tracking-tight ${kpi.prefix === "$" ? "text-emerald-600" : "font-heading"}`}
+                className={`text-3xl font-bold tracking-tight tabular-nums ${kpi.prefix === "$" ? "text-emerald-600" : ""}`}
               >
                 {kpi.prefix}
                 {kpiValues[kpi.key]}
@@ -141,7 +141,7 @@ async function DashboardContent() {
                     {DEAL_SOURCES.find((s) => s.value === sc.source)?.label ??
                       sc.source}
                   </span>
-                  <span className="text-sm font-heading font-semibold tabular-nums">
+                  <span className="text-sm font-semibold tabular-nums">
                     {sc.count}
                   </span>
                 </div>

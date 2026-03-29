@@ -118,7 +118,7 @@ export default async function CompanyDetailPage({ params }: Props) {
               <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
                 Deals
               </span>
-              <p className="mt-0.5 font-heading tabular-nums">
+              <p className="mt-0.5 font-semibold tabular-nums">
                 {company.deals.length}
               </p>
             </div>
@@ -131,10 +131,6 @@ export default async function CompanyDetailPage({ params }: Props) {
             <CardTitle className="neon-underline pb-1 text-base">
               Contacts
             </CardTitle>
-            <CardDescription>
-              {company.contacts.length} contact
-              {company.contacts.length !== 1 ? "s" : ""} at this company
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <ContactList companyId={id} contacts={company.contacts} />

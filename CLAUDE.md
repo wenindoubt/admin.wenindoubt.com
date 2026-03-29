@@ -24,7 +24,7 @@ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizz
 - **Next.js 16** App Router with React 19 — server components by default, `"use client"` only where needed
 - **Auth**: Clerk middleware in `src/proxy.ts` protects all routes except `/sign-in`, `/sign-up`. Server actions validate via `auth()`.
 - **DB**: Drizzle ORM + `postgres` driver. Schema in `src/db/schema.ts`. Connection uses `prepare: false` for Supabase pooler compatibility.
-- **AI**: Claude (`@anthropic-ai/sdk`) for lead analysis + outreach drafting. Gemini (`@google/genai`) for scoring, research, embeddings (768-dim vectors).
+- **AI**: Claude (`@anthropic-ai/sdk`) for analysis, scoring, research, outreach drafting. Gemini (`@google/genai`) for embeddings only (768-dim vectors). Model configured via `ANTHROPIC_MODEL` env var.
 - **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled on `deals` table.
 - **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
@@ -34,11 +34,13 @@ DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizz
 ```
 src/app/                  # Pages + API routes (App Router)
 src/app/(dashboard)/      # Auth-protected dashboard pages
-src/app/api/ai/analyze/   # Streaming Claude analysis endpoint
+src/app/api/ai/           # Streaming Claude endpoints (analyze, outreach)
+src/app/api/gmail/        # Gmail OAuth2 flow (authorize, callback)
 src/components/           # App components + ui/ (shadcn)
 src/db/                   # Drizzle schema + connection singleton
-src/lib/actions/          # Server actions (leads, ai, search)
+src/lib/actions/          # Server actions (deals, companies, contacts, ai, search, gmail)
 src/lib/ai/               # AI client singletons + prompts
+src/lib/google/           # Gmail OAuth2 client
 src/lib/supabase/         # Supabase realtime client
 scripts/                  # Seed script
 ```
@@ -52,11 +54,12 @@ scripts/                  # Seed script
 - **Components**: shadcn v4 uses `@base-ui/react` primitives — `render` prop pattern instead of `asChild`
 - **Next.js 16 params**: page `params` and `searchParams` are `Promise<>` — must be awaited
 - **Naming**: camelCase for variables/functions, PascalCase for components/types
+- **Fonts**: `font-heading` (DM Serif Text) is for headings only — h1, CardTitle, DialogTitle, SheetTitle, branding. All data, numbers, labels, and buttons use `font-sans` (Inter). Never apply `font-heading` to numeric/data content.
 
 ## Environment
 
 Local dev uses Supabase CLI (`supabase start`) for Postgres + Realtime. Production env vars go in Vercel.
-Required: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY`, Clerk keys.
+Required: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `GOOGLE_AI_API_KEY`, Clerk keys. Gmail integration also needs `GOOGLE_GMAIL_CLIENT_ID`, `GOOGLE_GMAIL_CLIENT_SECRET`, `GOOGLE_GMAIL_REDIRECT_URI`.
 
 ## Page Inspection
 

@@ -1,6 +1,6 @@
 # Data Model
 
-Drizzle ORM schema with 8 tables. Defined in `src/db/schema.ts`.
+Drizzle ORM schema with 9 tables. Defined in `src/db/schema.ts`.
 
 ```mermaid
 erDiagram
@@ -12,6 +12,7 @@ erDiagram
         text company_size
         timestamptz created_at
         timestamptz updated_at
+        tsvector search_vector
     }
     contacts {
         uuid id PK
@@ -20,8 +21,11 @@ erDiagram
         text last_name
         text email
         text phone
+        text linkedin_url
         text job_title
         timestamptz created_at
+        timestamptz updated_at
+        tsvector search_vector
     }
     deals {
         uuid id PK
@@ -30,18 +34,27 @@ erDiagram
         text title
         deal_stage stage
         deal_source source
+        text source_detail
         numeric estimated_value
         text assigned_to
         timestamptz follow_up_at
+        timestamptz converted_at
+        timestamptz closed_at
+        timestamptz last_contacted_at
         timestamptz created_at
+        timestamptz updated_at
+        tsvector search_vector
     }
     deal_insights {
         uuid id PK
         uuid deal_id FK
+        text prompt
+        text raw_input
         text analysis_text
         text summary
         vector embedding
         text analysis_model
+        text embedding_model
         timestamptz generated_at
     }
     deal_activities {
@@ -66,6 +79,16 @@ erDiagram
         uuid company_id PK,FK
         uuid tag_id PK,FK
     }
+    gmail_tokens {
+        uuid id PK
+        text clerk_user_id UK
+        text email
+        text access_token
+        text refresh_token
+        timestamptz expires_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
 
     companies ||--o{ contacts : "has"
     companies ||--o{ deals : "has"
@@ -84,7 +107,7 @@ erDiagram
 - **Cascade deletes**: deleting a company cascades to contacts and deals. Deleting a deal cascades to insights, activities, and tag associations. Contacts referenced as primary contact use `ON DELETE RESTRICT`.
 - **Unique constraint**: `contacts(company_id, email)` prevents duplicate contacts per company
 - **Vector column**: `deal_insights.embedding` is 768-dim (Gemini `gemini-embedding-2-preview`) with HNSW index (`vector_cosine_ops`) for semantic search
-- **RLS**: enabled on `deals` table — authenticated Clerk users get full access, anon role blocked. Enforced on Supabase Realtime subscriptions.
+- **RLS**: enabled on `deals` table -- authenticated Clerk users get full access, anon role blocked. Enforced on Supabase Realtime subscriptions.
 - **Activity metadata**: `jsonb` stores structured data like `{ from_stage: "new", to_stage: "contacted" }` for stage changes
-- **Indexes**: stage, company_id, assigned_to, created_at, primary_contact_id on deals; deal_id on insights and activities; tag_id on junction tables
+- **Indexes**: stage, company_id, assigned_to, created_at, primary_contact_id on deals; deal_id on insights and activities; tag_id on junction tables; GIN indexes on search_vector for companies, contacts, and deals
 - **Gmail tokens**: `gmail_tokens` table stores per-user OAuth credentials (clerk_user_id unique) for outreach integration

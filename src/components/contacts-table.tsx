@@ -48,7 +48,7 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/50 py-16 text-muted-foreground">
         <div className="flex size-12 items-center justify-center rounded-full bg-neon-400/10 mb-4">
-          <span className="font-heading text-lg text-neon-400">+</span>
+          <span className="text-lg text-neon-400">+</span>
         </div>
         <p className="text-sm">No contacts found</p>
       </div>

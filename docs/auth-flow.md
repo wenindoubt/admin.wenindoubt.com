@@ -12,9 +12,12 @@ flowchart TD
     Page -->|server action| ActionAuth{auth check}
     ActionAuth -->|no userId| Error[401 Unauthorized]
     ActionAuth -->|valid userId| DB[(Database)]
-    Page -->|POST /api/ai/analyze| APIAuth{auth check}
+    Page -->|POST /api/ai/*| APIAuth{auth check}
     APIAuth -->|no userId| Error
     APIAuth -->|valid userId| Claude([Claude API])
+    Page -->|GET /api/gmail/*| GmailAuth{auth check}
+    GmailAuth -->|no userId| Error
+    GmailAuth -->|valid userId| Gmail([Gmail OAuth2])
     Page -->|Realtime subscribe| SupaAuth{Supabase JWKS}
     SupaAuth -->|invalid JWT| Blocked[Anon role - RLS blocks]
     SupaAuth -->|valid Clerk JWT| Realtime[Live deal updates]
@@ -25,6 +28,6 @@ flowchart TD
 - **Middleware** lives in `src/proxy.ts` (not `middleware.ts`) — Clerk convention with `createRouteMatcher`
 - **Public routes**: `/sign-in(.*)`, `/sign-up(.*)` — everything else is protected
 - **Server actions** independently validate auth — defense in depth, not just middleware
-- **API route** (`/api/ai/analyze`) also validates auth before streaming Claude responses
+- **API routes** (`/api/ai/analyze`, `/api/ai/outreach`, `/api/gmail/authorize`, `/api/gmail/callback`) all validate auth independently
 - **Supabase Realtime** — the client-side `useSupabase()` hook passes Clerk session tokens via the `accessToken` callback. Supabase verifies them against Clerk's JWKS endpoint. RLS on the `deals` table grants access only to the `authenticated` role, blocking anonymous subscriptions.
 - **Matcher** skips Next.js internals (`/_next/`) and static files but always runs for `/api/` routes

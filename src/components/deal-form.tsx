@@ -81,6 +81,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
 
   const currentStage = watch("stage");
   const currentCompanyId = watch("companyId");
+  const currentContactId = watch("primaryContactId");
 
   // Fetch contacts when company changes
   const [contactOptions, setContactOptions] = useState<Contact[]>([]);
@@ -182,7 +183,9 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
               }}
             >
               <SelectTrigger className={inputClasses}>
-                <SelectValue />
+                <SelectValue>
+                  {DEAL_STAGES.find((s) => s.value === currentStage)?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {DEAL_STAGES.map((s) => (
@@ -218,7 +221,9 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
               }
             >
               <SelectTrigger className={inputClasses}>
-                <SelectValue />
+                <SelectValue>
+                  {DEAL_SOURCES.find((s) => s.value === watch("source"))?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {DEAL_SOURCES.map((s) => (
@@ -274,7 +279,9 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
               onValueChange={(v) => v && setValue("companyId", v)}
             >
               <SelectTrigger className={inputClasses}>
-                <SelectValue placeholder="Select a company" />
+                <SelectValue placeholder="Select a company">
+                  {companies.find((c) => c.id === currentCompanyId)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {companies.map((c) => (
@@ -319,7 +326,12 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
                           ? "No contacts at this company"
                           : "Select a contact"
                   }
-                />
+                >
+                  {(() => {
+                    const c = contactOptions.find((c) => c.id === currentContactId);
+                    return c ? `${c.firstName} ${c.lastName}` : undefined;
+                  })()}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {contactOptions.map((c) => (

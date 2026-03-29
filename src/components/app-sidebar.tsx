@@ -41,15 +41,15 @@ export function AppSidebar() {
           <Image
             src="/logo.png"
             alt="WenInDoubt"
-            width={36}
-            height={36}
+            width={40}
+            height={40}
             className="rounded-lg"
           />
           <div className="flex flex-col">
-            <span className="text-sm font-semibold tracking-wide text-foreground">
+            <span className="text-base font-semibold tracking-wide text-foreground">
               WenInDoubt
             </span>
-            <span className="text-[15px] uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Admin
             </span>
           </div>
