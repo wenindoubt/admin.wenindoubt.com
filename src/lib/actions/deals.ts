@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
+import { db, totalCount } from "@/db";
 import {
   companies,
   contacts,
@@ -168,12 +168,16 @@ export async function getDeal(id: string) {
 
   if (!row) return null;
 
-  const [activities, insights, dealTagRows] = await Promise.all([
+  const [activityRows, insightRows, dealTagRows] = await Promise.all([
     db
-      .select()
+      .select({
+        activity: dealActivities,
+        totalCount,
+      })
       .from(dealActivities)
       .where(eq(dealActivities.dealId, id))
-      .orderBy(desc(dealActivities.createdAt)),
+      .orderBy(desc(dealActivities.createdAt))
+      .limit(50),
     db
       .select({
         id: dealInsights.id,
@@ -185,10 +189,12 @@ export async function getDeal(id: string) {
         analysisModel: dealInsights.analysisModel,
         embeddingModel: dealInsights.embeddingModel,
         generatedAt: dealInsights.generatedAt,
+        totalCount,
       })
       .from(dealInsights)
       .where(eq(dealInsights.dealId, id))
-      .orderBy(desc(dealInsights.generatedAt)),
+      .orderBy(desc(dealInsights.generatedAt))
+      .limit(20),
     db
       .select({ tag: tags })
       .from(dealTags)
@@ -209,8 +215,10 @@ export async function getDeal(id: string) {
           jobTitle: row.contactJobTitle,
         }
       : null,
-    activities,
-    insights,
+    activities: activityRows.map((r) => r.activity),
+    activitiesTotal: activityRows[0]?.totalCount ?? 0,
+    insights: insightRows.map(({ totalCount: _, ...rest }) => rest),
+    insightsTotal: insightRows[0]?.totalCount ?? 0,
     tags: dealTagRows.map((r) => r.tag),
   };
 }
@@ -257,14 +265,16 @@ export async function createDeal(data: CreateDealInput) {
         : null,
   };
 
-  const [deal] = await db.insert(deals).values(values).returning();
-
-  await db.insert(dealActivities).values({
-    dealId: deal.id,
-    type: "status_change",
-    description: `Deal created with stage "${deal.stage}"`,
-    createdBy: userId,
-    metadata: { to_stage: deal.stage },
+  const deal = await db.transaction(async (tx) => {
+    const [row] = await tx.insert(deals).values(values).returning();
+    await tx.insert(dealActivities).values({
+      dealId: row.id,
+      type: "status_change",
+      description: `Deal created with stage "${row.stage}"`,
+      createdBy: userId,
+      metadata: { to_stage: row.stage },
+    });
+    return row;
   });
 
   revalidatePath("/deals");
@@ -280,41 +290,49 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
     throw new Error(parsed.error.issues[0].message);
   }
 
-  const [existing] = await db.select().from(deals).where(eq(deals.id, id));
-  if (!existing) throw new Error("Deal not found");
-
   const { followUpAt: followUpStr, ...rest } = parsed.data;
 
-  let followUpAt: Date | null | undefined;
-  if (data.stage && data.stage !== "nurture" && existing.stage === "nurture") {
-    followUpAt = null;
-  } else if (followUpStr !== undefined) {
-    followUpAt = followUpStr ? new Date(followUpStr) : null;
-  }
+  const updated = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(deals).where(eq(deals.id, id));
+    if (!existing) throw new Error("Deal not found");
 
-  const extraFields: Record<string, Date | null> = {};
-  if (data.stage === "won" && !existing.convertedAt) {
-    extraFields.convertedAt = new Date();
-  }
-  if ((data.stage === "won" || data.stage === "lost") && !existing.closedAt) {
-    extraFields.closedAt = new Date();
-  }
+    let followUpAt: Date | null | undefined;
+    if (
+      data.stage &&
+      data.stage !== "nurture" &&
+      existing.stage === "nurture"
+    ) {
+      followUpAt = null;
+    } else if (followUpStr !== undefined) {
+      followUpAt = followUpStr ? new Date(followUpStr) : null;
+    }
 
-  const [updated] = await db
-    .update(deals)
-    .set({ ...rest, followUpAt, ...extraFields, updatedAt: new Date() })
-    .where(eq(deals.id, id))
-    .returning();
+    const extraFields: Record<string, Date | null> = {};
+    if (data.stage === "won" && !existing.convertedAt) {
+      extraFields.convertedAt = new Date();
+    }
+    if ((data.stage === "won" || data.stage === "lost") && !existing.closedAt) {
+      extraFields.closedAt = new Date();
+    }
 
-  if (data.stage && data.stage !== existing.stage) {
-    await db.insert(dealActivities).values({
-      dealId: id,
-      type: "status_change",
-      description: `Stage changed from "${stageLabel(existing.stage)}" to "${stageLabel(data.stage)}"`,
-      createdBy: userId,
-      metadata: { from_stage: existing.stage, to_stage: data.stage },
-    });
-  }
+    const [row] = await tx
+      .update(deals)
+      .set({ ...rest, followUpAt, ...extraFields, updatedAt: new Date() })
+      .where(eq(deals.id, id))
+      .returning();
+
+    if (data.stage && data.stage !== existing.stage) {
+      await tx.insert(dealActivities).values({
+        dealId: id,
+        type: "status_change",
+        description: `Stage changed from "${stageLabel(existing.stage)}" to "${stageLabel(data.stage)}"`,
+        createdBy: userId,
+        metadata: { from_stage: existing.stage, to_stage: data.stage },
+      });
+    }
+
+    return row;
+  });
 
   revalidatePath("/deals");
   revalidatePath(`/deals/${id}`);
@@ -344,16 +362,17 @@ export async function addDealActivity(
   }
 
   if (["email", "call", "meeting"].includes(type)) {
-    const [[activity]] = await Promise.all([
-      db
+    const activity = await db.transaction(async (tx) => {
+      const [row] = await tx
         .insert(dealActivities)
         .values({ dealId, type, description, createdBy: userId, metadata })
-        .returning(),
-      db
+        .returning();
+      await tx
         .update(deals)
         .set({ lastContactedAt: new Date(), updatedAt: new Date() })
-        .where(eq(deals.id, dealId)),
-    ]);
+        .where(eq(deals.id, dealId));
+      return row;
+    });
     revalidatePath(`/deals/${dealId}`);
     return activity;
   }
@@ -370,31 +389,28 @@ export async function getDealStats() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [stageCounts, sourceCounts, pipelineValues, totalDeals] =
-    await Promise.all([
-      db
-        .select({ stage: deals.stage, count: count() })
-        .from(deals)
-        .groupBy(deals.stage),
-      db
-        .select({ source: deals.source, count: count() })
-        .from(deals)
-        .groupBy(deals.source),
-      db
-        .select({
-          stage: deals.stage,
-          total: sql<string>`COALESCE(SUM(${deals.estimatedValue}), 0)`,
-        })
-        .from(deals)
-        .groupBy(deals.stage),
-      db.select({ count: count() }).from(deals),
-    ]);
+  const [stageStats, sourceCounts] = await Promise.all([
+    db
+      .select({
+        stage: deals.stage,
+        count: count(),
+        total: sql<string>`COALESCE(SUM(${deals.estimatedValue}), 0)`,
+      })
+      .from(deals)
+      .groupBy(deals.stage),
+    db
+      .select({ source: deals.source, count: count() })
+      .from(deals)
+      .groupBy(deals.source),
+  ]);
+
+  const totalDeals = stageStats.reduce((sum, s) => sum + s.count, 0);
 
   return {
-    stageCounts,
+    stageCounts: stageStats.map(({ stage, count }) => ({ stage, count })),
     sourceCounts,
-    pipelineValues,
-    totalDeals: totalDeals[0].count,
+    pipelineValues: stageStats.map(({ stage, total }) => ({ stage, total })),
+    totalDeals,
   };
 }
 

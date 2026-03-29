@@ -122,7 +122,7 @@ export default async function CompanyDetailPage({ params }: Props) {
                 Deals
               </span>
               <p className="mt-0.5 font-semibold tabular-nums">
-                {company.deals.length}
+                {company.dealsTotal}
               </p>
             </div>
           </CardContent>
@@ -136,7 +136,11 @@ export default async function CompanyDetailPage({ params }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ContactList companyId={id} contacts={company.contacts} />
+            <ContactList
+              companyId={id}
+              contacts={company.contacts}
+              total={company.contactsTotal}
+            />
           </CardContent>
         </Card>
       </div>
@@ -149,8 +153,8 @@ export default async function CompanyDetailPage({ params }: Props) {
               Deals
             </CardTitle>
             <CardDescription className="mt-1">
-              {company.deals.length} deal
-              {company.deals.length !== 1 ? "s" : ""}
+              {company.dealsTotal} deal
+              {company.dealsTotal !== 1 ? "s" : ""}
             </CardDescription>
           </div>
           <Button
@@ -243,6 +247,11 @@ export default async function CompanyDetailPage({ params }: Props) {
               </Table>
             </div>
           )}
+          {company.dealsTotal > company.deals.length && (
+            <p className="text-xs text-muted-foreground/50 mt-3">
+              Showing {company.deals.length} of {company.dealsTotal} deals
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -266,7 +275,10 @@ export default async function CompanyDetailPage({ params }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ActivityTimeline activities={company.activities} />
+          <ActivityTimeline
+            activities={company.activities}
+            total={company.activitiesTotal}
+          />
         </CardContent>
       </Card>
     </div>

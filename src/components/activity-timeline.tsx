@@ -38,12 +38,14 @@ function ActivityItem({
 
 export function ActivityTimeline({
   activities,
+  total: serverTotal,
 }: {
   activities: DealActivity[];
+  total?: number;
 }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const total = activities.length;
-  const totalPages = Math.ceil(total / PAGE_SIZE_ACTIVITY);
+  const total = serverTotal ?? activities.length;
+  const totalPages = Math.ceil(activities.length / PAGE_SIZE_ACTIVITY);
   const start = (currentPage - 1) * PAGE_SIZE_ACTIVITY;
   const visible = activities.slice(start, start + PAGE_SIZE_ACTIVITY);
 
@@ -66,6 +68,11 @@ export function ActivityTimeline({
         pageSize={PAGE_SIZE_ACTIVITY}
         onPageChange={setCurrentPage}
       />
+      {total > activities.length && (
+        <p className="text-xs text-muted-foreground/50 pt-2">
+          Showing {activities.length} of {total} activities
+        </p>
+      )}
     </div>
   );
 }

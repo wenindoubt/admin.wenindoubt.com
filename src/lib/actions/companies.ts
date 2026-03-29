@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
+import { db, totalCount } from "@/db";
 import {
   companies,
   companyTags,
@@ -185,24 +185,33 @@ export async function getCompany(id: string) {
     .where(eq(companies.id, id));
   if (!company) return null;
 
-  const [companyContacts, companyDeals, recentActivities] = await Promise.all([
+  const [contactRows, dealRows, activityRows] = await Promise.all([
     db
-      .select()
+      .select({
+        contact: contacts,
+        totalCount,
+      })
       .from(contacts)
       .where(eq(contacts.companyId, id))
-      .orderBy(asc(contacts.firstName)),
+      .orderBy(asc(contacts.firstName))
+      .limit(50),
     db
       .select({
         deal: deals,
         contactFirstName: contacts.firstName,
         contactLastName: contacts.lastName,
+        totalCount,
       })
       .from(deals)
       .leftJoin(contacts, eq(deals.primaryContactId, contacts.id))
       .where(eq(deals.companyId, id))
-      .orderBy(desc(deals.createdAt)),
+      .orderBy(desc(deals.createdAt))
+      .limit(50),
     db
-      .select({ activity: dealActivities })
+      .select({
+        activity: dealActivities,
+        totalCount,
+      })
       .from(dealActivities)
       .innerJoin(deals, eq(dealActivities.dealId, deals.id))
       .where(eq(deals.companyId, id))
@@ -212,14 +221,17 @@ export async function getCompany(id: string) {
 
   return {
     ...company,
-    contacts: companyContacts,
-    deals: companyDeals.map((r) => ({
+    contacts: contactRows.map((r) => r.contact),
+    contactsTotal: contactRows[0]?.totalCount ?? 0,
+    deals: dealRows.map((r) => ({
       ...r.deal,
       primaryContact: r.contactFirstName
         ? { firstName: r.contactFirstName, lastName: r.contactLastName }
         : null,
     })),
-    activities: recentActivities.map((r) => r.activity),
+    dealsTotal: dealRows[0]?.totalCount ?? 0,
+    activities: activityRows.map((r) => r.activity),
+    activitiesTotal: activityRows[0]?.totalCount ?? 0,
   };
 }
 

@@ -74,6 +74,7 @@ type Props = {
     jobTitle: string | null;
   } | null;
   insights: DealInsight[];
+  insightsTotal?: number;
 };
 
 const PAGE_SIZE = 3;
@@ -301,9 +302,11 @@ function HistoryInsightCard({
 function InsightHistoryModal({
   dealId,
   olderInsights,
+  totalOlder,
 }: {
   dealId: string;
   olderInsights: DealInsight[];
+  totalOlder: number;
 }) {
   const [historyPage, setHistoryPage] = useState(0);
 
@@ -330,8 +333,7 @@ function InsightHistoryModal({
         }
       >
         <Clock className="size-3.5" />
-        View {olderInsights.length} previous{" "}
-        {olderInsights.length === 1 ? "analysis" : "analyses"}
+        View {totalOlder} previous {totalOlder === 1 ? "analysis" : "analyses"}
       </DialogTrigger>
       <DialogContent
         className="sm:max-w-5xl max-h-[85vh] overflow-hidden flex flex-col"
@@ -346,11 +348,16 @@ function InsightHistoryModal({
             Analysis History
           </DialogTitle>
           <DialogDescription>
-            {olderInsights.length}{" "}
-            {olderInsights.length === 1 ? "analysis" : "analyses"} &middot;
+            {totalOlder} {totalOlder === 1 ? "analysis" : "analyses"} &middot;
             Showing {historyPage * PAGE_SIZE + 1}–
             {Math.min((historyPage + 1) * PAGE_SIZE, olderInsights.length)} of{" "}
-            {olderInsights.length}
+            {totalOlder}
+            {totalOlder > olderInsights.length && (
+              <span className="text-muted-foreground/40">
+                {" "}
+                (latest {olderInsights.length} loaded)
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -413,7 +420,13 @@ function InsightHistoryModal({
   );
 }
 
-export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
+export function DealInsightsPanel({
+  deal,
+  company,
+  contact,
+  insights,
+  insightsTotal,
+}: Props) {
   const dealId = deal.id;
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -426,6 +439,10 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
 
   const latestInsight = insights[0];
   const olderInsights = insights.slice(1);
+  const totalOlderInsights = Math.max(
+    (insightsTotal ?? insights.length) - 1,
+    0,
+  );
 
   const contactForContext = useMemo(
     () =>
@@ -710,6 +727,7 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
                 <InsightHistoryModal
                   dealId={dealId}
                   olderInsights={olderInsights}
+                  totalOlder={totalOlderInsights}
                 />
               )}
             </div>

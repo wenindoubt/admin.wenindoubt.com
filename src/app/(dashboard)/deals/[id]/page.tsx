@@ -261,6 +261,7 @@ export default async function DealDetailPage({ params }: Props) {
         company={deal.company}
         contact={deal.primaryContact}
         insights={deal.insights}
+        insightsTotal={deal.insightsTotal}
       />
 
       {/* Notes */}
@@ -292,7 +293,10 @@ export default async function DealDetailPage({ params }: Props) {
         <CardContent className="space-y-4">
           <ActivityForm dealId={id} />
           <Separator className="bg-border/30" />
-          <ActivityTimeline activities={deal.activities} />
+          <ActivityTimeline
+            activities={deal.activities}
+            total={deal.activitiesTotal}
+          />
         </CardContent>
       </Card>
     </div>

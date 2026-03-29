@@ -11,9 +11,14 @@ import { deleteContact } from "@/lib/actions/contacts";
 type ContactListProps = {
   companyId: string;
   contacts: Contact[];
+  total?: number;
 };
 
-export function ContactList({ companyId, contacts }: ContactListProps) {
+export function ContactList({
+  companyId,
+  contacts,
+  total: serverTotal,
+}: ContactListProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -93,6 +98,12 @@ export function ContactList({ companyId, contacts }: ContactListProps) {
           )}
         </div>
       ))}
+
+      {serverTotal != null && serverTotal > contacts.length && (
+        <p className="text-xs text-muted-foreground/50">
+          Showing {contacts.length} of {serverTotal} contacts
+        </p>
+      )}
 
       {showAddForm ? (
         <>

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
@@ -13,6 +14,9 @@ const conn =
   globalForDb.conn ??
   postgres(connectionString, {
     prepare: false, // required for Supabase Supavisor transaction-mode pooling
+    max: 5,
+    idle_timeout: 20,
+    connect_timeout: 10,
   });
 
 if (process.env.NODE_ENV !== "production") {
@@ -20,3 +24,6 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const db = drizzle(conn, { schema });
+
+/** Window count for capped queries — returns true total alongside limited rows */
+export const totalCount = sql<number>`count(*) over()`.as("total_count");
