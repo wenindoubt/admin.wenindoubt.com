@@ -69,7 +69,7 @@ export default async function DealsPage(props: { searchParams: SearchParams }) {
           <Button
             nativeButton={false}
             render={<Link href="/deals/new" />}
-            className="bg-gold-400 text-gold-400-foreground hover:bg-gold-500 border-0"
+            className="bg-neon-400 text-neon-400-foreground hover:bg-neon-500 border-0"
           >
             <Plus className="size-4" />
             Add Deal

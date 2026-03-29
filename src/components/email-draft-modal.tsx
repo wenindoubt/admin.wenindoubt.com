@@ -420,8 +420,8 @@ export function EmailDraftModal({
           className={cn(
             "rounded-sm px-px -mx-px",
             isPartialGenerating
-              ? "bg-gold-400/20 animate-pulse"
-              : "bg-gold-400/25 hover:bg-gold-400/30",
+              ? "bg-neon-400/20 animate-pulse"
+              : "bg-neon-400/25 hover:bg-neon-400/30",
           )}
         >
           {isPartialGenerating && replacementText !== null
@@ -438,8 +438,8 @@ export function EmailDraftModal({
       <DialogContent className="sm:max-w-4xl w-[calc(100%-2rem)] h-[calc(100vh-4rem)] max-h-none overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-gold-400/10">
-              <Mail className="size-3.5 text-gold-400" />
+            <div className="flex size-7 items-center justify-center rounded-lg bg-neon-400/10">
+              <Mail className="size-3.5 text-neon-400" />
             </div>
             Draft Outreach Email
           </DialogTitle>
@@ -584,7 +584,7 @@ export function EmailDraftModal({
               !isPartialGenerating &&
               !selectionRange &&
               body && (
-                <div className="flex items-center gap-1.5 text-sm text-gold-400">
+                <div className="flex items-center gap-1.5 text-sm text-neon-400">
                   <Wand2 className="size-3.5" />
                   Select text to rewrite with AI
                 </div>

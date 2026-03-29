@@ -21,6 +21,7 @@ import type { Company, Contact, Deal } from "@/db/schema";
 import { getContactsForCompany } from "@/lib/actions/contacts";
 import { createDeal, updateDeal } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
+import { FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "@/lib/utils";
 import { type DealFormValues, dealFormSchema } from "@/lib/validations";
 
 type CompanyOption = Pick<Company, "id" | "name">;
@@ -141,10 +142,8 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
     }
   }
 
-  const inputClasses =
-    "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
-  const labelClasses =
-    "text-xs uppercase tracking-wider text-muted-foreground/80";
+  const inputClasses = FORM_INPUT_CLASSES;
+  const labelClasses = FORM_LABEL_CLASSES;
 
   return (
     <form
@@ -153,7 +152,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
     >
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">
+          <CardTitle className="neon-underline pb-1 text-base">
             Deal Info
           </CardTitle>
         </CardHeader>
@@ -263,7 +262,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">
+          <CardTitle className="neon-underline pb-1 text-base">
             Company
           </CardTitle>
         </CardHeader>
@@ -296,7 +295,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">
+          <CardTitle className="neon-underline pb-1 text-base">
             Primary Contact
           </CardTitle>
         </CardHeader>
@@ -344,7 +343,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0"
+          className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
         >
           {isSubmitting
             ? "Saving..."

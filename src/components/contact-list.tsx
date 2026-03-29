@@ -59,7 +59,7 @@ export function ContactList({ companyId, contacts }: ContactListProps) {
                   {contact.email && (
                     <a
                       href={`mailto:${contact.email}`}
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-gold-400 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-neon-400 transition-colors"
                     >
                       <Mail className="size-3" />
                       {contact.email}
@@ -109,7 +109,7 @@ export function ContactList({ companyId, contacts }: ContactListProps) {
         <button
           type="button"
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 hover:text-gold-400 transition-colors pt-1"
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 hover:text-neon-400 transition-colors pt-1"
         >
           <Plus className="size-3.5" />
           Add contact

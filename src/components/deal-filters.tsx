@@ -2,7 +2,7 @@
 
 import { Search, Tag, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,6 +26,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
   const searchParams = useSearchParams();
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
 
   const selectedTagIds = searchParams.getAll("tag");
 
@@ -93,7 +94,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
               300,
             );
           }}
-          className="w-64 pl-9 bg-card/50 border-border/50 placeholder:text-muted-foreground/50 focus:border-gold-400/50 focus:ring-gold-400/20"
+          className="w-64 pl-9 bg-card/50 border-border/50 placeholder:text-muted-foreground/50 focus:border-neon-400/50 focus:ring-neon-400/20"
         />
       </div>
       <Select
@@ -147,7 +148,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
                 type="button"
                 className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
                   selectedTagIds.length > 0
-                    ? "border-gold-400/40 bg-gold-400/5 text-foreground"
+                    ? "border-neon-400/40 bg-neon-400/5 text-foreground"
                     : "border-border/50 bg-card/50 text-muted-foreground"
                 }`}
               />
@@ -156,7 +157,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
             <Tag className="size-3.5" />
             Tags
             {selectedTagIds.length > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-gold-400/20 text-[15px] font-semibold text-gold-600">
+              <span className="flex size-5 items-center justify-center rounded-full bg-neon-400/20 text-[15px] font-semibold text-neon-600">
                 {selectedTagIds.length}
               </span>
             )}

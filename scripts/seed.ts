@@ -5,7 +5,9 @@
  * Clean: npx tsx scripts/seed.ts --clean
  */
 import { config } from "dotenv";
+
 config({ path: ".env.local" });
+
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";

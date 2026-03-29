@@ -7,7 +7,9 @@ import {
   Kanban,
   LayoutDashboard,
   Tags,
+  Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -23,6 +25,7 @@ import {
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Companies", href: "/companies", icon: Building2 },
+  { label: "Contacts", href: "/contacts", icon: Users },
   { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Board", href: "/deals/board", icon: Kanban },
   { label: "Tags", href: "/tags", icon: Tags },
@@ -35,12 +38,13 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-5 py-5">
         <Link href="/" className="flex items-center gap-3 group">
-          {/* Gold monogram */}
-          <div className="flex size-9 items-center justify-center rounded-lg bg-gold-400/10 ring-1 ring-gold-400/25 transition-all group-hover:bg-gold-400/15 group-hover:ring-gold-400/40">
-            <span className="font-heading text-lg font-bold text-gold-400">
-              W
-            </span>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="WenInDoubt"
+            width={36}
+            height={36}
+            className="rounded-lg"
+          />
           <div className="flex flex-col">
             <span className="text-sm font-semibold tracking-wide text-foreground">
               WenInDoubt
@@ -62,7 +66,7 @@ export function AppSidebar() {
                   render={<Link href={item.href} />}
                   className={
                     isActive
-                      ? "bg-gold-400/10 text-gold-400 font-medium"
+                      ? "bg-neon-400/10 text-neon-400 font-medium"
                       : "text-sidebar-foreground hover:text-foreground"
                   }
                 >

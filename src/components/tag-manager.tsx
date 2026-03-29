@@ -45,7 +45,7 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-          className="bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20"
+          className="bg-card/50 border-border/50 focus:border-neon-400/50 focus:ring-neon-400/20"
         />
         <div className="flex items-center gap-1.5">
           {TAG_COLORS.map((c) => (
@@ -64,7 +64,7 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
         </div>
         <Button
           onClick={handleCreate}
-          className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0"
+          className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
         >
           <Plus className="size-4" />
           Add

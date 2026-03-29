@@ -16,7 +16,7 @@ import type { Deal } from "@/db/schema";
 import { checkStageTransition, updateDeal } from "@/lib/actions/deals";
 import { ACTIVE_STAGES, DEAL_STAGES } from "@/lib/constants";
 import { useSupabase } from "@/lib/supabase/realtime";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { EmailDraftModal } from "./email-draft-modal";
 
 const STORAGE_KEY = "kanban-visible-columns";
@@ -357,7 +357,7 @@ export function KanbanBoard({
             className={cn(
               "px-2.5 py-1 rounded-md text-[16px] font-medium tracking-wide uppercase transition-all",
               activeOnly && !allVisible
-                ? "bg-gold-400/15 text-gold-600 ring-1 ring-gold-400/25"
+                ? "bg-neon-400/15 text-neon-600 ring-1 ring-neon-400/25"
                 : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50",
             )}
           >
@@ -369,7 +369,7 @@ export function KanbanBoard({
             className={cn(
               "px-2.5 py-1 rounded-md text-[16px] font-medium tracking-wide uppercase transition-all",
               allVisible
-                ? "bg-gold-400/15 text-gold-600 ring-1 ring-gold-400/25"
+                ? "bg-neon-400/15 text-neon-600 ring-1 ring-neon-400/25"
                 : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50",
             )}
           >
@@ -488,7 +488,7 @@ export function KanbanBoard({
                       className={cn(
                         "min-h-[200px] space-y-2 rounded-lg border p-2 transition-colors",
                         snapshot.isDraggingOver
-                          ? "border-gold-400/30 bg-gold-400/[0.03]"
+                          ? "border-neon-400/30 bg-neon-400/[0.03]"
                           : "border-border/30 bg-card/30",
                       )}
                     >
@@ -506,7 +506,7 @@ export function KanbanBoard({
                               className={cn(
                                 "group cursor-grab border-border/40 transition-all",
                                 snapshot.isDragging
-                                  ? "shadow-lg shadow-black/30 ring-1 ring-gold-400/20"
+                                  ? "shadow-lg shadow-black/30 ring-1 ring-neon-400/20"
                                   : "hover:border-border/60",
                               )}
                             >
@@ -519,7 +519,7 @@ export function KanbanBoard({
                                 draggable={false}
                               >
                                 <CardContent className="p-3">
-                                  <p className="font-medium text-sm group-hover:text-gold-400 transition-colors">
+                                  <p className="font-medium text-sm group-hover:text-neon-400 transition-colors">
                                     {deal.title}
                                   </p>
                                   {deal.company.name && (
@@ -536,10 +536,7 @@ export function KanbanBoard({
                                     deal.followUpAt && (
                                       <p className="mt-1 text-xs text-teal-600 flex items-center gap-1">
                                         <Clock className="size-3" />
-                                        Follow up{" "}
-                                        {new Date(
-                                          deal.followUpAt,
-                                        ).toLocaleDateString()}
+                                        Follow up {formatDate(deal.followUpAt)}
                                       </p>
                                     )}
                                 </CardContent>
@@ -563,7 +560,7 @@ export function KanbanBoard({
                 <button
                   type="button"
                   onClick={showActive}
-                  className="mt-2 text-xs text-gold-500 hover:text-gold-400 transition-colors"
+                  className="mt-2 text-xs text-neon-500 hover:text-neon-400 transition-colors"
                 >
                   Show active pipeline
                 </button>

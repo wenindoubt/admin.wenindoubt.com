@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, desc, eq, ilike, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -12,6 +12,7 @@ import {
   deals,
 } from "@/db/schema";
 import { computeLifecycle } from "@/lib/constants";
+import { buildTsquery } from "@/lib/utils";
 import {
   type CreateCompanyInput,
   createCompanySchema,
@@ -21,6 +22,11 @@ import {
 
 export type CompanyFilters = {
   search?: string;
+  industry?: string;
+  size?: string;
+  lifecycle?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
   limit?: number;
   offset?: number;
 };
@@ -32,10 +38,32 @@ export async function getCompanies(filters?: CompanyFilters) {
   const conditions = [];
 
   if (filters?.search) {
-    conditions.push(ilike(companies.name, `%${filters.search}%`));
+    const q = buildTsquery(filters.search);
+    if (q) {
+      conditions.push(
+        sql`${companies.searchVector} @@ to_tsquery('english', ${q})`,
+      );
+    }
+  }
+  if (filters?.size) {
+    conditions.push(eq(companies.size, filters.size));
   }
 
-  let query = db.select().from(companies).orderBy(asc(companies.name));
+  // Determine sort (computed fields sorted in JS after query)
+  const dbSortable = {
+    name: companies.name,
+    industry: companies.industry,
+    created: companies.createdAt,
+  } as const;
+  type SortKey = keyof typeof dbSortable;
+  const sortKey = filters?.sortBy as SortKey | undefined;
+  const sortCol = sortKey && sortKey in dbSortable ? dbSortable[sortKey] : null;
+  const sortFn = filters?.sortOrder === "asc" ? asc : desc;
+
+  let query = db
+    .select()
+    .from(companies)
+    .orderBy(sortCol ? sortFn(sortCol) : asc(companies.name));
   if (conditions.length > 0) {
     query = query.where(and(...conditions)) as typeof query;
   }
@@ -71,7 +99,7 @@ export async function getCompanies(filters?: CompanyFilters) {
     dealsByCompany.set(d.companyId, existing);
   }
 
-  return rows.map((company) => {
+  let result = rows.map((company) => {
     const cDeals = dealsByCompany.get(company.id) ?? [];
     const pipelineValue = cDeals.reduce(
       (sum, d) => sum + Number(d.estimatedValue ?? 0),
@@ -84,6 +112,31 @@ export async function getCompanies(filters?: CompanyFilters) {
       pipelineValue,
     };
   });
+
+  // Post-filter by lifecycle (computed field)
+  if (filters?.lifecycle) {
+    result = result.filter((c) => c.lifecycle === filters.lifecycle);
+  }
+
+  // Sort by computed fields in JS
+  const computedSortBy = filters?.sortBy;
+  if (computedSortBy === "dealCount" || computedSortBy === "pipelineValue") {
+    const dir = filters?.sortOrder === "asc" ? 1 : -1;
+    result.sort((a, b) => (a[computedSortBy] - b[computedSortBy]) * dir);
+  }
+
+  return result;
+}
+
+/** Lightweight list for dropdowns — no deals query, just id + name */
+export async function getCompanyList() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  return db
+    .select({ id: companies.id, name: companies.name })
+    .from(companies)
+    .orderBy(asc(companies.name));
 }
 
 export async function getCompany(id: string) {

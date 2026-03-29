@@ -40,9 +40,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Company, Contact, Deal, DealInsight } from "@/db/schema";
+import type { Company, Deal, DealInsight } from "@/db/schema";
 import { deleteInsight } from "@/lib/actions/ai";
 import { buildDealContext } from "@/lib/ai/context";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
 type Props = {
   deal: Deal;
@@ -68,12 +69,12 @@ const mdComponents: Components = {
     </h2>
   ),
   h2: ({ children }) => (
-    <h3 className="font-heading text-lg font-semibold tracking-tight text-foreground mt-5 mb-2 first:mt-0 border-b border-gold-400/20 pb-1.5">
+    <h3 className="font-heading text-lg font-semibold tracking-tight text-foreground mt-5 mb-2 first:mt-0 border-b border-neon-400/20 pb-1.5">
       {children}
     </h3>
   ),
   h3: ({ children }) => (
-    <h4 className="text-sm font-semibold uppercase tracking-wider text-gold-600 mt-4 mb-1.5">
+    <h4 className="text-sm font-semibold uppercase tracking-wider text-neon-600 mt-4 mb-1.5">
       {children}
     </h4>
   ),
@@ -96,12 +97,12 @@ const mdComponents: Components = {
     </ol>
   ),
   li: ({ children }) => (
-    <li className="leading-relaxed pl-4 relative before:content-[''] before:absolute before:left-0 before:top-[0.6em] before:size-1.5 before:rounded-full before:bg-gold-400/40">
+    <li className="leading-relaxed pl-4 relative before:content-[''] before:absolute before:left-0 before:top-[0.6em] before:size-1.5 before:rounded-full before:bg-neon-400/40">
       {children}
     </li>
   ),
   hr: () => (
-    <hr className="my-4 border-0 h-px bg-gradient-to-r from-transparent via-gold-400/25 to-transparent" />
+    <hr className="my-4 border-0 h-px bg-gradient-to-r from-transparent via-neon-400/25 to-transparent" />
   ),
   table: ({ children }) => (
     <div className="mb-3 overflow-x-auto rounded-lg border border-border/40">
@@ -109,12 +110,12 @@ const mdComponents: Components = {
     </div>
   ),
   thead: ({ children }) => (
-    <thead className="border-b border-gold-400/20 bg-gold-400/[0.04]">
+    <thead className="border-b border-neon-400/20 bg-neon-400/[0.04]">
       {children}
     </thead>
   ),
   th: ({ children }) => (
-    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gold-600">
+    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-neon-600">
       {children}
     </th>
   ),
@@ -124,7 +125,7 @@ const mdComponents: Components = {
     </td>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="mb-3 border-l-2 border-gold-400/40 pl-4 italic text-foreground/60">
+    <blockquote className="mb-3 border-l-2 border-neon-400/40 pl-4 italic text-foreground/60">
       {children}
     </blockquote>
   ),
@@ -150,22 +151,22 @@ const PRINT_STYLES = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; color: #1a1a2e; padding: 48px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
   h2, h3 { font-family: 'DM Serif Display', serif; }
-  h2 { font-size: 30px; margin-top: 28px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #c9a84c; }
+  h2 { font-size: 30px; margin-top: 28px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #38bdf8; }
   h3 { font-size: 24px; margin-top: 20px; margin-bottom: 8px; }
-  h4 { font-size: 18px; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7230; margin-top: 18px; margin-bottom: 6px; }
+  h4 { font-size: 18px; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.08em; color: #0284c7; margin-top: 18px; margin-bottom: 6px; }
   p { font-size: 20px; margin-bottom: 10px; color: #333; }
   strong { color: #1a1a2e; }
   ul { list-style: none; padding-left: 0; margin-bottom: 12px; }
   ul li { padding-left: 16px; position: relative; margin-bottom: 4px; font-size: 20px; color: #333; }
-  ul li::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #c9a84c; }
+  ul li::before { content: ''; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #38bdf8; }
   ol { padding-left: 20px; margin-bottom: 12px; }
   ol li { margin-bottom: 4px; font-size: 20px; color: #333; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 18px; }
-  thead { background: #f8f4eb; }
-  th { text-align: left; padding: 6px 10px; border-bottom: 2px solid #c9a84c; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7230; }
+  thead { background: #f0f9ff; }
+  th { text-align: left; padding: 6px 10px; border-bottom: 2px solid #38bdf8; font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: #0284c7; }
   td { padding: 6px 10px; border-bottom: 1px solid #eee; color: #444; }
-  hr { border: 0; height: 1px; background: #c9a84c; opacity: 0.3; margin: 20px 0; }
-  blockquote { border-left: 3px solid #c9a84c; padding-left: 16px; font-style: italic; color: #666; margin-bottom: 12px; }
+  hr { border: 0; height: 1px; background: #38bdf8; opacity: 0.3; margin: 20px 0; }
+  blockquote { border-left: 3px solid #38bdf8; padding-left: 16px; font-style: italic; color: #666; margin-bottom: 12px; }
   @media print { body { padding: 0; } }
 `;
 
@@ -264,8 +265,8 @@ function ExportToolbar({
 
 function PromptBadge({ prompt }: { prompt: string }) {
   return (
-    <div className="mb-3 flex items-start gap-2 rounded-md bg-gold-400/[0.04] border border-gold-400/15 px-3 py-2">
-      <MessageSquare className="size-3.5 text-gold-500 mt-0.5 shrink-0" />
+    <div className="mb-3 flex items-start gap-2 rounded-md bg-neon-400/[0.04] border border-neon-400/15 px-3 py-2">
+      <MessageSquare className="size-3.5 text-neon-500 mt-0.5 shrink-0" />
       <p className="text-sm italic text-foreground/70 leading-relaxed">
         {prompt}
       </p>
@@ -310,12 +311,12 @@ function HistoryInsightCard({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
           <div
-            className={`flex size-6 items-center justify-center rounded-md ${isCustom ? "bg-violet-500/10" : "bg-gold-400/10"}`}
+            className={`flex size-6 items-center justify-center rounded-md ${isCustom ? "bg-violet-500/10" : "bg-neon-400/10"}`}
           >
             {isCustom ? (
               <MessageSquare className="size-3 text-violet-500" />
             ) : (
-              <Sparkles className="size-3 text-gold-400" />
+              <Sparkles className="size-3 text-neon-400" />
             )}
           </div>
           <div>
@@ -323,7 +324,7 @@ function HistoryInsightCard({
               {isCustom ? "Custom Query" : "Full Analysis"}
             </p>
             <p className="text-[15px] text-muted-foreground/50">
-              {new Date(insight.generatedAt).toLocaleString()} &middot;{" "}
+              {formatDateTime(insight.generatedAt)} &middot;{" "}
               {insight.analysisModel}
             </p>
           </div>
@@ -388,7 +389,7 @@ function InsightHistoryModal({
         render={
           <button
             type="button"
-            className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 rounded-lg border border-border/30 text-xs font-medium text-muted-foreground/60 hover:text-foreground hover:border-gold-400/30 hover:bg-gold-400/[0.03] transition-all"
+            className="flex items-center justify-center gap-2 w-full mt-4 py-2.5 rounded-lg border border-border/30 text-xs font-medium text-muted-foreground/60 hover:text-foreground hover:border-neon-400/30 hover:bg-neon-400/[0.03] transition-all"
           />
         }
       >
@@ -403,8 +404,8 @@ function InsightHistoryModal({
         {/* Modal header */}
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-gold-400/10">
-              <Clock className="size-3.5 text-gold-400" />
+            <div className="flex size-7 items-center justify-center rounded-lg bg-neon-400/10">
+              <Clock className="size-3.5 text-neon-400" />
             </div>
             Analysis History
           </DialogTitle>
@@ -451,7 +452,7 @@ function InsightHistoryModal({
                   onClick={() => setHistoryPage(i)}
                   className={`flex size-8 items-center justify-center rounded-lg text-xs font-medium transition-colors ${
                     i === historyPage
-                      ? "bg-gold-400/15 text-gold-500"
+                      ? "bg-neon-400/15 text-neon-500"
                       : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/60"
                   }`}
                 >
@@ -489,19 +490,13 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
   const latestInsight = insights[0];
   const olderInsights = insights.slice(1);
 
-  // Build contact in the shape buildDealContext expects
-  const contactForContext: Contact | null = contact
+  const contactForContext = contact
     ? {
-        id: contact.id,
-        companyId: deal.companyId,
         firstName: contact.firstName ?? "",
         lastName: contact.lastName ?? "",
         email: contact.email,
         phone: contact.phone,
-        linkedinUrl: null,
         jobTitle: contact.jobTitle,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       }
     : null;
 
@@ -601,20 +596,20 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
     <div className="glow-border">
       <Card className="relative border-border/50 overflow-hidden">
         {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gold-400/[0.02] via-transparent to-violet-500/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-neon-400/[0.02] via-transparent to-violet-500/[0.02] pointer-events-none" />
 
         <CardHeader className="relative">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
-                <div className="flex size-5 items-center justify-center rounded-md bg-gold-400/15">
-                  <Sparkles className="size-3 text-gold-400" />
+                <div className="flex size-5 items-center justify-center rounded-md bg-neon-400/15">
+                  <Sparkles className="size-3 text-neon-400" />
                 </div>
                 AI Insights
               </CardTitle>
               <CardDescription className="text-xs mt-1">
                 {latestInsight
-                  ? `Last analyzed ${new Date(latestInsight.generatedAt).toLocaleDateString()} · ${latestInsight.analysisModel}`
+                  ? `Last analyzed ${formatDate(latestInsight.generatedAt)} · ${latestInsight.analysisModel}`
                   : "AI-generated analysis"}
               </CardDescription>
             </div>
@@ -623,7 +618,7 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
               size="sm"
               onClick={() => runAnalysis()}
               disabled={isAnalyzing}
-              className="border-gold-400/25 text-gold-400 hover:bg-gold-400/10 hover:text-gold-300 hover:border-gold-400/40"
+              className="border-neon-400/25 text-neon-400 hover:bg-neon-400/10 hover:text-neon-300 hover:border-neon-400/40"
             >
               <RefreshCw
                 className={`size-3.5 ${isAnalyzing ? "animate-spin" : ""}`}
@@ -641,12 +636,12 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
               disabled={isAnalyzing}
               maxLength={500}
               placeholder="Ask something specific about this deal..."
-              className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 pr-10 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-gold-400/30 focus:border-gold-400/30 disabled:opacity-50"
+              className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 pr-10 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-neon-400/30 focus:border-neon-400/30 disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isAnalyzing || !customQuery.trim()}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-md bg-gold-400/15 text-gold-500 hover:bg-gold-400/25 transition-colors disabled:opacity-30 disabled:hover:bg-gold-400/15"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-md bg-neon-400/15 text-neon-500 hover:bg-neon-400/25 transition-colors disabled:opacity-30 disabled:hover:bg-neon-400/15"
             >
               <ArrowUp className="size-3.5" />
             </button>
@@ -714,15 +709,15 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
               ) : (
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
-                    <Skeleton className="h-5 w-48 bg-gold-400/5" />
-                    <Skeleton className="h-4 w-full bg-gold-400/5" />
-                    <Skeleton className="h-4 w-5/6 bg-gold-400/5" />
-                    <Skeleton className="h-4 w-3/4 bg-gold-400/5" />
+                    <Skeleton className="h-5 w-48 bg-neon-400/5" />
+                    <Skeleton className="h-4 w-full bg-neon-400/5" />
+                    <Skeleton className="h-4 w-5/6 bg-neon-400/5" />
+                    <Skeleton className="h-4 w-3/4 bg-neon-400/5" />
                   </div>
                   <div className="space-y-2">
-                    <Skeleton className="h-5 w-40 bg-gold-400/5" />
-                    <Skeleton className="h-4 w-full bg-gold-400/5" />
-                    <Skeleton className="h-4 w-4/5 bg-gold-400/5" />
+                    <Skeleton className="h-5 w-40 bg-neon-400/5" />
+                    <Skeleton className="h-4 w-full bg-neon-400/5" />
+                    <Skeleton className="h-4 w-4/5 bg-neon-400/5" />
                   </div>
                 </div>
               )}
@@ -732,8 +727,8 @@ export function DealInsightsPanel({ deal, company, contact, insights }: Props) {
           {/* Empty state */}
           {!isAnalyzing && insights.length === 0 && (
             <div className="flex flex-col items-center py-8 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-gold-400/10 mb-3">
-                <FileText className="size-5 text-gold-400/60" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-neon-400/10 mb-3">
+                <FileText className="size-5 text-neon-400/60" />
               </div>
               <p className="text-sm font-medium text-foreground/70">
                 No analysis yet

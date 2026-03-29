@@ -14,6 +14,7 @@ import {
   tags,
 } from "@/db/schema";
 import { stageLabel } from "@/lib/constants";
+import { buildTsquery } from "@/lib/utils";
 import {
   addDealActivitySchema,
   type CreateDealInput,
@@ -57,17 +58,10 @@ export async function getDeals(filters?: DealFilters) {
     conditions.push(eq(deals.assignedTo, filters.assignedTo));
   }
   if (filters?.search) {
-    const tsquery = filters.search
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((t) => t.replace(/[&|!():*\\'"]/g, ""))
-      .filter(Boolean)
-      .map((t) => `${t}:*`)
-      .join(" & ");
-    if (tsquery) {
+    const q = buildTsquery(filters.search);
+    if (q) {
       conditions.push(
-        sql`${deals.searchVector} @@ to_tsquery('english', ${tsquery})`,
+        sql`${deals.searchVector} @@ to_tsquery('english', ${q})`,
       );
     }
   }

@@ -1,9 +1,14 @@
-import { ExternalLink, Pencil, Plus } from "lucide-react";
+import {
+  Building2,
+  ExternalLink,
+  Link2,
+  Mail,
+  Pencil,
+  Phone,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActivityTimeline } from "@/components/activity-timeline";
 import { ClickableRow } from "@/components/clickable-row";
-import { ContactList } from "@/components/contact-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,25 +26,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getCompany } from "@/lib/actions/companies";
-import {
-  COMPANY_LIFECYCLES,
-  computeLifecycle,
-  DEAL_STAGES,
-} from "@/lib/constants";
+import { getContact } from "@/lib/actions/contacts";
+import { DEAL_STAGES } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default async function CompanyDetailPage({ params }: Props) {
+export default async function ContactDetailPage({ params }: Props) {
   const { id } = await params;
-  const company = await getCompany(id);
-  if (!company) notFound();
-
-  const lifecycle = computeLifecycle(company.deals);
-  const lifecycleConfig = COMPANY_LIFECYCLES.find((l) => l.value === lifecycle);
+  const contact = await getContact(id);
+  if (!contact) notFound();
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -47,32 +45,28 @@ export default async function CompanyDetailPage({ params }: Props) {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold tracking-tight">
-            {company.name}
+            {contact.firstName} {contact.lastName}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={lifecycleConfig?.color}>
-              {lifecycleConfig?.label}
-            </Badge>
-            {company.website && (
-              <>
-                <div className="h-4 w-px bg-border/40" />
-                <a
-                  href={company.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-neon-400 transition-colors"
-                >
-                  <ExternalLink className="size-3.5" />
-                  {company.website.replace(/^https?:\/\//, "")}
-                </a>
-              </>
+            {contact.jobTitle && (
+              <span className="text-sm text-muted-foreground">
+                {contact.jobTitle}
+              </span>
             )}
+            {contact.jobTitle && <div className="h-4 w-px bg-border/40" />}
+            <Link
+              href={`/companies/${contact.company.id}`}
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-neon-400 transition-colors"
+            >
+              <Building2 className="size-3.5" />
+              {contact.company.name}
+            </Link>
           </div>
         </div>
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href={`/companies/${id}/edit`} />}
+          render={<Link href={`/contacts/${contact.id}/edit`} />}
           className="border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
         >
           <Pencil className="size-4" />
@@ -80,93 +74,104 @@ export default async function CompanyDetailPage({ params }: Props) {
         </Button>
       </div>
 
-      {/* Details + Contacts row */}
+      {/* Details + Company row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Company Details */}
+        {/* Contact Details */}
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="neon-underline pb-1 text-base">
-              Company Details
+              Contact Details
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            {company.industry && (
-              <div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                  Industry
-                </span>
-                <p className="mt-0.5">{company.industry}</p>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center gap-2">
+              <Mail className="size-4 text-muted-foreground/60" />
+              <a
+                href={`mailto:${contact.email}`}
+                className="text-foreground hover:text-neon-400 transition-colors"
+              >
+                {contact.email}
+              </a>
+            </div>
+            {contact.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="size-4 text-muted-foreground/60" />
+                <span>{contact.phone}</span>
               </div>
             )}
-            {company.size && (
-              <div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                  Company Size
-                </span>
-                <p className="mt-0.5">{company.size}</p>
+            {contact.linkedinUrl && (
+              <div className="flex items-center gap-2">
+                <Link2 className="size-4 text-muted-foreground/60" />
+                <a
+                  href={contact.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:text-neon-400 transition-colors"
+                >
+                  LinkedIn Profile
+                  <ExternalLink className="inline ml-1 size-3" />
+                </a>
               </div>
             )}
-            <div>
+            <div className="pt-2 border-t border-border/30">
               <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
                 Created
               </span>
               <p className="mt-0.5 tabular-nums">
-                {formatDate(company.createdAt)}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                Deals
-              </span>
-              <p className="mt-0.5 font-heading tabular-nums">
-                {company.deals.length}
+                {formatDate(contact.createdAt)}
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Contacts */}
+        {/* Company */}
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="neon-underline pb-1 text-base">
-              Contacts
+              Company
             </CardTitle>
-            <CardDescription>
-              {company.contacts.length} contact
-              {company.contacts.length !== 1 ? "s" : ""} at this company
-            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ContactList companyId={id} contacts={company.contacts} />
+          <CardContent className="space-y-2 text-sm">
+            <Link
+              href={`/companies/${contact.company.id}`}
+              className="text-lg font-semibold text-foreground hover:text-neon-400 transition-colors"
+            >
+              {contact.company.name}
+            </Link>
+            {contact.company.industry && (
+              <p className="text-muted-foreground">
+                {contact.company.industry}
+              </p>
+            )}
+            {contact.company.website && (
+              <a
+                href={contact.company.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-muted-foreground hover:text-neon-400 transition-colors"
+              >
+                <ExternalLink className="size-3.5" />
+                {contact.company.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Deals — full width */}
       <Card className="border-border/50">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="neon-underline pb-3 text-base">
-              Deals
-            </CardTitle>
-            <CardDescription className="mt-1">
-              {company.deals.length} deal
-              {company.deals.length !== 1 ? "s" : ""}
-            </CardDescription>
-          </div>
-          <Button
-            nativeButton={false}
-            render={<Link href={`/deals/new?companyId=${id}`} />}
-            className="bg-neon-400 text-neon-400-foreground hover:bg-neon-500 border-0"
-            size="sm"
-          >
-            <Plus className="size-4" />
-            Add Deal
-          </Button>
+        <CardHeader>
+          <CardTitle className="neon-underline pb-3 text-base">Deals</CardTitle>
+          <CardDescription className="mt-1">
+            {contact.deals.length} deal
+            {contact.deals.length !== 1 ? "s" : ""} as primary contact
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {company.deals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No deals yet</p>
+          {contact.deals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No deals linked to this contact
+            </p>
           ) : (
             <div className="rounded-lg border border-border/30 overflow-hidden">
               <Table>
@@ -182,15 +187,12 @@ export default async function CompanyDetailPage({ params }: Props) {
                       Value
                     </TableHead>
                     <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
-                      Contact
-                    </TableHead>
-                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70">
                       Created
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {company.deals.map((deal) => {
+                  {contact.deals.map((deal) => {
                     const stageConfig = DEAL_STAGES.find(
                       (s) => s.value === deal.stage,
                     );
@@ -225,15 +227,6 @@ export default async function CompanyDetailPage({ params }: Props) {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {deal.primaryContact ? (
-                            `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`
-                          ) : (
-                            <span className="text-muted-foreground/50">
-                              &mdash;
-                            </span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground tabular-nums">
                           {formatDate(deal.createdAt)}
                         </TableCell>
@@ -244,21 +237,6 @@ export default async function CompanyDetailPage({ params }: Props) {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Activity timeline — full width */}
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="neon-underline pb-3 text-base">
-            Activity
-          </CardTitle>
-          <CardDescription className="mt-1">
-            Recent activity across all deals
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ActivityTimeline activities={company.activities} />
         </CardContent>
       </Card>
     </div>

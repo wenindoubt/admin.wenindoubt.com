@@ -3,40 +3,34 @@ export const dynamic = "force-dynamic";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CompaniesTable } from "@/components/companies-table";
-import { CompanyFilters } from "@/components/company-filters";
+import { ContactFilters } from "@/components/contact-filters";
+import { ContactsTable } from "@/components/contacts-table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCompanies } from "@/lib/actions/companies";
+import { getContacts } from "@/lib/actions/contacts";
 
 type SearchParams = Promise<{
   search?: string;
-  industry?: string;
-  size?: string;
-  lifecycle?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }>;
 
-async function CompaniesContent({
+async function ContactsContent({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const companies = await getCompanies({
+  const contacts = await getContacts({
     search: params.search,
-    industry: params.industry,
-    size: params.size,
-    lifecycle: params.lifecycle,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
   });
 
-  return <CompaniesTable companies={companies} />;
+  return <ContactsTable contacts={contacts} />;
 }
 
-export default async function CompaniesPage(props: {
+export default async function ContactsPage(props: {
   searchParams: SearchParams;
 }) {
   return (
@@ -44,21 +38,21 @@ export default async function CompaniesPage(props: {
       <div className="flex items-center justify-between">
         <div className="flex items-end gap-3">
           <h1 className="font-heading text-3xl font-bold tracking-tight">
-            Companies
+            Contacts
           </h1>
           <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
         </div>
         <Button
           nativeButton={false}
-          render={<Link href="/companies/new" />}
+          render={<Link href="/contacts/new" />}
           className="bg-neon-400 text-neon-400-foreground hover:bg-neon-500 border-0"
         >
           <Plus className="size-4" />
-          Add Company
+          Add Contact
         </Button>
       </div>
       <Suspense fallback={<div className="h-10" />}>
-        <CompanyFilters />
+        <ContactFilters />
       </Suspense>
       <Suspense
         fallback={
@@ -69,7 +63,7 @@ export default async function CompaniesPage(props: {
           </div>
         }
       >
-        <CompaniesContent searchParams={props.searchParams} />
+        <ContactsContent searchParams={props.searchParams} />
       </Suspense>
     </div>
   );

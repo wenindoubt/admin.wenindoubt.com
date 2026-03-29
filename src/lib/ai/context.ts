@@ -1,10 +1,15 @@
 import type { Company, Contact, Deal, DealActivity } from "@/db/schema";
 
+type ContactContext = Pick<
+  Contact,
+  "firstName" | "lastName" | "email" | "phone" | "jobTitle"
+>;
+
 /** Build a text summary of deal + company + contact fields for AI context and staleness detection */
 export function buildDealContext(
   deal: Deal,
   company: Company,
-  contact: Contact | null,
+  contact: ContactContext | null,
   activities?: DealActivity[],
 ): string {
   const fields = [

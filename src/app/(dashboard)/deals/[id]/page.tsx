@@ -24,7 +24,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { getDeal, getTags } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -48,7 +48,7 @@ export default async function DealDetailPage({ params }: Props) {
           <p className="mt-1 text-muted-foreground">
             <Link
               href={`/companies/${deal.company.id}`}
-              className="text-foreground/80 hover:text-gold-400 transition-colors"
+              className="text-foreground/80 hover:text-neon-400 transition-colors"
             >
               {deal.company.name}
             </Link>
@@ -88,7 +88,7 @@ export default async function DealDetailPage({ params }: Props) {
         {/* Deal details */}
         <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="gold-underline pb-1 text-base">
+            <CardTitle className="neon-underline pb-1 text-base">
               Deal Details
             </CardTitle>
           </CardHeader>
@@ -100,9 +100,9 @@ export default async function DealDetailPage({ params }: Props) {
               <p className="mt-0.5">
                 <Link
                   href={`/companies/${deal.company.id}`}
-                  className="hover:text-gold-400 transition-colors inline-flex items-center gap-1"
+                  className="hover:text-neon-400 transition-colors inline-flex items-center gap-1"
                 >
-                  <Building2 className="size-3 text-gold-400/60" />
+                  <Building2 className="size-3 text-neon-400/60" />
                   {deal.company.name}
                 </Link>
               </p>
@@ -113,7 +113,7 @@ export default async function DealDetailPage({ params }: Props) {
                   Contact
                 </span>
                 <p className="mt-0.5 inline-flex items-center gap-1">
-                  <User className="size-3 text-gold-400/60" />
+                  <User className="size-3 text-neon-400/60" />
                   {deal.primaryContact.firstName} {deal.primaryContact.lastName}
                 </p>
               </div>
@@ -148,7 +148,7 @@ export default async function DealDetailPage({ params }: Props) {
                 Created
               </span>
               <p className="mt-0.5 tabular-nums">
-                {new Date(deal.createdAt).toLocaleDateString()}
+                {formatDate(deal.createdAt)}
               </p>
             </div>
             {deal.followUpAt && (
@@ -157,7 +157,7 @@ export default async function DealDetailPage({ params }: Props) {
                   Follow-Up
                 </span>
                 <p className="mt-0.5 tabular-nums text-teal-600">
-                  {new Date(deal.followUpAt).toLocaleDateString()}
+                  {formatDate(deal.followUpAt)}
                 </p>
               </div>
             )}
@@ -167,7 +167,7 @@ export default async function DealDetailPage({ params }: Props) {
                   Last Contact
                 </span>
                 <p className="mt-0.5 tabular-nums">
-                  {new Date(deal.lastContactedAt).toLocaleDateString()}
+                  {formatDate(deal.lastContactedAt)}
                 </p>
               </div>
             )}
@@ -177,7 +177,7 @@ export default async function DealDetailPage({ params }: Props) {
                   Closed
                 </span>
                 <p className="mt-0.5 tabular-nums">
-                  {new Date(deal.closedAt).toLocaleDateString()}
+                  {formatDate(deal.closedAt)}
                 </p>
               </div>
             )}
@@ -187,7 +187,7 @@ export default async function DealDetailPage({ params }: Props) {
         {/* Contact info */}
         <Card className="border-border/50">
           <CardHeader>
-            <CardTitle className="gold-underline pb-1 text-base">
+            <CardTitle className="neon-underline pb-1 text-base">
               Contact Information
             </CardTitle>
           </CardHeader>
@@ -195,7 +195,7 @@ export default async function DealDetailPage({ params }: Props) {
             {deal.primaryContact ? (
               <>
                 <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                  <User className="size-4 text-gold-400/60" />
+                  <User className="size-4 text-neon-400/60" />
                   <span>
                     {deal.primaryContact.firstName}{" "}
                     {deal.primaryContact.lastName}
@@ -209,10 +209,10 @@ export default async function DealDetailPage({ params }: Props) {
                 </div>
                 {deal.primaryContact.email && (
                   <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                    <Mail className="size-4 text-gold-400/60" />
+                    <Mail className="size-4 text-neon-400/60" />
                     <a
                       href={`mailto:${deal.primaryContact.email}`}
-                      className="hover:text-gold-400 transition-colors"
+                      className="hover:text-neon-400 transition-colors"
                     >
                       {deal.primaryContact.email}
                     </a>
@@ -220,7 +220,7 @@ export default async function DealDetailPage({ params }: Props) {
                 )}
                 {deal.primaryContact.phone && (
                   <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                    <Phone className="size-4 text-gold-400/60" />
+                    <Phone className="size-4 text-neon-400/60" />
                     <span>{deal.primaryContact.phone}</span>
                   </div>
                 )}
@@ -232,12 +232,12 @@ export default async function DealDetailPage({ params }: Props) {
             )}
             {deal.company.website && (
               <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                <ExternalLink className="size-4 text-gold-400/60" />
+                <ExternalLink className="size-4 text-neon-400/60" />
                 <a
                   href={deal.company.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-gold-400 transition-colors truncate"
+                  className="hover:text-neon-400 transition-colors truncate"
                 >
                   {deal.company.website}
                 </a>
@@ -258,7 +258,7 @@ export default async function DealDetailPage({ params }: Props) {
       {/* Activity timeline */}
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">
+          <CardTitle className="neon-underline pb-1 text-base">
             Activity
           </CardTitle>
           <CardDescription>

@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { addDealActivity } from "@/lib/actions/deals";
 import { ACTIVITY_TYPES } from "@/lib/constants";
+import { FORM_INPUT_CLASSES } from "@/lib/utils";
 import { type ActivityFormValues, activityFormSchema } from "@/lib/validations";
 
 export function ActivityForm({ dealId }: { dealId: string }) {
@@ -39,8 +40,7 @@ export function ActivityForm({ dealId }: { dealId: string }) {
     }
   }
 
-  const inputClasses =
-    "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
+  const inputClasses = FORM_INPUT_CLASSES;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex gap-3">
@@ -79,7 +79,7 @@ export function ActivityForm({ dealId }: { dealId: string }) {
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0 self-start"
+        className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0 self-start"
       >
         Add
       </Button>

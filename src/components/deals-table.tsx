@@ -1,18 +1,11 @@
 "use client";
 
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ClickableRow } from "@/components/clickable-row";
+import { SortableHeader } from "@/components/sortable-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +30,7 @@ import {
 import type { Deal, Tag } from "@/db/schema";
 import { deleteDeal, updateDeal } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES, stageLabel } from "@/lib/constants";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 type DealRow = Deal & {
   company: { name: string };
@@ -88,50 +81,6 @@ function StageDropdown({ deal }: { deal: Deal }) {
   );
 }
 
-function SortableHeader({
-  column,
-  children,
-}: {
-  column: string;
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentSort = searchParams.get("sortBy");
-  const currentOrder = searchParams.get("sortOrder") ?? "desc";
-  const isActive = currentSort === column;
-
-  const handleSort = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("sortBy", column);
-    params.set(
-      "sortOrder",
-      isActive && currentOrder === "asc" ? "desc" : "asc",
-    );
-    router.push(`/deals?${params.toString()}`);
-  }, [router, searchParams, column, isActive, currentOrder]);
-
-  return (
-    <TableHead
-      className="text-xs uppercase tracking-wider text-muted-foreground/70 cursor-pointer select-none hover:text-muted-foreground transition-colors"
-      onClick={handleSort}
-    >
-      <span className="inline-flex items-center gap-1">
-        {children}
-        {isActive ? (
-          currentOrder === "asc" ? (
-            <ArrowUp className="size-3" />
-          ) : (
-            <ArrowDown className="size-3" />
-          )
-        ) : (
-          <ArrowUpDown className="size-3 opacity-30" />
-        )}
-      </span>
-    </TableHead>
-  );
-}
-
 export function DealsTable({ deals }: { deals: DealRow[] }) {
   const router = useRouter();
 
@@ -148,12 +97,12 @@ export function DealsTable({ deals }: { deals: DealRow[] }) {
   if (deals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/50 py-16 text-muted-foreground">
-        <div className="flex size-12 items-center justify-center rounded-full bg-gold-400/10 mb-4">
-          <span className="font-heading text-lg text-gold-400">+</span>
+        <div className="flex size-12 items-center justify-center rounded-full bg-neon-400/10 mb-4">
+          <span className="font-heading text-lg text-neon-400">+</span>
         </div>
         <p className="text-sm">No deals found</p>
         <Button
-          className="mt-4 bg-gold-400 hover:bg-gold-500 text-primary-foreground border-0"
+          className="mt-4 bg-neon-400 hover:bg-neon-500 text-primary-foreground border-0"
           nativeButton={false}
           render={<Link href="/deals/new" />}
         >
@@ -190,7 +139,7 @@ export function DealsTable({ deals }: { deals: DealRow[] }) {
               <TableCell>
                 <Link
                   href={`/deals/${deal.id}`}
-                  className="font-medium text-foreground hover:text-gold-400 transition-colors"
+                  className="font-medium text-foreground hover:text-neon-400 transition-colors"
                 >
                   {deal.title}
                 </Link>
@@ -249,7 +198,7 @@ export function DealsTable({ deals }: { deals: DealRow[] }) {
                 )}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground tabular-nums">
-                {new Date(deal.createdAt).toLocaleDateString()}
+                {formatDate(deal.createdAt)}
               </TableCell>
               <TableCell>
                 <DropdownMenu>

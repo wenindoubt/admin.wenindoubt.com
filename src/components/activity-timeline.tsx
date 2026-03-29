@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import type { DealActivity } from "@/db/schema";
 import { ACTIVITY_TYPES } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 const VISIBLE_COUNT = 10;
 const MODAL_PAGE_SIZE = 15;
@@ -28,13 +29,13 @@ function ActivityItem({
       {showConnector && (
         <div className="absolute left-3 top-9 bottom-0 w-px bg-border/40" />
       )}
-      <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[15px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+      <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-neon-400/10 text-[15px] font-bold uppercase text-neon-400 ring-1 ring-neon-400/20">
         {activity.type[0]}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-foreground/90">{activity.description}</p>
         <p className="mt-0.5 text-xs text-muted-foreground/60">
-          {new Date(activity.createdAt).toLocaleString()} &middot;{" "}
+          {formatDateTime(activity.createdAt)} &middot;{" "}
           <span>
             {ACTIVITY_TYPES.find((t) => t.value === activity.type)?.label ??
               activity.type}
@@ -59,7 +60,7 @@ function AllActivitiesModal({ activities }: { activities: DealActivity[] }) {
         render={
           <button
             type="button"
-            className="flex items-center justify-center gap-2 w-full mt-3 py-2.5 rounded-lg border border-border/30 text-xs font-medium text-muted-foreground/60 hover:text-foreground hover:border-gold-400/30 hover:bg-gold-400/[0.03] transition-all"
+            className="flex items-center justify-center gap-2 w-full mt-3 py-2.5 rounded-lg border border-border/30 text-xs font-medium text-muted-foreground/60 hover:text-foreground hover:border-neon-400/30 hover:bg-neon-400/[0.03] transition-all"
           />
         }
       >
@@ -72,8 +73,8 @@ function AllActivitiesModal({ activities }: { activities: DealActivity[] }) {
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-gold-400/10">
-              <Clock className="size-3.5 text-gold-400" />
+            <div className="flex size-7 items-center justify-center rounded-lg bg-neon-400/10">
+              <Clock className="size-3.5 text-neon-400" />
             </div>
             Activity History
           </DialogTitle>
@@ -120,7 +121,7 @@ function AllActivitiesModal({ activities }: { activities: DealActivity[] }) {
                   onClick={() => setPage(i)}
                   className={`flex size-8 items-center justify-center rounded-lg text-xs font-medium transition-colors ${
                     i === page
-                      ? "bg-gold-400/15 text-gold-500"
+                      ? "bg-neon-400/15 text-neon-500"
                       : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/60"
                   }`}
                 >

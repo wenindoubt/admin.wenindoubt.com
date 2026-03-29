@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDealStats } from "@/lib/actions/deals";
 import { ACTIVE_STAGES, DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 const kpiConfig = [
   { key: "deals", label: "Total Deals", icon: Users, prefix: "" },
@@ -52,12 +52,12 @@ async function DashboardContent() {
             key={kpi.key}
             className={`card-hover animate-fade-up stagger-${i + 1} relative overflow-hidden`}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-gold-400/[0.03] to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-neon-400/[0.03] to-transparent pointer-events-none" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {kpi.label}
               </CardTitle>
-              <kpi.icon className="size-4 text-gold-400/60" />
+              <kpi.icon className="size-4 text-neon-400/60" />
             </CardHeader>
             <CardContent>
               <p
@@ -75,7 +75,7 @@ async function DashboardContent() {
         {/* Pipeline by Stage */}
         <Card className="animate-fade-up stagger-5">
           <CardHeader>
-            <CardTitle className="gold-underline pb-1 text-lg">
+            <CardTitle className="neon-underline pb-1 text-lg">
               Pipeline by Stage
             </CardTitle>
           </CardHeader>
@@ -126,7 +126,7 @@ async function DashboardContent() {
         {/* Deals by Source */}
         <Card className="animate-fade-up stagger-6">
           <CardHeader>
-            <CardTitle className="gold-underline pb-1 text-lg">
+            <CardTitle className="neon-underline pb-1 text-lg">
               Deals by Source
             </CardTitle>
           </CardHeader>
@@ -157,7 +157,7 @@ async function DashboardContent() {
       {/* Recent Activity */}
       <Card className="animate-fade-up stagger-7">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-lg">
+          <CardTitle className="neon-underline pb-1 text-lg">
             Recent Activity
           </CardTitle>
         </CardHeader>
@@ -177,7 +177,7 @@ async function DashboardContent() {
                     <div className="absolute left-3 top-9 bottom-0 w-px bg-border/50" />
                   )}
                   {/* Activity type icon */}
-                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-gold-400/10 text-[15px] font-bold uppercase text-gold-400 ring-1 ring-gold-400/20">
+                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-neon-400/10 text-[15px] font-bold uppercase text-neon-400 ring-1 ring-neon-400/20">
                     {activity.type[0]}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ async function DashboardContent() {
                       </span>
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground/70">
-                      {new Date(activity.createdAt).toLocaleString()}
+                      {formatDateTime(activity.createdAt)}
                     </p>
                   </div>
                 </div>

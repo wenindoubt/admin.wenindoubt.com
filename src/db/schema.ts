@@ -55,8 +55,12 @@ export const companies = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    searchVector: tsvector("search_vector"),
   },
-  (table) => [index("idx_companies_name").on(table.name)],
+  (table) => [
+    index("idx_companies_name").on(table.name),
+    index("idx_companies_search_vector").using("gin", table.searchVector),
+  ],
 );
 
 // Contacts (people at a company)
@@ -79,10 +83,12 @@ export const contacts = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    searchVector: tsvector("search_vector"),
   },
   (table) => [
     index("idx_contacts_company_id").on(table.companyId),
     uniqueIndex("idx_contacts_company_email").on(table.companyId, table.email),
+    index("idx_contacts_search_vector").using("gin", table.searchVector),
   ],
 );
 

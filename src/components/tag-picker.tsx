@@ -85,7 +85,7 @@ export function TagPicker({
             <button
               type="button"
               disabled={isPending}
-              className="flex size-6 items-center justify-center rounded-full border border-dashed border-border/50 text-muted-foreground/50 hover:border-gold-400/40 hover:text-gold-400 hover:bg-gold-400/5 transition-all disabled:opacity-50"
+              className="flex size-6 items-center justify-center rounded-full border border-dashed border-border/50 text-muted-foreground/50 hover:border-neon-400/40 hover:text-neon-400 hover:bg-neon-400/5 transition-all disabled:opacity-50"
             />
           }
         >

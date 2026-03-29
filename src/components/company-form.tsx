@@ -18,6 +18,7 @@ import {
 import type { Company } from "@/db/schema";
 import { createCompany, updateCompany } from "@/lib/actions/companies";
 import { COMPANY_SIZES } from "@/lib/constants";
+import { FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "@/lib/utils";
 import { type CompanyFormValues, companyFormSchema } from "@/lib/validations";
 
 type CompanyFormProps = {
@@ -69,10 +70,8 @@ export function CompanyForm({ company }: CompanyFormProps) {
     }
   }
 
-  const inputClasses =
-    "bg-card/50 border-border/50 focus:border-gold-400/50 focus:ring-gold-400/20";
-  const labelClasses =
-    "text-xs uppercase tracking-wider text-muted-foreground/80";
+  const inputClasses = FORM_INPUT_CLASSES;
+  const labelClasses = FORM_LABEL_CLASSES;
 
   return (
     <form
@@ -81,7 +80,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
     >
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="gold-underline pb-1 text-base">
+          <CardTitle className="neon-underline pb-1 text-base">
             Company Information
           </CardTitle>
         </CardHeader>
@@ -146,7 +145,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-gold-400 text-primary-foreground hover:bg-gold-500 border-0"
+          className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
         >
           {isSubmitting
             ? "Saving..."
