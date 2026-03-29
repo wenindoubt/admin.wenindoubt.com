@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getDeals } from "@/lib/actions/deals";
 
 export default async function BoardPage() {
-  const deals = await getDeals();
+  const { data: deals } = await getDeals();
 
   return (
     <div className="space-y-6 animate-fade-in">

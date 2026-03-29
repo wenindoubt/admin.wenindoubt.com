@@ -45,6 +45,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
       } else {
         params.delete(key);
       }
+      params.delete("page");
       router.push(`/deals?${params.toString()}`);
     },
     [router, searchParams],
@@ -67,6 +68,7 @@ export function DealFilters({ allTags = [] }: { allTags?: TagType[] }) {
         params.append("tag", tagId);
       }
 
+      params.delete("page");
       router.push(`/deals?${params.toString()}`);
     },
     [router, searchParams],

@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -49,6 +49,8 @@ export async function getCompanies(filters?: CompanyFilters) {
     conditions.push(eq(companies.size, filters.size));
   }
 
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
   // Determine sort (computed fields sorted in JS after query)
   const dbSortable = {
     name: companies.name,
@@ -60,22 +62,39 @@ export async function getCompanies(filters?: CompanyFilters) {
   const sortCol = sortKey && sortKey in dbSortable ? dbSortable[sortKey] : null;
   const sortFn = filters?.sortOrder === "asc" ? asc : desc;
 
+  // When lifecycle filter or computed sort is active, we must fetch all rows
+  // and paginate in JS (these fields are derived from deals, not in the DB)
+  const needsJsPagination =
+    !!filters?.lifecycle ||
+    filters?.sortBy === "dealCount" ||
+    filters?.sortBy === "pipelineValue";
+
   let query = db
     .select()
     .from(companies)
     .orderBy(sortCol ? sortFn(sortCol) : asc(companies.name));
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions)) as typeof query;
+  if (where) {
+    query = query.where(where) as typeof query;
   }
-  if (filters?.limit) {
-    query = query.limit(filters.limit) as typeof query;
-  }
-  if (filters?.offset) {
-    query = query.offset(filters.offset) as typeof query;
+  if (!needsJsPagination) {
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as typeof query;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as typeof query;
+    }
   }
 
-  const rows = await query;
-  if (rows.length === 0) return [];
+  const [rows, countRows] = await Promise.all([
+    query,
+    needsJsPagination
+      ? Promise.resolve(null)
+      : db.select({ count: count() }).from(companies).where(where),
+  ]);
+
+  if (rows.length === 0) {
+    return { data: [], total: countRows?.[0]?.count ?? 0 };
+  }
 
   const companyIds = rows.map((r) => r.id);
 
@@ -125,7 +144,14 @@ export async function getCompanies(filters?: CompanyFilters) {
     result.sort((a, b) => (a[computedSortBy] - b[computedSortBy]) * dir);
   }
 
-  return result;
+  if (needsJsPagination) {
+    const total = result.length;
+    const start = filters?.offset ?? 0;
+    const end = start + (filters?.limit ?? total);
+    return { data: result.slice(start, end), total };
+  }
+
+  return { data: result, total: countRows![0].count };
 }
 
 /** Lightweight list for dropdowns — no deals query, just id + name */

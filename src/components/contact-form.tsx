@@ -121,9 +121,7 @@ export function ContactForm({
             onValueChange={(v) => setValue("companyId", v ?? "")}
           >
             <SelectTrigger className={inputClasses}>
-              <SelectValue
-                placeholder="Select a company"
-              >
+              <SelectValue placeholder="Select a company">
                 {companies.find((c) => c.id === selectedCompanyId)?.name}
               </SelectValue>
             </SelectTrigger>

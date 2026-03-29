@@ -23,6 +23,7 @@ export function ContactFilters() {
       } else {
         params.delete(key);
       }
+      params.delete("page");
       router.push(`/contacts?${params.toString()}`);
     },
     [router, searchParams],

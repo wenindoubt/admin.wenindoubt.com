@@ -131,7 +131,9 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
         ...data,
         primaryContactId: data.primaryContactId,
         sourceDetail: data.sourceDetail || null,
-        estimatedValue: data.estimatedValue ? stripCommas(data.estimatedValue) || null : null,
+        estimatedValue: data.estimatedValue
+          ? stripCommas(data.estimatedValue) || null
+          : null,
         assignedTo: data.assignedTo || null,
         followUpAt: data.followUpAt || null,
       };
@@ -353,7 +355,9 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
                   }
                 >
                   {(() => {
-                    const c = contactOptions.find((c) => c.id === currentContactId);
+                    const c = contactOptions.find(
+                      (c) => c.id === currentContactId,
+                    );
                     return c ? `${c.firstName} ${c.lastName}` : undefined;
                   })()}
                 </SelectValue>

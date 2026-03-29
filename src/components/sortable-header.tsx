@@ -26,6 +26,7 @@ export function SortableHeader({
       "sortOrder",
       isActive && currentOrder === "asc" ? "desc" : "asc",
     );
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }, [router, pathname, searchParams, column, isActive, currentOrder]);
 

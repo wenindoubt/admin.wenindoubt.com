@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { companies, contacts, deals } from "@/db/schema";
@@ -17,6 +17,8 @@ export type ContactFilters = {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
 };
 
 export async function getContacts(filters?: ContactFilters) {
@@ -54,16 +56,29 @@ export async function getContacts(filters?: ContactFilters) {
     .innerJoin(companies, eq(contacts.companyId, companies.id))
     .orderBy(sortCol ? sortFn(sortCol) : asc(contacts.firstName));
 
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions)) as typeof query;
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  if (where) {
+    query = query.where(where) as typeof query;
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit) as typeof query;
+  }
+  if (filters?.offset) {
+    query = query.offset(filters.offset) as typeof query;
   }
 
-  const rows = await query;
+  const [rows, [{ count: total }]] = await Promise.all([
+    query,
+    db.select({ count: count() }).from(contacts).where(where),
+  ]);
 
-  return rows.map((r) => ({
-    ...r.contact,
-    company: { id: r.contact.companyId, name: r.companyName },
-  }));
+  return {
+    data: rows.map((r) => ({
+      ...r.contact,
+      company: { id: r.contact.companyId, name: r.companyName },
+    })),
+    total,
+  };
 }
 
 export async function getContact(id: string) {

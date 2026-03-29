@@ -2,12 +2,15 @@ export const dynamic = "force-dynamic";
 
 import { Kanban, Plus } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { DealFilters } from "@/components/deal-filters";
 import { DealsTable } from "@/components/deals-table";
+import { Pagination } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeals, getTags } from "@/lib/actions/deals";
+import { lastPageUrl, PAGE_SIZE } from "@/lib/types";
 
 type SearchParams = Promise<{
   stage?: string;
@@ -17,10 +20,13 @@ type SearchParams = Promise<{
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   tag?: string | string[];
+  page?: string;
 }>;
 
 async function DealsContent({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
+  const page = Math.max(1, Number(params.page) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
   const tagIds = params.tag
     ? Array.isArray(params.tag)
@@ -28,7 +34,7 @@ async function DealsContent({ searchParams }: { searchParams: SearchParams }) {
       : [params.tag]
     : undefined;
 
-  const deals = await getDeals({
+  const { data: deals, total } = await getDeals({
     stage: params.stage,
     source: params.source,
     search: params.search,
@@ -36,9 +42,20 @@ async function DealsContent({ searchParams }: { searchParams: SearchParams }) {
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
     tagIds,
+    limit: PAGE_SIZE,
+    offset,
   });
 
-  return <DealsTable deals={deals} />;
+  if (deals.length === 0 && total > 0 && page > 1) {
+    redirect(lastPageUrl("/deals", params, total, PAGE_SIZE));
+  }
+
+  return (
+    <>
+      <DealsTable deals={deals} />
+      <Pagination total={total} pageSize={PAGE_SIZE} />
+    </>
+  );
 }
 
 async function FiltersWithTags() {

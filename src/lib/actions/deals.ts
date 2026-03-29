@@ -97,8 +97,9 @@ export async function getDeals(filters?: DealFilters) {
     .innerJoin(contacts, eq(deals.primaryContactId, contacts.id))
     .orderBy(orderBy);
 
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions)) as typeof query;
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  if (where) {
+    query = query.where(where) as typeof query;
   }
   if (filters?.limit) {
     query = query.limit(filters.limit) as typeof query;
@@ -107,8 +108,16 @@ export async function getDeals(filters?: DealFilters) {
     query = query.offset(filters.offset) as typeof query;
   }
 
-  const rows = await query;
-  if (rows.length === 0) return [];
+  const needsCount = !!filters?.limit;
+  const [rows, countResult] = await Promise.all([
+    query,
+    needsCount
+      ? db.select({ count: count() }).from(deals).where(where)
+      : Promise.resolve(null),
+  ]);
+  const total = countResult ? countResult[0].count : rows.length;
+
+  if (rows.length === 0) return { data: [], total };
 
   const dealIds = rows.map((r) => r.deal.id);
   const allDealTags = await db
@@ -124,14 +133,17 @@ export async function getDeals(filters?: DealFilters) {
     tagsByDealId.set(row.dealId, existing);
   }
 
-  return rows.map((r) => ({
-    ...r.deal,
-    company: { name: r.companyName },
-    contact: r.contactFirstName
-      ? { name: `${r.contactFirstName} ${r.contactLastName}` }
-      : null,
-    tags: tagsByDealId.get(r.deal.id) ?? [],
-  }));
+  return {
+    data: rows.map((r) => ({
+      ...r.deal,
+      company: { name: r.companyName },
+      contact: r.contactFirstName
+        ? { name: `${r.contactFirstName} ${r.contactLastName}` }
+        : null,
+      tags: tagsByDealId.get(r.deal.id) ?? [],
+    })),
+    total,
+  };
 }
 
 export async function getDeal(id: string) {
@@ -320,28 +332,42 @@ export async function getDealStats() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [
+  const [stageCounts, sourceCounts, pipelineValues, totalDeals] =
+    await Promise.all([
+      db
+        .select({ stage: deals.stage, count: count() })
+        .from(deals)
+        .groupBy(deals.stage),
+      db
+        .select({ source: deals.source, count: count() })
+        .from(deals)
+        .groupBy(deals.source),
+      db
+        .select({
+          stage: deals.stage,
+          total: sql<string>`COALESCE(SUM(${deals.estimatedValue}), 0)`,
+        })
+        .from(deals)
+        .groupBy(deals.stage),
+      db.select({ count: count() }).from(deals),
+    ]);
+
+  return {
     stageCounts,
     sourceCounts,
     pipelineValues,
-    recentActivities,
-    totalDeals,
-  ] = await Promise.all([
-    db
-      .select({ stage: deals.stage, count: count() })
-      .from(deals)
-      .groupBy(deals.stage),
-    db
-      .select({ source: deals.source, count: count() })
-      .from(deals)
-      .groupBy(deals.source),
-    db
-      .select({
-        stage: deals.stage,
-        total: sql<string>`COALESCE(SUM(${deals.estimatedValue}), 0)`,
-      })
-      .from(deals)
-      .groupBy(deals.stage),
+    totalDeals: totalDeals[0].count,
+  };
+}
+
+export async function getRecentActivities(filters?: {
+  limit?: number;
+  offset?: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const [rows, [{ count: total }]] = await Promise.all([
     db
       .select({
         activity: dealActivities,
@@ -352,17 +378,12 @@ export async function getDealStats() {
       .innerJoin(deals, eq(dealActivities.dealId, deals.id))
       .innerJoin(companies, eq(deals.companyId, companies.id))
       .orderBy(desc(dealActivities.createdAt))
-      .limit(20),
-    db.select({ count: count() }).from(deals),
+      .limit(filters?.limit ?? 5)
+      .offset(filters?.offset ?? 0),
+    db.select({ count: count() }).from(dealActivities),
   ]);
 
-  return {
-    stageCounts,
-    sourceCounts,
-    pipelineValues,
-    recentActivities,
-    totalDeals: totalDeals[0].count,
-  };
+  return { data: rows, total };
 }
 
 // Tags

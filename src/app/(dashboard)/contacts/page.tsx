@@ -2,17 +2,21 @@ export const dynamic = "force-dynamic";
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ContactFilters } from "@/components/contact-filters";
 import { ContactsTable } from "@/components/contacts-table";
+import { Pagination } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getContacts } from "@/lib/actions/contacts";
+import { lastPageUrl, PAGE_SIZE } from "@/lib/types";
 
 type SearchParams = Promise<{
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  page?: string;
 }>;
 
 async function ContactsContent({
@@ -21,13 +25,27 @@ async function ContactsContent({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const contacts = await getContacts({
+  const page = Math.max(1, Number(params.page) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const { data: contacts, total } = await getContacts({
     search: params.search,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
+    limit: PAGE_SIZE,
+    offset,
   });
 
-  return <ContactsTable contacts={contacts} />;
+  if (contacts.length === 0 && total > 0 && page > 1) {
+    redirect(lastPageUrl("/contacts", params, total, PAGE_SIZE));
+  }
+
+  return (
+    <>
+      <ContactsTable contacts={contacts} />
+      <Pagination total={total} pageSize={PAGE_SIZE} />
+    </>
+  );
 }
 
 export default async function ContactsPage(props: {

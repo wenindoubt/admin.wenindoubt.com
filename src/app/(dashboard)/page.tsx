@@ -2,11 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { Activity, DollarSign, TrendingUp, Users } from "lucide-react";
 import { Suspense } from "react";
+import { Pagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getDealStats } from "@/lib/actions/deals";
+import { getDealStats, getRecentActivities } from "@/lib/actions/deals";
 import { ACTIVE_STAGES, DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
+import { PAGE_SIZE_ACTIVITY } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 const kpiConfig = [
@@ -16,8 +18,22 @@ const kpiConfig = [
   { key: "won", label: "Won Deals", icon: Activity, prefix: "" },
 ] as const;
 
-async function DashboardContent() {
-  const stats = await getDealStats();
+type SearchParams = Promise<{ page?: string }>;
+
+async function DashboardContent({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const page = Math.max(1, Number(params.page) || 1);
+  const offset = (page - 1) * PAGE_SIZE_ACTIVITY;
+
+  const [stats, { data: recentActivities, total: activityTotal }] =
+    await Promise.all([
+      getDealStats(),
+      getRecentActivities({ limit: PAGE_SIZE_ACTIVITY, offset }),
+    ]);
 
   const totalPipelineValue = stats.pipelineValues.reduce(
     (sum, pv) => sum + Number(pv.total),
@@ -163,51 +179,50 @@ async function DashboardContent() {
         </CardHeader>
         <CardContent>
           <div className="relative space-y-0">
-            {stats.recentActivities.length === 0 && (
+            {recentActivities.length === 0 && (
               <p className="text-sm text-muted-foreground">No activity yet</p>
             )}
-            {stats.recentActivities.map(
-              ({ activity, dealTitle, companyName }, i) => (
-                <div
-                  key={activity.id}
-                  className="relative flex items-start gap-4 py-3 text-sm"
-                >
-                  {/* Vertical connector line */}
-                  {i < stats.recentActivities.length - 1 && (
-                    <div className="absolute left-3 top-9 bottom-0 w-px bg-border/50" />
-                  )}
-                  {/* Activity type icon */}
-                  <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-neon-400/10 text-[15px] font-bold uppercase text-neon-400 ring-1 ring-neon-400/20">
-                    {activity.type[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate">
-                      <span className="font-medium text-foreground">
-                        {dealTitle}
-                      </span>{" "}
-                      <span className="text-muted-foreground/60 text-xs">
-                        {companyName}
-                      </span>{" "}
-                      <span className="text-muted-foreground">&mdash;</span>{" "}
-                      <span className="text-muted-foreground">
-                        {activity.description}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground/70">
-                      {formatDateTime(activity.createdAt)}
-                    </p>
-                  </div>
+            {recentActivities.map(({ activity, dealTitle, companyName }, i) => (
+              <div
+                key={activity.id}
+                className="relative flex items-start gap-4 py-3 text-sm"
+              >
+                {/* Vertical connector line */}
+                {i < recentActivities.length - 1 && (
+                  <div className="absolute left-3 top-9 bottom-0 w-px bg-border/50" />
+                )}
+                {/* Activity type icon */}
+                <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-neon-400/10 text-[15px] font-bold uppercase text-neon-400 ring-1 ring-neon-400/20">
+                  {activity.type[0]}
                 </div>
-              ),
-            )}
+                <div className="flex-1 min-w-0">
+                  <p className="truncate">
+                    <span className="font-medium text-foreground">
+                      {dealTitle}
+                    </span>{" "}
+                    <span className="text-muted-foreground/60 text-xs">
+                      {companyName}
+                    </span>{" "}
+                    <span className="text-muted-foreground">&mdash;</span>{" "}
+                    <span className="text-muted-foreground">
+                      {activity.description}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground/70">
+                    {formatDateTime(activity.createdAt)}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
+          <Pagination total={activityTotal} pageSize={PAGE_SIZE_ACTIVITY} />
         </CardContent>
       </Card>
     </div>
   );
 }
 
-export default function DashboardPage() {
+export default function DashboardPage(props: { searchParams: SearchParams }) {
   return (
     <div className="space-y-8">
       <div className="flex items-end gap-3">
@@ -225,7 +240,7 @@ export default function DashboardPage() {
           </div>
         }
       >
-        <DashboardContent />
+        <DashboardContent searchParams={props.searchParams} />
       </Suspense>
     </div>
   );

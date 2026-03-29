@@ -53,6 +53,7 @@ scripts/                  # Seed script
 - **Styling**: Tailwind utility classes, `cn()` helper from `src/lib/utils.ts` for conditional classes
 - **Components**: shadcn v4 uses `@base-ui/react` primitives — `render` prop pattern instead of `asChild`
 - **Next.js 16 params**: page `params` and `searchParams` are `Promise<>` — must be awaited
+- **Pagination**: server actions for lists return `{ data, total }` with `limit`/`offset` support. Pages read `page` from searchParams. Constants in `src/lib/types.ts` (`PAGE_SIZE=25`, `PAGE_SIZE_ACTIVITY=5`). Shared `Pagination` component (URL-driven) and `PaginationBar` (callback-driven) in `src/components/pagination.tsx`. Filter/sort changes reset `page` param.
 - **Naming**: camelCase for variables/functions, PascalCase for components/types
 - **Fonts**: `font-heading` (DM Serif Text) is for headings only — h1, CardTitle, DialogTitle, SheetTitle, branding. All data, numbers, labels, and buttons use `font-sans` (Inter). Never apply `font-heading` to numeric/data content.
 

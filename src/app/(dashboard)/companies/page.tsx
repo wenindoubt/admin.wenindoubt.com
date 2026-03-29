@@ -2,12 +2,15 @@ export const dynamic = "force-dynamic";
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CompaniesTable } from "@/components/companies-table";
 import { CompanyFilters } from "@/components/company-filters";
+import { Pagination } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCompanies } from "@/lib/actions/companies";
+import { lastPageUrl, PAGE_SIZE } from "@/lib/types";
 
 type SearchParams = Promise<{
   search?: string;
@@ -16,6 +19,7 @@ type SearchParams = Promise<{
   lifecycle?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  page?: string;
 }>;
 
 async function CompaniesContent({
@@ -24,16 +28,30 @@ async function CompaniesContent({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const companies = await getCompanies({
+  const page = Math.max(1, Number(params.page) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const { data: companies, total } = await getCompanies({
     search: params.search,
     industry: params.industry,
     size: params.size,
     lifecycle: params.lifecycle,
     sortBy: params.sortBy,
     sortOrder: params.sortOrder,
+    limit: PAGE_SIZE,
+    offset,
   });
 
-  return <CompaniesTable companies={companies} />;
+  if (companies.length === 0 && total > 0 && page > 1) {
+    redirect(lastPageUrl("/companies", params, total, PAGE_SIZE));
+  }
+
+  return (
+    <>
+      <CompaniesTable companies={companies} />
+      <Pagination total={total} pageSize={PAGE_SIZE} />
+    </>
+  );
 }
 
 export default async function CompaniesPage(props: {

@@ -36,6 +36,7 @@ export function CompanyFilters() {
       } else {
         params.delete(key);
       }
+      params.delete("page");
       router.push(`/companies?${params.toString()}`);
     },
     [router, searchParams],
