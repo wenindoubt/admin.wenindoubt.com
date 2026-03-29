@@ -5,9 +5,14 @@ import { eq } from "drizzle-orm";
 import { google } from "googleapis";
 import { db } from "@/db";
 import { type Deal, deals, gmailTokens } from "@/db/schema";
-import { oauth2Client } from "@/lib/google/gmail";
+import { createOAuth2Client } from "@/lib/google/gmail";
 
 import { addDealActivity, updateDeal } from "./deals";
+
+/** Strip CRLF to prevent email header injection */
+function sanitizeHeader(value: string): string {
+  return value.replace(/[\r\n]/g, "");
+}
 
 /** Check if current user has Gmail connected */
 export async function getGmailStatus(): Promise<{
@@ -38,15 +43,16 @@ async function getGmailClient(clerkUserId: string) {
     );
   }
 
-  oauth2Client.setCredentials({
+  // Per-request client to avoid cross-user credential leakage
+  const client = createOAuth2Client();
+  client.setCredentials({
     access_token: token.accessToken,
     refresh_token: token.refreshToken,
     expiry_date: token.expiresAt.getTime(),
   });
 
-  // Auto-refresh if expired
   if (token.expiresAt.getTime() < Date.now()) {
-    const { credentials } = await oauth2Client.refreshAccessToken();
+    const { credentials } = await client.refreshAccessToken();
     await db
       .update(gmailTokens)
       .set({
@@ -55,43 +61,32 @@ async function getGmailClient(clerkUserId: string) {
         updatedAt: new Date(),
       })
       .where(eq(gmailTokens.clerkUserId, clerkUserId));
-    oauth2Client.setCredentials(credentials);
+    client.setCredentials(credentials);
   }
 
-  return google.gmail({ version: "v1", auth: oauth2Client });
+  return { gmail: google.gmail({ version: "v1", auth: client }), email: token.email };
 }
 
-/** Create a Gmail draft */
-export async function createGmailDraft(
-  clerkUserId: string,
+/** Create a Gmail draft (always uses the authenticated user's Gmail) */
+async function createGmailDraft(
+  userId: string,
   to: string,
   subject: string,
   body: string,
 ): Promise<{ draftId: string }> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  const { gmail, email } = await getGmailClient(userId);
 
-  const gmail = await getGmailClient(clerkUserId);
-
-  // Fetch user's Gmail signature
   let signature = "";
   try {
-    const [token] = await db
-      .select({ email: gmailTokens.email })
-      .from(gmailTokens)
-      .where(eq(gmailTokens.clerkUserId, clerkUserId));
-    if (token) {
-      const sendAs = await gmail.users.settings.sendAs.get({
-        userId: "me",
-        sendAsEmail: token.email,
-      });
-      signature = sendAs.data.signature ?? "";
-    }
+    const sendAs = await gmail.users.settings.sendAs.get({
+      userId: "me",
+      sendAsEmail: email,
+    });
+    signature = sendAs.data.signature ?? "";
   } catch {
     // Signature fetch failed — continue without it
   }
 
-  // Build HTML body with signature
   const bodyHtml = body
     .split("\n\n")
     .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
@@ -101,8 +96,8 @@ export async function createGmailDraft(
     : bodyHtml;
 
   const rawMessage = [
-    `To: ${to}`,
-    `Subject: ${subject}`,
+    `To: ${sanitizeHeader(to)}`,
+    `Subject: ${sanitizeHeader(subject)}`,
     `MIME-Version: 1.0`,
     `Content-Type: text/html; charset="UTF-8"`,
     "",
@@ -139,11 +134,9 @@ export async function confirmStageTransitionWithDraft(
 
   if (!deal) return { success: false, error: "Deal not found" };
 
-  const gmailUser = deal.assignedTo ?? userId;
-
   try {
     // 1. Create Gmail draft first — if this fails, don't move the deal
-    const { draftId } = await createGmailDraft(gmailUser, to, subject, body);
+    const { draftId } = await createGmailDraft(userId, to, subject, body);
 
     // 2. Update deal stage
     await updateDeal(dealId, { stage: toStage as Deal["stage"] });

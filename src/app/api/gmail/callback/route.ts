@@ -3,36 +3,37 @@ import { google } from "googleapis";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { gmailTokens } from "@/db/schema";
-import { oauth2Client } from "@/lib/google/gmail";
+import { createOAuth2Client, oauth2Client } from "@/lib/google/gmail";
 
 export async function GET(req: NextRequest) {
+  const errorUrl = new URL("/deals/board?gmail=error", req.url);
+
   try {
     const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
 
     const code = req.nextUrl.searchParams.get("code");
     const state = req.nextUrl.searchParams.get("state");
+    const cookieNonce = req.cookies.get("gmail_oauth_nonce")?.value;
 
-    if (!code || state !== userId) {
-      return new Response(
-        `Invalid callback. state=${state}, userId=${userId}`,
-        {
-          status: 400,
-        },
-      );
+    const [stateUserId, stateNonce] = (state ?? "").split(":");
+    if (
+      !code ||
+      stateUserId !== userId ||
+      !stateNonce ||
+      stateNonce !== cookieNonce
+    ) {
+      return NextResponse.redirect(errorUrl);
     }
 
     const { tokens } = await oauth2Client.getToken(code);
     if (!tokens.access_token || !tokens.refresh_token) {
-      return new Response(
-        `Failed to obtain tokens. Got: ${JSON.stringify({ hasAccess: !!tokens.access_token, hasRefresh: !!tokens.refresh_token })}`,
-        { status: 400 },
-      );
+      return NextResponse.redirect(errorUrl);
     }
 
-    // Get user's Gmail address
-    oauth2Client.setCredentials(tokens);
-    const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+    const client = createOAuth2Client();
+    client.setCredentials(tokens);
+    const oauth2 = google.oauth2({ version: "v2", auth: client });
     const { data } = await oauth2.userinfo.get();
 
     const tokenData = {
@@ -43,7 +44,6 @@ export async function GET(req: NextRequest) {
       updatedAt: new Date(),
     };
 
-    // Upsert token row
     await db
       .insert(gmailTokens)
       .values({ clerkUserId: userId, ...tokenData })
@@ -52,14 +52,13 @@ export async function GET(req: NextRequest) {
         set: tokenData,
       });
 
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       new URL("/deals/board?gmail=connected", req.url),
     );
+    response.cookies.delete("gmail_oauth_nonce");
+    return response;
   } catch (error) {
     console.error("Gmail callback error:", error);
-    return new Response(
-      `Gmail callback failed: ${error instanceof Error ? error.message : String(error)}`,
-      { status: 500 },
-    );
+    return NextResponse.redirect(errorUrl);
   }
 }
