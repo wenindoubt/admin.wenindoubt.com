@@ -1,4 +1,5 @@
 import {
+  customType,
   index,
   jsonb,
   numeric,
@@ -11,6 +12,12 @@ import {
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
+
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 // Enums
 export const dealStageEnum = pgEnum("deal_stage", [
@@ -106,6 +113,8 @@ export const deals = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // Trigger-maintained: title + company name + contact name + source detail
+    searchVector: tsvector("search_vector"),
   },
   (table) => [
     index("idx_deals_stage").on(table.stage),
@@ -113,6 +122,7 @@ export const deals = pgTable(
     index("idx_deals_assigned_to").on(table.assignedTo),
     index("idx_deals_created_at").on(table.createdAt),
     index("idx_deals_primary_contact_id").on(table.primaryContactId),
+    index("idx_deals_search_vector").using("gin", table.searchVector),
   ],
 );
 

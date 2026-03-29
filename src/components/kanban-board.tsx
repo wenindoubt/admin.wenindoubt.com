@@ -55,7 +55,7 @@ function mapRealtimePayload(row: Record<string, unknown>): DealWithRelations {
       : null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
-    // Relations unavailable from realtime — preserve existing or use empty
+    searchVector: (row.search_vector as string) ?? null,
     company: { name: "" },
     contact: null,
   };

@@ -1,17 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -66,17 +56,19 @@ export async function getDeals(filters?: DealFilters) {
     conditions.push(eq(deals.assignedTo, filters.assignedTo));
   }
   if (filters?.search) {
-    const term = `%${filters.search}%`;
-    conditions.push(
-      or(
-        ilike(deals.title, term),
-        ilike(companies.name, term),
-        ilike(contacts.firstName, term),
-        ilike(contacts.lastName, term),
-        ilike(deals.sourceDetail, term),
-        sql`CAST(${deals.estimatedValue} AS TEXT) ILIKE ${term}`,
-      )!,
-    );
+    const tsquery = filters.search
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => t.replace(/[&|!():*\\'"]/g, ""))
+      .filter(Boolean)
+      .map((t) => `${t}:*`)
+      .join(" & ");
+    if (tsquery) {
+      conditions.push(
+        sql`${deals.searchVector} @@ to_tsquery('english', ${tsquery})`,
+      );
+    }
   }
   if (filters?.tagIds && filters.tagIds.length > 0) {
     const dealsWithTags = db
@@ -461,12 +453,15 @@ export async function setDealTags(dealId: string, tagIds: string[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  await db.delete(dealTags).where(eq(dealTags.dealId, dealId));
-
-  if (tagIds.length > 0) {
-    await db
-      .insert(dealTags)
-      .values(tagIds.map((tagId) => ({ dealId, tagId })));
+  if (tagIds.length === 0) {
+    await db.delete(dealTags).where(eq(dealTags.dealId, dealId));
+  } else {
+    await db.transaction(async (tx) => {
+      await tx.delete(dealTags).where(eq(dealTags.dealId, dealId));
+      await tx
+        .insert(dealTags)
+        .values(tagIds.map((tagId) => ({ dealId, tagId })));
+    });
   }
 
   revalidatePath("/deals");

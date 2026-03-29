@@ -41,3 +41,35 @@ depends = ["lint", "typecheck"]
 [tasks."check:ci"]
 description = "Run all quality checks (CI)"
 depends = ["lint", "typecheck", "build"]
+
+[tasks.seed]
+description = "Seed sample data"
+run = "npx tsx scripts/seed.ts"
+
+[tasks."seed:clean"]
+description = "Remove sample data"
+run = "npx tsx scripts/seed.ts --clean"
+
+[tasks."db:push"]
+description = "Push Drizzle schema to local DB"
+run = 'DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizzle-kit push'
+
+[tasks."db:start"]
+description = "Start local Supabase"
+run = "supabase start"
+
+[tasks."db:stop"]
+description = "Stop local Supabase"
+run = "supabase stop"
+
+[tasks."db:reset"]
+description = "Reset local DB (re-run all migrations + seed)"
+run = "supabase db reset"
+
+[tasks."db:migrate"]
+description = "Create a new migration file"
+run = "supabase migration new"
+
+[tasks."db:status"]
+description = "Show Supabase service status + URLs/keys"
+run = "supabase status"

@@ -181,12 +181,15 @@ export async function setCompanyTags(companyId: string, tagIds: string[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  await db.delete(companyTags).where(eq(companyTags.companyId, companyId));
-
-  if (tagIds.length > 0) {
-    await db
-      .insert(companyTags)
-      .values(tagIds.map((tagId) => ({ companyId, tagId })));
+  if (tagIds.length === 0) {
+    await db.delete(companyTags).where(eq(companyTags.companyId, companyId));
+  } else {
+    await db.transaction(async (tx) => {
+      await tx.delete(companyTags).where(eq(companyTags.companyId, companyId));
+      await tx
+        .insert(companyTags)
+        .values(tagIds.map((tagId) => ({ companyId, tagId })));
+    });
   }
 
   revalidatePath("/companies");
