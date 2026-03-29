@@ -73,3 +73,15 @@ run = "supabase migration new"
 [tasks."db:status"]
 description = "Show Supabase service status + URLs/keys"
 run = "supabase status"
+
+[tasks."test:e2e"]
+description = "Run Playwright E2E tests"
+run = "npx playwright test"
+
+[tasks."test:e2e:ui"]
+description = "Run Playwright E2E tests with UI"
+run = "npx playwright test --ui"
+
+[tasks.inspect]
+description = "Headless page inspection (screenshot + errors + a11y tree)"
+run = "npx tsx scripts/inspect.ts {{arg(name='path', i=0)}}"

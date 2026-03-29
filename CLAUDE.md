@@ -58,6 +58,15 @@ scripts/                  # Seed script
 Local dev uses Supabase CLI (`supabase start`) for Postgres + Realtime. Production env vars go in Vercel.
 Required: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY`, Clerk keys.
 
+## Page Inspection
+
+When asked to check, inspect, look at, or troubleshoot a page, use the headless Playwright inspector:
+```bash
+mise run inspect /path   # screenshot + console errors + network errors + a11y tree
+```
+Read the report at `playwright/.inspect/report.md` and screenshot at `playwright/.inspect/screenshot.png`.
+Requires auth state — run `mise run test:e2e` first if `playwright/.clerk/user.json` doesn't exist.
+
 ## Gotchas
 
 - Middleware is in `src/proxy.ts`, not `middleware.ts` — Clerk convention
