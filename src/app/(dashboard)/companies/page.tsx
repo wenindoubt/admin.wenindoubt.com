@@ -67,7 +67,7 @@ export default async function CompaniesPage(props: {
         <Button
           nativeButton={false}
           render={<Link href="/companies/new" />}
-          className="bg-neon-400 text-neon-400-foreground hover:bg-neon-500 border-0"
+          className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
         >
           <Plus className="size-4" />
           Add Company

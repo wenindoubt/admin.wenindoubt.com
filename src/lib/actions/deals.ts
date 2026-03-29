@@ -23,7 +23,7 @@ import {
   updateDealSchema,
 } from "@/lib/validations";
 
-export type DealFilters = {
+type DealFilters = {
   stage?: string;
   source?: string;
   assignedTo?: string;

@@ -18,7 +18,7 @@ import {
   updateNoteSchema,
 } from "@/lib/validations";
 
-export type NoteFilters = {
+type NoteFilters = {
   dealId?: string;
   contactId?: string;
   companyId?: string;

@@ -160,7 +160,7 @@ export default async function CompanyDetailPage({ params }: Props) {
           <Button
             nativeButton={false}
             render={<Link href={`/deals/new?companyId=${id}`} />}
-            className="bg-neon-400 text-neon-400-foreground hover:bg-neon-500 border-0"
+            className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
             size="sm"
           >
             <Plus className="size-4" />

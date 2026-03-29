@@ -20,7 +20,7 @@ import {
   updateCompanySchema,
 } from "@/lib/validations";
 
-export type CompanyFilters = {
+type CompanyFilters = {
   search?: string;
   size?: string;
   lifecycle?: string;

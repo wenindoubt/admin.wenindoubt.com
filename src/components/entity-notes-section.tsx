@@ -13,7 +13,7 @@ import {
   getNoteTokenStats,
 } from "@/lib/actions/notes";
 
-type LinkedEntity = { id: string; name: string };
+import type { LinkedEntity } from "@/lib/types";
 
 type DealProps = {
   entityType: "deal";

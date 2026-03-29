@@ -13,7 +13,7 @@ import {
   updateContactSchema,
 } from "@/lib/validations";
 
-export type ContactFilters = {
+type ContactFilters = {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";

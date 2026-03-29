@@ -21,7 +21,7 @@ const tsvector = customType<{ data: string }>({
 });
 
 // Enums
-export const dealStageEnum = pgEnum("deal_stage", [
+const dealStageEnum = pgEnum("deal_stage", [
   "new",
   "contacted",
   "qualifying",
@@ -32,7 +32,7 @@ export const dealStageEnum = pgEnum("deal_stage", [
   "lost",
 ]);
 
-export const dealSourceEnum = pgEnum("deal_source", [
+const dealSourceEnum = pgEnum("deal_source", [
   "website",
   "referral",
   "linkedin",

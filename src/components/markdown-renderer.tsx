@@ -4,7 +4,7 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export const mdComponents: Components = {
+const mdComponents: Components = {
   h1: ({ children }) => (
     <h2 className="font-heading text-xl font-bold tracking-tight text-foreground mt-6 mb-3 first:mt-0">
       {children}

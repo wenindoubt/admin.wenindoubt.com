@@ -17,11 +17,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -47,20 +42,14 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 
   /* Custom neon color scale (ice-blue from wenindoubt.com brand) */
-  --color-neon-50: oklch(0.96 0.03 230);
-  --color-neon-100: oklch(0.92 0.05 230);
-  --color-neon-200: oklch(0.87 0.07 230);
   --color-neon-300: oklch(0.82 0.1 230);
   --color-neon-400: oklch(0.72 0.12 230);
   --color-neon-500: oklch(0.65 0.13 230);
   --color-neon-600: oklch(0.55 0.14 230);
-  --color-neon-700: oklch(0.45 0.13 230);
 
   /* Animation tokens */
   --animate-fade-up: fade-up 0.5s ease-out both;
   --animate-fade-in: fade-in 0.4s ease-out both;
-  --animate-shimmer: shimmer 2s linear infinite;
-  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
   --animate-gradient-rotate: gradient-rotate 4s linear infinite;
 
   @keyframes fade-up {
@@ -79,23 +68,6 @@
     }
     to {
       opacity: 1;
-    }
-  }
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-  @keyframes glow-pulse {
-    0%,
-    100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 0.8;
     }
   }
   @keyframes gradient-rotate {
@@ -128,11 +100,6 @@
   --border: oklch(0.91 0.005 265);
   --input: oklch(0.91 0.005 265);
   --ring: oklch(0.55 0.14 230);
-  --chart-1: oklch(0.55 0.14 230);
-  --chart-2: oklch(0.5 0.14 170);
-  --chart-3: oklch(0.55 0.13 290);
-  --chart-4: oklch(0.5 0.16 25);
-  --chart-5: oklch(0.52 0.12 220);
   --radius: 0.5rem;
   --sidebar: oklch(0.97 0.005 265);
   --sidebar-foreground: oklch(0.35 0.012 265);
@@ -223,10 +190,6 @@ body::before {
 .stagger-7 {
   animation-delay: 360ms;
 }
-.stagger-8 {
-  animation-delay: 420ms;
-}
-
 /* ─── Card Hover Effect ─── */
 .card-hover {
   transition:
