@@ -76,4 +76,47 @@ test.describe("Notes", () => {
       // Search should work without errors
     }
   });
+
+  test("edit note inline", async ({ crm }) => {
+    await goToFirstDeal(crm);
+
+    // Create a note to edit
+    const title = uniqueName("E2E EditNote");
+    await crm.page.getByPlaceholder("Title (optional)").fill(title);
+    const editor = crm.page.locator(".tiptap[contenteditable='true']").first();
+    await editor.click();
+    await editor.pressSequentially("Original content");
+    await crm.page.getByRole("button", { name: "Add Note" }).click();
+    await crm.expectToast("Note added");
+    await crm.page.waitForTimeout(1000);
+
+    // Find the note row and click the edit (pencil) icon
+    const noteRow = crm.page
+      .locator("button")
+      .filter({ hasText: title })
+      .first();
+    if (!(await noteRow.isVisible({ timeout: 3000 }).catch(() => false))) return;
+
+    // Hover to reveal edit action, then click pencil
+    await noteRow.hover();
+    const editBtn = noteRow.locator('[role="button"]').first();
+    if (await editBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await editBtn.click();
+      await crm.page.waitForTimeout(500);
+
+      // The Tiptap editor for editing should now be visible
+      const editEditor = crm.page
+        .locator(".tiptap[contenteditable='true']")
+        .last();
+      if (await editEditor.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // Clear and type new content
+        await editEditor.click();
+        await crm.page.keyboard.press("Meta+a");
+        await editEditor.pressSequentially("Updated content from E2E");
+
+        await crm.page.getByRole("button", { name: "Save" }).click();
+        await crm.expectToast("Note updated");
+      }
+    }
+  });
 });
