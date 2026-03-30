@@ -10,6 +10,7 @@ import { deals, noteAttachments, notes } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import { countTokens } from "@/lib/ai/tokens";
 import { buildDealNoteConditions } from "@/lib/note-utils";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { NoteEntityType } from "@/lib/types";
 import { buildTsquery } from "@/lib/utils";
 import {
@@ -189,7 +190,6 @@ export async function deleteNote(id: string) {
     // Clean up storage files after response
     if (attachments.length > 0) {
       after(async () => {
-        const { getSupabaseAdmin } = await import("@/lib/supabase/server");
         await getSupabaseAdmin()
           .storage.from("note-attachments")
           .remove(attachments.map((a) => a.storagePath));
@@ -218,7 +218,6 @@ export async function getAttachmentUrl(storagePath: string): Promise<string> {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const { getSupabaseAdmin } = await import("@/lib/supabase/server");
   const { data, error } = await getSupabaseAdmin()
     .storage.from("note-attachments")
     .createSignedUrl(storagePath, 60 * 60); // 1 hour

@@ -61,6 +61,8 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 | `npx tsx scripts/seed.ts` | Seed sample data |
 | `npx tsx scripts/seed.ts --clean` | Remove sample data |
 | `npx tsx scripts/backfill-note-embeddings.ts` | Backfill note embeddings + token counts (run after seeding) |
+| `npm test` | Run unit tests (vitest) |
+| `npm run test:e2e` | Run E2E tests (Playwright) |
 
 ## 🔧 Tech Stack
 

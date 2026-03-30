@@ -21,6 +21,10 @@ mise run seed            # seed sample data
 mise run seed:clean      # remove sample data
 mise run backfill:embeddings  # backfill embeddings + token counts (run after seeding)
 mise run backfill:assigned-to # backfill assigned-to field
+mise run test              # vitest unit tests
+mise run test:watch        # vitest in watch mode
+mise run test:e2e          # playwright E2E tests
+mise run test:e2e:ui       # playwright with UI
 ```
 
 ## Architecture
@@ -30,7 +34,7 @@ mise run backfill:assigned-to # backfill assigned-to field
 - **DB**: Drizzle ORM + `postgres` driver. Schema in `src/db/schema.ts`. Connection uses `prepare: false` for Supabase pooler compatibility.
 - **AI**: Claude (`@anthropic-ai/sdk`) for analysis, scoring, research, outreach drafting, token counting. Gemini (`@google/genai`) for embeddings only (768-dim vectors). Model configured via `ANTHROPIC_MODEL` env var.
 - **Notes**: Centralized `notes` table with multi-entity association (deal/contact/company). Rich text via Tiptap (`tiptap-markdown`), stored as markdown. Gemini embeddings for semantic retrieval. Auto-surfaces related notes across entity graph on deal pages.
-- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled on `deals` table.
+- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled on all tables (except `note_attachments`).
 - **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
 
@@ -46,7 +50,7 @@ src/db/                   # Drizzle schema + connection singleton
 src/lib/actions/          # Server actions (deals, companies, contacts, notes, ai, search, gmail)
 src/lib/ai/               # AI client singletons, prompts, embeddings, token counting
 src/lib/google/           # Gmail OAuth2 client
-src/lib/supabase/         # Supabase realtime client
+src/lib/supabase/         # Supabase realtime client + server admin client
 src/lib/note-utils.ts     # Shared note query helpers (auto-surface conditions)
 scripts/                  # Seed + backfill scripts
 ```
