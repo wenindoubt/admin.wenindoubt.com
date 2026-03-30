@@ -76,11 +76,6 @@ export const DEAL_SOURCES = [
   { value: "other", label: "Other" },
 ] as const;
 
-export const NOTE_TYPES = [
-  { value: "note", label: "Note" },
-  { value: "transcript", label: "Transcript" },
-  { value: "document", label: "Document" },
-] as const;
 
 export const ACTIVITY_TYPES = [
   { value: "email", label: "Email" },

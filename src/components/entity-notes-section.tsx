@@ -3,11 +3,11 @@ import { TokenStatsBadge } from "@/components/token-stats-badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
+  getAttachmentsForNotes,
   getNotes,
   getNotesForDeal,
   getNoteTokenStats,
@@ -60,17 +60,17 @@ async function fetchNotes(props: Props) {
 
 export async function EntityNotesSection(props: Props) {
   const [notesResult, tokenStats] = await fetchNotes(props);
+  const attachments = await getAttachmentsForNotes(
+    notesResult.data.map((n) => n.id),
+  );
 
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
-        <CardDescription>
-          {props.entityType === "deal"
-            ? "Notes, transcripts, and documents"
-            : "Notes and documents"}
+        <div className="flex items-center gap-2">
+          <CardTitle className="neon-underline pb-1 text-base">Notes</CardTitle>
           <TokenStatsBadge stats={tokenStats} />
-        </CardDescription>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <NotesSection
@@ -78,6 +78,7 @@ export async function EntityNotesSection(props: Props) {
           entityId={props.entityId}
           initialNotes={notesResult.data}
           initialTotal={notesResult.total}
+          initialAttachments={attachments}
           linkedContact={
             "linkedContact" in props ? props.linkedContact : undefined
           }

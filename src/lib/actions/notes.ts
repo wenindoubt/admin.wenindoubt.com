@@ -1,11 +1,12 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { db } from "@/db";
-import { deals, notes } from "@/db/schema";
+import type { NoteAttachment } from "@/db/schema";
+import { deals, noteAttachments, notes } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import { countTokens } from "@/lib/ai/tokens";
 import { buildDealNoteConditions } from "@/lib/note-utils";
@@ -102,21 +103,45 @@ export async function createNote(data: CreateNoteInput) {
   const parsed = createNoteSchema.safeParse(data);
   if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
+  const { attachments: attachmentMetas, ...noteData } = parsed.data;
+
   const [note] = await db
     .insert(notes)
     .values({
-      type: parsed.data.type,
-      title: parsed.data.title ?? null,
-      content: parsed.data.content,
-      dealId: parsed.data.dealId ?? null,
-      contactId: parsed.data.contactId ?? null,
-      companyId: parsed.data.companyId ?? null,
+      type: "note",
+      title: noteData.title ?? null,
+      content: noteData.content || "",
+      dealId: noteData.dealId ?? null,
+      contactId: noteData.contactId ?? null,
+      companyId: noteData.companyId ?? null,
       createdBy: userId,
     })
     .returning();
 
-  revalidateNotePaths(parsed.data);
-  enrichNoteAfterResponse(note.id, note.content);
+  if (attachmentMetas && attachmentMetas.length > 0) {
+    await db.insert(noteAttachments).values(
+      attachmentMetas.map((a) => ({
+        noteId: note.id,
+        fileName: a.fileName,
+        storagePath: a.storagePath,
+        fileSize: a.fileSize,
+        mimeType: a.mimeType,
+        createdBy: userId,
+      })),
+    );
+  }
+
+  if (note.content.trim()) {
+    const tokenCount = await countTokens(note.content);
+    await db
+      .update(notes)
+      .set({ tokenCount })
+      .where(eq(notes.id, note.id));
+    note.tokenCount = tokenCount;
+    generateEmbeddingAfterResponse(note.id, note.content);
+  }
+
+  revalidateNotePaths(noteData);
 
   return note;
 }
@@ -128,19 +153,24 @@ export async function updateNote(id: string, data: UpdateNoteInput) {
   const parsed = updateNoteSchema.safeParse(data);
   if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
+  let tokenCount: number | undefined;
+  if (parsed.data.content) {
+    tokenCount = await countTokens(parsed.data.content);
+  }
+
   const [updated] = await db
     .update(notes)
-    .set(parsed.data)
+    .set({ ...parsed.data, ...(tokenCount !== undefined && { tokenCount }) })
     .where(eq(notes.id, id))
     .returning();
 
   if (!updated) throw new Error("Note not found");
 
-  revalidateNotePaths(updated);
-
   if (parsed.data.content) {
-    enrichNoteAfterResponse(id, updated.content);
+    generateEmbeddingAfterResponse(id, updated.content);
   }
+
+  revalidateNotePaths(updated);
 
   return updated;
 }
@@ -149,9 +179,55 @@ export async function deleteNote(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  // Fetch attachment paths before cascade delete removes them
+  const attachments = await db
+    .select({ storagePath: noteAttachments.storagePath })
+    .from(noteAttachments)
+    .where(eq(noteAttachments.noteId, id));
+
   const [deleted] = await db.delete(notes).where(eq(notes.id, id)).returning();
 
-  if (deleted) revalidateNotePaths(deleted);
+  if (deleted) {
+    revalidateNotePaths(deleted);
+    // Clean up storage files after response
+    if (attachments.length > 0) {
+      after(async () => {
+        const { supabaseAdmin } = await import("@/lib/supabase/server");
+        await supabaseAdmin.storage
+          .from("note-attachments")
+          .remove(attachments.map((a) => a.storagePath));
+      });
+    }
+  }
+}
+
+/** Get attachments for a list of note IDs */
+export async function getAttachmentsForNotes(
+  noteIds: string[],
+): Promise<NoteAttachment[]> {
+  if (noteIds.length === 0) return [];
+
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  return db
+    .select()
+    .from(noteAttachments)
+    .where(inArray(noteAttachments.noteId, noteIds));
+}
+
+/** Generate a signed download URL for an attachment */
+export async function getAttachmentUrl(storagePath: string): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const { supabaseAdmin } = await import("@/lib/supabase/server");
+  const { data, error } = await supabaseAdmin.storage
+    .from("note-attachments")
+    .createSignedUrl(storagePath, 60 * 60); // 1 hour
+
+  if (error || !data?.signedUrl) throw new Error("Failed to generate URL");
+  return data.signedUrl;
 }
 
 /** Full-text search on notes, scoped to entity */
@@ -250,20 +326,17 @@ async function resolveDealEntities(dealId: string) {
   return deal ?? null;
 }
 
-/** Generate embedding + count tokens after the response is sent */
-function enrichNoteAfterResponse(noteId: string, content: string) {
+/** Generate embedding after the response is sent */
+function generateEmbeddingAfterResponse(noteId: string, content: string) {
   after(async () => {
     try {
-      const [embedding, tokenCount] = await Promise.all([
-        generateEmbedding(content),
-        countTokens(content),
-      ]);
+      const embedding = await generateEmbedding(content);
       await db
         .update(notes)
-        .set({ embedding, tokenCount })
+        .set({ embedding })
         .where(eq(notes.id, noteId));
     } catch (error) {
-      console.error("Failed to enrich note", noteId, error);
+      console.error("Failed to generate embedding", noteId, error);
     }
   });
 }

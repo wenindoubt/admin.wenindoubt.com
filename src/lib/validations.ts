@@ -140,34 +140,45 @@ export type UpdateDealInput = z.infer<typeof updateDealSchema>;
 
 // ── Note ──
 
-const noteTypes = ["note", "transcript", "document"] as const;
+const attachmentMetaSchema = z.object({
+  storagePath: z.string(),
+  fileName: z.string(),
+  fileSize: z.number().int().positive(),
+  mimeType: z.string(),
+});
+
+export type AttachmentMeta = z.infer<typeof attachmentMetaSchema>;
 
 export const noteFormSchema = z.object({
-  type: z.enum(noteTypes),
   title: z.string().max(300).optional(),
-  content: z.string().min(1, "Content is required").max(50000),
+  content: z.string().max(50000),
 });
 
 export type NoteFormValues = z.infer<typeof noteFormSchema>;
 
 export const createNoteSchema = z
   .object({
-    type: z.enum(noteTypes),
     title: z.string().max(300).nullable().optional(),
-    content: z.string().min(1, "Content is required").max(50000),
+    content: z.string().max(50000).optional().default(""),
     dealId: z.string().uuid().nullable().optional(),
     contactId: z.string().uuid().nullable().optional(),
     companyId: z.string().uuid().nullable().optional(),
+    attachments: z.array(attachmentMetaSchema).optional(),
   })
   .refine(
     (d) => d.dealId || d.contactId || d.companyId,
     "At least one entity (deal, contact, or company) is required",
+  )
+  .refine(
+    (d) =>
+      (d.content && d.content.trim().length > 0) ||
+      (d.attachments && d.attachments.length > 0),
+    "Either content or at least one attachment is required",
   );
 
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
 
 export const updateNoteSchema = z.object({
-  type: z.enum(noteTypes).optional(),
   title: z.string().max(300).nullable().optional(),
   content: z.string().min(1).max(50000).optional(),
 });

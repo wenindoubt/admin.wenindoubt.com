@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -152,10 +151,6 @@ export default async function CompanyDetailPage({ params }: Props) {
             <CardTitle className="neon-underline pb-3 text-base">
               Deals
             </CardTitle>
-            <CardDescription className="mt-1">
-              {company.dealsTotal} deal
-              {company.dealsTotal !== 1 ? "s" : ""}
-            </CardDescription>
           </div>
           <Button
             nativeButton={false}
@@ -270,9 +265,6 @@ export default async function CompanyDetailPage({ params }: Props) {
           <CardTitle className="neon-underline pb-3 text-base">
             Activity
           </CardTitle>
-          <CardDescription className="mt-1">
-            Recent activity across all deals
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <ActivityTimeline

@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -288,7 +287,6 @@ export default async function DealDetailPage({ params }: Props) {
           <CardTitle className="neon-underline pb-1 text-base">
             Activity
           </CardTitle>
-          <CardDescription>Log calls, emails, and meetings</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <ActivityForm dealId={id} />

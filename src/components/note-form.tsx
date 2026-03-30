@@ -1,26 +1,43 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  File as FileIcon,
+  FileText,
+  Image as ImageIcon,
+  Upload,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { LazyTiptapEditor as TiptapEditor } from "@/components/lazy";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createNote } from "@/lib/actions/notes";
-import { NOTE_TYPES } from "@/lib/constants";
 import type { LinkedEntity, NoteEntityType } from "@/lib/types";
-import { FORM_INPUT_CLASSES } from "@/lib/utils";
-import { type NoteFormValues, noteFormSchema } from "@/lib/validations";
+import { FORM_INPUT_CLASSES, formatFileSize } from "@/lib/utils";
+import {
+  type AttachmentMeta,
+  type NoteFormValues,
+  noteFormSchema,
+} from "@/lib/validations";
+
+const ALLOWED_TYPES: Record<string, { maxSize: number; label: string }> = {
+  "application/pdf": { maxSize: 10 * 1024 * 1024, label: "PDF" },
+  "image/png": { maxSize: 5 * 1024 * 1024, label: "PNG" },
+  "image/jpeg": { maxSize: 5 * 1024 * 1024, label: "JPEG" },
+  "image/webp": { maxSize: 5 * 1024 * 1024, label: "WebP" },
+  "text/plain": { maxSize: 2 * 1024 * 1024, label: "Text" },
+  "text/markdown": { maxSize: 2 * 1024 * 1024, label: "Markdown" },
+  "text/csv": { maxSize: 2 * 1024 * 1024, label: "CSV" },
+};
+
+const ACCEPT = Object.keys(ALLOWED_TYPES).join(",");
+
+type PendingFile = { file: File; id: string };
 
 type Props = {
   entityType: NoteEntityType;
@@ -28,6 +45,12 @@ type Props = {
   linkedContact?: LinkedEntity;
   linkedCompany?: LinkedEntity;
 };
+
+function getFileIcon(mime: string) {
+  if (mime.startsWith("image/")) return ImageIcon;
+  if (mime === "application/pdf") return FileText;
+  return FileIcon;
+}
 
 export function NoteForm({
   entityType,
@@ -38,31 +61,115 @@ export function NoteForm({
   const router = useRouter();
   const [alsoLinkContact, setAlsoLinkContact] = useState(false);
   const [alsoLinkCompany, setAlsoLinkCompany] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const {
     control,
     register,
     handleSubmit,
-    setValue,
-    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<NoteFormValues>({
     resolver: zodResolver(noteFormSchema),
     mode: "onTouched",
-    defaultValues: { type: "note", title: "", content: "" },
+    defaultValues: { title: "", content: "" },
   });
 
-  const currentType = watch("type");
   const showLinkOptions =
     entityType === "deal" && (linkedContact || linkedCompany);
 
+  const validateAndAddFiles = useCallback((files: FileList | File[]) => {
+    setUploadError(null);
+    const toAdd: PendingFile[] = [];
+
+    for (const file of files) {
+      const allowed = ALLOWED_TYPES[file.type];
+      if (!allowed) {
+        setUploadError(`${file.name}: unsupported file type`);
+        continue;
+      }
+      if (file.size > allowed.maxSize) {
+        setUploadError(
+          `${file.name}: exceeds ${formatFileSize(allowed.maxSize)} limit`,
+        );
+        continue;
+      }
+      toAdd.push({ file, id: crypto.randomUUID() });
+    }
+
+    if (toAdd.length > 0) {
+      setPendingFiles((prev) => [...prev, ...toAdd]);
+    }
+  }, []);
+
+  function removeFile(id: string) {
+    setPendingFiles((prev) => prev.filter((f) => f.id !== id));
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      validateAndAddFiles(e.dataTransfer.files);
+    }
+  }
+
+  async function uploadFiles(): Promise<AttachmentMeta[]> {
+    const results: AttachmentMeta[] = [];
+
+    await Promise.all(
+      pendingFiles.map(async ({ file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/attachments", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Upload failed for ${file.name}: ${err}`);
+        }
+
+        results.push(await res.json());
+      }),
+    );
+
+    return results;
+  }
+
   async function onSubmit(data: NoteFormValues) {
+    const hasContent = data.content && data.content.trim().length > 0;
+    const hasFiles = pendingFiles.length > 0;
+
+    if (!hasContent && !hasFiles) {
+      setUploadError("Add some text or attach a file");
+      return;
+    }
+
     try {
+      let attachments: AttachmentMeta[] = [];
+      if (hasFiles) {
+        attachments = await uploadFiles();
+      }
+
       await createNote({
-        type: data.type,
         title: data.title || null,
-        content: data.content,
+        content: data.content || "",
         dealId: entityType === "deal" ? entityId : null,
         contactId:
           entityType === "contact"
@@ -76,45 +183,27 @@ export function NoteForm({
             : alsoLinkCompany && linkedCompany
               ? linkedCompany.id
               : null,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       toast.success("Note added");
       reset();
+      setPendingFiles([]);
+      setUploadError(null);
       setAlsoLinkContact(false);
       setAlsoLinkCompany(false);
       router.refresh();
-    } catch {
-      toast.error("Failed to add note");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add note");
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <div className="flex gap-3">
-        <Select
-          defaultValue="note"
-          onValueChange={(v) =>
-            v && setValue("type", v as NoteFormValues["type"])
-          }
-        >
-          <SelectTrigger className={`w-36 ${FORM_INPUT_CLASSES}`}>
-            <SelectValue>
-              {NOTE_TYPES.find((t) => t.value === currentType)?.label}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {NOTE_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          placeholder="Title (optional)"
-          className={`flex-1 ${FORM_INPUT_CLASSES}`}
-          {...register("title")}
-        />
-      </div>
+      <Input
+        placeholder="Title (optional)"
+        className={`${FORM_INPUT_CLASSES}`}
+        {...register("title")}
+      />
       {errors.title && (
         <p className="text-sm text-destructive">{errors.title.message}</p>
       )}
@@ -135,8 +224,76 @@ export function NoteForm({
         <p className="text-sm text-destructive">{errors.content.message}</p>
       )}
 
-      <div className="flex items-center justify-between">
-        {showLinkOptions ? (
+      {/* File drop zone */}
+      <div
+        role="button"
+        tabIndex={0}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        className={`flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-xs transition-colors ${
+          isDragging
+            ? "border-neon-400 bg-neon-400/5 text-neon-500"
+            : "border-border/50 text-muted-foreground/50 hover:border-border hover:text-muted-foreground/70"
+        }`}
+      >
+        <Upload className="size-3.5 shrink-0" />
+        <span>Drop files here or click to browse</span>
+        <span className="ml-auto text-xs text-muted-foreground/60">
+          PDF, images, text &middot; max 10 MB
+        </span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ACCEPT}
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) validateAndAddFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {/* Pending files */}
+      {pendingFiles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {pendingFiles.map(({ file, id }) => {
+            const Icon = getFileIcon(file.type);
+            return (
+              <div
+                key={id}
+                className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-1 text-xs text-muted-foreground"
+              >
+                <Icon className="size-3 shrink-0" />
+                <span className="max-w-32 truncate">{file.name}</span>
+                <span className="text-muted-foreground/40">
+                  {formatFileSize(file.size)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(id)}
+                  className="ml-0.5 rounded-sm p-0.5 hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+
+      <div className="flex items-center gap-4">
+        {showLinkOptions && (
           <div className="flex items-center gap-4 text-xs text-muted-foreground/60">
             <span>Also link to:</span>
             {linkedContact && (
@@ -162,15 +319,17 @@ export function NoteForm({
               </label>
             )}
           </div>
-        ) : (
-          <div />
         )}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
+          className="ml-auto bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
         >
-          Add Note
+          {isSubmitting
+            ? pendingFiles.length > 0
+              ? "Uploading..."
+              : "Adding..."
+            : "Add Note"}
         </Button>
       </div>
     </form>

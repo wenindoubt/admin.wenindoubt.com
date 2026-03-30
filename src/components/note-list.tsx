@@ -1,8 +1,17 @@
 "use client";
 
-import { File, FileText, Mic, Pencil, Trash2, X } from "lucide-react";
+import {
+  ChevronRight,
+  Download,
+  File,
+  FileText,
+  Image as ImageIcon,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   LazyMarkdownRenderer as MarkdownRenderer,
@@ -11,13 +20,13 @@ import {
 import { PaginationBar } from "@/components/pagination";
 
 import { Button } from "@/components/ui/button";
-import type { Note } from "@/db/schema";
-import { deleteNote, updateNote } from "@/lib/actions/notes";
-import { NOTE_TYPES } from "@/lib/constants";
-import { formatDateTime } from "@/lib/utils";
+import type { Note, NoteAttachment } from "@/db/schema";
+import { deleteNote, getAttachmentUrl, updateNote } from "@/lib/actions/notes";
+import { formatDateTime, formatFileSize } from "@/lib/utils";
 
 type Props = {
   notes: Note[];
+  attachments: NoteAttachment[];
   total: number;
   pageSize: number;
   currentPage: number;
@@ -25,17 +34,11 @@ type Props = {
   currentDealId?: string;
 };
 
-const TYPE_ICONS = {
-  note: FileText,
-  transcript: Mic,
-  document: File,
-} as const;
-
-const TYPE_COLORS = {
-  note: "bg-neon-400/10 text-neon-500 ring-neon-400/20",
-  transcript: "bg-violet-500/10 text-violet-500 ring-violet-500/20",
-  document: "bg-amber-500/10 text-amber-500 ring-amber-500/20",
-} as const;
+function getFileIcon(mime: string) {
+  if (mime.startsWith("image/")) return ImageIcon;
+  if (mime === "application/pdf") return FileText;
+  return File;
+}
 
 function getAttribution(note: Note, currentDealId?: string) {
   if (!currentDealId) return null;
@@ -45,14 +48,53 @@ function getAttribution(note: Note, currentDealId?: string) {
   return null;
 }
 
+function getPreviewText(content: string, maxLength = 80): string {
+  const firstLine = content
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0);
+  if (!firstLine) return "";
+  const plain = firstLine
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .replace(/[_~]/g, "");
+  return plain.length > maxLength
+    ? `${plain.slice(0, maxLength).trimEnd()}…`
+    : plain;
+}
+
 export function NoteList({
   notes,
+  attachments,
   total,
   pageSize,
   currentPage,
   onPageChange,
   currentDealId,
 }: Props) {
+  const prevNotesRef = useRef(notes);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(notes.length > 0 ? [notes[0].id] : []),
+  );
+
+  // Reset expanded state synchronously when notes change (avoids two-render flash)
+  if (prevNotesRef.current !== notes) {
+    prevNotesRef.current = notes;
+    setExpandedIds(new Set(notes.length > 0 ? [notes[0].id] : []));
+  }
+
+  const toggleExpanded = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   if (notes.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground/50">
@@ -63,13 +105,26 @@ export function NoteList({
 
   const totalPages = Math.ceil(total / pageSize);
 
+  const attachmentsByNote = useMemo(() => {
+    const map = new Map<string, NoteAttachment[]>();
+    for (const a of attachments) {
+      const existing = map.get(a.noteId) ?? [];
+      existing.push(a);
+      map.set(a.noteId, existing);
+    }
+    return map;
+  }, [attachments]);
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {notes.map((note) => (
         <NoteCard
           key={note.id}
           note={note}
+          attachments={attachmentsByNote.get(note.id) ?? []}
           attribution={getAttribution(note, currentDealId)}
+          isExpanded={expandedIds.has(note.id)}
+          onToggle={() => toggleExpanded(note.id)}
         />
       ))}
       <PaginationBar
@@ -85,22 +140,22 @@ export function NoteList({
 
 function NoteCard({
   note,
+  attachments,
   attribution,
+  isExpanded,
+  onToggle,
 }: {
   note: Note;
+  attachments: NoteAttachment[];
   attribution: string | null;
+  isExpanded: boolean;
+  onToggle: () => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(note.content);
-
-  const typeKey = note.type as keyof typeof TYPE_ICONS;
-  const Icon = TYPE_ICONS[typeKey] ?? FileText;
-  const colors = TYPE_COLORS[typeKey] ?? TYPE_COLORS.note;
-  const label =
-    NOTE_TYPES.find((t) => t.value === note.type)?.label ?? note.type;
 
   function handleDelete() {
     if (!confirmDelete) {
@@ -122,6 +177,7 @@ function NoteCard({
   function handleEdit() {
     setEditContent(note.content);
     setIsEditing(true);
+    if (!isExpanded) onToggle();
   }
 
   function handleCancelEdit() {
@@ -143,95 +199,179 @@ function NoteCard({
     });
   }
 
+  async function handleDownload(attachment: NoteAttachment) {
+    try {
+      const url = await getAttachmentUrl(attachment.storagePath);
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Failed to download file");
+    }
+  }
+
+  const hasContent = note.content.trim().length > 0;
+  const preview = note.title || getPreviewText(note.content) || "Untitled";
+
   return (
-    <div className="rounded-lg border border-border/30 bg-card p-4 transition-all hover:border-border/50">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2.5">
-          <div
-            className={`flex size-6 items-center justify-center rounded-md ring-1 ${colors}`}
-          >
-            <Icon className="size-3" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground/70">
-              {label}
+    <div className="rounded-lg border border-border/30 bg-card transition-colors hover:border-border/50">
+      {/* Collapsed header row */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="group flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+      >
+        <ChevronRight
+          className={`size-3.5 shrink-0 text-muted-foreground/30 transition-transform duration-200 ${
+            isExpanded ? "rotate-90" : ""
+          }`}
+        />
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {attribution && (
+            <span className="shrink-0 rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground/50">
+              {attribution}
             </span>
-            {attribution && (
-              <span className="text-[11px] rounded-full bg-muted/60 px-2 py-0.5 text-muted-foreground/50">
-                {attribution}
-              </span>
-            )}
-          </div>
+          )}
+          <span className="truncate text-sm font-medium text-foreground">
+            {preview}
+          </span>
+          {!isExpanded && note.title && hasContent && (
+            <span className="truncate text-sm text-muted-foreground/35">
+              — {getPreviewText(note.content, 50)}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-1">
+        {attachments.length > 0 && (
+          <span className="shrink-0 text-xs text-muted-foreground/60">
+            {attachments.length} file{attachments.length !== 1 ? "s" : ""}
+          </span>
+        )}
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
+          {formatDateTime(note.createdAt)}
+        </span>
+        {/* Hover actions */}
+        <div
+          className={`flex shrink-0 items-center gap-0.5 transition-opacity ${
+            confirmDelete ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
+        >
           {!isEditing && (
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground/40 hover:text-foreground hover:bg-muted/60 transition-all"
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleEdit();
+                }
+              }}
+              className="flex items-center rounded-md p-1.5 text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground"
             >
               <Pencil className="size-3" />
-            </button>
+            </span>
           )}
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isPending}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-all ${
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDelete();
+              }
+            }}
+            className={`flex items-center rounded-md p-1.5 transition-all ${
               confirmDelete
-                ? "bg-red-500/10 text-red-600 hover:bg-red-500/20"
-                : "text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/5"
+                ? "bg-red-500/10 text-red-600"
+                : "text-muted-foreground/40 hover:bg-red-500/5 hover:text-red-500"
             }`}
           >
             <Trash2 className="size-3" />
-            {isPending ? "..." : confirmDelete ? "Confirm?" : ""}
-          </button>
+            {isPending ? (
+              <span className="ml-1 text-xs">...</span>
+            ) : confirmDelete ? (
+              <span className="ml-1 text-xs">Confirm?</span>
+            ) : null}
+          </span>
         </div>
-      </div>
+      </button>
 
-      {note.title && (
-        <h4 className="text-sm font-semibold text-foreground mb-1.5">
-          {note.title}
-        </h4>
-      )}
+      {/* Expandable body */}
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+          isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="px-3.5 pb-3.5 pt-0">
+            {isEditing ? (
+              <div className="space-y-2">
+                <TiptapEditor
+                  content={editContent}
+                  onChange={setEditContent}
+                  placeholder="Edit note..."
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    disabled={isPending}
+                    className="h-7 text-xs"
+                  >
+                    <X className="size-3" />
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveEdit}
+                    disabled={isPending || !editContent.trim()}
+                    className="h-7 border-0 bg-neon-400 text-xs text-primary-foreground hover:bg-neon-500"
+                  >
+                    {isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              hasContent && (
+                <div className="text-sm">
+                  <MarkdownRenderer content={note.content} />
+                </div>
+              )
+            )}
 
-      {isEditing ? (
-        <div className="space-y-2">
-          <TiptapEditor
-            content={editContent}
-            onChange={setEditContent}
-            placeholder="Edit note..."
-          />
-          <div className="flex items-center gap-2 justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelEdit}
-              disabled={isPending}
-              className="h-7 text-xs"
-            >
-              <X className="size-3" />
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSaveEdit}
-              disabled={isPending || !editContent.trim()}
-              className="h-7 text-xs bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
-            >
-              {isPending ? "Saving..." : "Save"}
-            </Button>
+            {attachments.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {attachments.map((a) => {
+                  const Icon = getFileIcon(a.mimeType);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => handleDownload(a)}
+                      className="group/file flex items-center gap-1.5 rounded-md bg-muted/30 px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                    >
+                      <Icon className="size-3 shrink-0" />
+                      <span className="max-w-40 truncate">{a.fileName}</span>
+                      <span className="text-muted-foreground/40">
+                        {formatFileSize(a.fileSize)}
+                      </span>
+                      <Download className="size-3 shrink-0 opacity-0 transition-opacity group-hover/file:opacity-100" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      ) : (
-        <div className="text-sm">
-          <MarkdownRenderer content={note.content} />
-        </div>
-      )}
-
-      <p className="mt-2 text-xs text-muted-foreground/50">
-        {formatDateTime(note.createdAt)}
-      </p>
+      </div>
     </div>
   );
 }

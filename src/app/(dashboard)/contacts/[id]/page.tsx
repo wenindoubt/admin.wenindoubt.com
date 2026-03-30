@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -165,10 +164,6 @@ export default async function ContactDetailPage({ params }: Props) {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="neon-underline pb-3 text-base">Deals</CardTitle>
-          <CardDescription className="mt-1">
-            {contact.deals.length} deal
-            {contact.deals.length !== 1 ? "s" : ""} as primary contact
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {contact.deals.length === 0 ? (

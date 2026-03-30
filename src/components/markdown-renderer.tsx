@@ -29,19 +29,17 @@ const mdComponents: Components = {
     <strong className="font-semibold text-foreground">{children}</strong>
   ),
   ul: ({ children }) => (
-    <ul className="mb-3 space-y-1.5 text-sm text-foreground/80 list-none pl-0">
+    <ul className="mb-3 text-sm text-foreground/80 list-disc pl-5">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mb-3 space-y-1.5 text-sm text-foreground/80 list-decimal pl-5">
+    <ol className="mb-3 text-sm text-foreground/80 list-decimal pl-5">
       {children}
     </ol>
   ),
   li: ({ children }) => (
-    <li className="leading-relaxed pl-4 relative before:content-[''] before:absolute before:left-0 before:top-[0.6em] before:size-1.5 before:rounded-full before:bg-neon-400/40">
-      {children}
-    </li>
+    <li className="leading-relaxed">{children}</li>
   ),
   hr: () => (
     <hr className="my-4 border-0 h-px bg-gradient-to-r from-transparent via-neon-400/25 to-transparent" />

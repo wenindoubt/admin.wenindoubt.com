@@ -6,8 +6,13 @@ import { NoteForm } from "@/components/note-form";
 import { NoteList } from "@/components/note-list";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import type { Note } from "@/db/schema";
-import { getNotes, getNotesForDeal, searchNotes } from "@/lib/actions/notes";
+import type { Note, NoteAttachment } from "@/db/schema";
+import {
+  getAttachmentsForNotes,
+  getNotes,
+  getNotesForDeal,
+  searchNotes,
+} from "@/lib/actions/notes";
 import type { LinkedEntity, NoteEntityType } from "@/lib/types";
 import { PAGE_SIZE_NOTES } from "@/lib/types";
 import { FORM_INPUT_CLASSES } from "@/lib/utils";
@@ -17,6 +22,7 @@ type Props = {
   entityId: string;
   initialNotes: Note[];
   initialTotal: number;
+  initialAttachments: NoteAttachment[];
   linkedContact?: LinkedEntity;
   linkedCompany?: LinkedEntity;
 };
@@ -26,11 +32,14 @@ export function NotesSection({
   entityId,
   initialNotes,
   initialTotal,
+  initialAttachments,
   linkedContact,
   linkedCompany,
 }: Props) {
   const [notes, setNotes] = useState(initialNotes);
   const [total, setTotal] = useState(initialTotal);
+  const [attachments, setAttachments] =
+    useState<NoteAttachment[]>(initialAttachments);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
@@ -38,30 +47,35 @@ export function NotesSection({
     async (p: number, query?: string) => {
       const offset = (p - 1) * PAGE_SIZE_NOTES;
 
+      let result: { data: Note[]; total: number };
+
       if (query) {
-        const result = await searchNotes(query, {
+        result = await searchNotes(query, {
           [`${entityType}Id`]: entityId,
           limit: PAGE_SIZE_NOTES,
           offset,
         });
-        setNotes(result.data);
-        setTotal(result.total);
-        return;
+      } else {
+        result =
+          entityType === "deal"
+            ? await getNotesForDeal(entityId, {
+                limit: PAGE_SIZE_NOTES,
+                offset,
+              })
+            : await getNotes({
+                [`${entityType}Id`]: entityId,
+                limit: PAGE_SIZE_NOTES,
+                offset,
+              });
       }
 
-      const result =
-        entityType === "deal"
-          ? await getNotesForDeal(entityId, {
-              limit: PAGE_SIZE_NOTES,
-              offset,
-            })
-          : await getNotes({
-              [`${entityType}Id`]: entityId,
-              limit: PAGE_SIZE_NOTES,
-              offset,
-            });
       setNotes(result.data);
       setTotal(result.total);
+
+      const newAttachments = await getAttachmentsForNotes(
+        result.data.map((n) => n.id),
+      );
+      setAttachments(newAttachments);
     },
     [entityType, entityId],
   );
@@ -70,11 +84,11 @@ export function NotesSection({
   useEffect(() => {
     setNotes(initialNotes);
     setTotal(initialTotal);
+    setAttachments(initialAttachments);
     setPage(1);
     setSearch("");
-  }, [initialNotes, initialTotal]);
+  }, [initialNotes, initialTotal, initialAttachments]);
 
-  // Cleanup debounce on unmount
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => {
     return () => {
@@ -122,6 +136,7 @@ export function NotesSection({
       </div>
       <NoteList
         notes={notes}
+        attachments={attachments}
         total={total}
         pageSize={PAGE_SIZE_NOTES}
         currentPage={page}

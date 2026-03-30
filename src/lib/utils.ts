@@ -52,6 +52,12 @@ export function stripCommas(value: string): string {
 }
 
 /** Format a raw number string with commas for currency input display */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function formatCurrencyInput(value: string): string {
   const stripped = value.replace(/[^\d.]/g, "");
   if (!stripped) return "";

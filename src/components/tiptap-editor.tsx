@@ -1,17 +1,9 @@
 "use client";
 
 import Placeholder from "@tiptap/extension-placeholder";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import {
-  Bold,
-  Code,
-  Heading2,
-  Italic,
-  List,
-  ListOrdered,
-  Quote,
-} from "lucide-react";
+import { Bold, Code, Italic, List, ListOrdered } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { Markdown } from "tiptap-markdown";
 
@@ -31,6 +23,7 @@ export function TiptapEditor({
   disabled = false,
 }: Props) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder }),
@@ -45,7 +38,7 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class:
-          "prose-sm min-h-[120px] max-w-none px-3 py-2 text-sm focus:outline-none",
+          "tiptap-content min-h-[120px] max-w-none px-3 py-2 text-sm focus:outline-none",
       },
     },
   });
@@ -87,52 +80,54 @@ function Toolbar({
   editor,
   disabled,
 }: {
-  editor: ReturnType<typeof useEditor>;
+  editor: NonNullable<ReturnType<typeof useEditor>>;
   disabled: boolean;
 }) {
-  if (!editor) return null;
+  const activeStates = useEditorState({
+    editor,
+    selector: ({ editor: e }) =>
+      e
+        ? {
+            bold: e.isActive("bold"),
+            italic: e.isActive("italic"),
+            bulletList: e.isActive("bulletList"),
+            orderedList: e.isActive("orderedList"),
+            codeBlock: e.isActive("codeBlock"),
+          }
+        : null,
+  });
+
+  if (!activeStates) return null;
 
   const buttons = [
     {
       icon: Bold,
       action: () => editor.chain().focus().toggleBold().run(),
-      active: editor.isActive("bold"),
+      active: activeStates.bold,
       label: "Bold",
     },
     {
       icon: Italic,
       action: () => editor.chain().focus().toggleItalic().run(),
-      active: editor.isActive("italic"),
+      active: activeStates.italic,
       label: "Italic",
-    },
-    {
-      icon: Heading2,
-      action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-      active: editor.isActive("heading", { level: 2 }),
-      label: "Heading",
     },
     {
       icon: List,
       action: () => editor.chain().focus().toggleBulletList().run(),
-      active: editor.isActive("bulletList"),
+      active: activeStates.bulletList,
       label: "Bullet list",
     },
     {
       icon: ListOrdered,
       action: () => editor.chain().focus().toggleOrderedList().run(),
-      active: editor.isActive("orderedList"),
+      active: activeStates.orderedList,
       label: "Numbered list",
-    },
-    {
-      icon: Quote,
-      action: () => editor.chain().focus().toggleBlockquote().run(),
-      active: editor.isActive("blockquote"),
-      label: "Quote",
     },
     {
       icon: Code,
       action: () => editor.chain().focus().toggleCodeBlock().run(),
-      active: editor.isActive("codeBlock"),
+      active: activeStates.codeBlock,
       label: "Code",
     },
   ];

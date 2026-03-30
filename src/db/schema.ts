@@ -263,6 +263,26 @@ export const notes = pgTable(
   ],
 );
 
+// Note attachments (files stored in Supabase Storage)
+export const noteAttachments = pgTable(
+  "note_attachments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    noteId: uuid("note_id")
+      .notNull()
+      .references(() => notes.id, { onDelete: "cascade" }),
+    fileName: text("file_name").notNull(),
+    storagePath: text("storage_path").notNull(),
+    fileSize: integer("file_size").notNull(),
+    mimeType: text("mime_type").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_note_attachments_note_id").on(table.noteId)],
+);
+
 // Gmail OAuth tokens (per Clerk user)
 export const gmailTokens = pgTable("gmail_tokens", {
   id: uuid().primaryKey().defaultRandom(),
@@ -287,3 +307,4 @@ export type DealInsight = typeof dealInsights.$inferSelect;
 export type DealActivity = typeof dealActivities.$inferSelect;
 export type Tag = typeof tags.$inferSelect;
 export type Note = typeof notes.$inferSelect;
+export type NoteAttachment = typeof noteAttachments.$inferSelect;

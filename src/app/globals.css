@@ -218,6 +218,31 @@ body::before {
   border-radius: 1px;
 }
 
+/* ─── Tiptap Editor Content ─── */
+.tiptap-content ul {
+  list-style-type: disc;
+  padding-left: 1.25em;
+}
+.tiptap-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25em;
+}
+.tiptap-content li p {
+  margin: 0;
+}
+.tiptap-content pre {
+  background: oklch(0.96 0.005 265);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  overflow-x: auto;
+}
+.tiptap-content code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
 /* ─── Scrollbar Styling ─── */
 ::-webkit-scrollbar {
   width: 6px;
