@@ -88,6 +88,14 @@ run = "supabase migration new"
 description = "Show Supabase service status + URLs/keys"
 run = "supabase status"
 
+[tasks.test]
+description = "Run unit tests"
+run = "npx vitest run"
+
+[tasks."test:watch"]
+description = "Run unit tests in watch mode"
+run = "npx vitest"
+
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
 run = "npx playwright test"
