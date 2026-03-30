@@ -35,6 +35,11 @@ export default defineConfig({
         storageState: "playwright/.clerk/user.json",
       },
       dependencies: ["setup"],
+      teardown: "teardown",
+    },
+    {
+      name: "teardown",
+      testMatch: /global\.teardown\.ts/,
     },
   ],
 });
