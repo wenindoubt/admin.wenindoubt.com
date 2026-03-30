@@ -1,10 +1,15 @@
 import path from "node:path";
 import { clerk, clerkSetup } from "@clerk/testing/playwright";
 import { test as setup } from "@playwright/test";
+import { cleanupE2EData } from "./cleanup";
 
 setup.describe.configure({ mode: "serial" });
 
 const authFile = path.join(__dirname, "../playwright/.clerk/user.json");
+
+setup("clean stale E2E data", async () => {
+  await cleanupE2EData();
+});
 
 setup("clerk setup", async () => {
   await clerkSetup();

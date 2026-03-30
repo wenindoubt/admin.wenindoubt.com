@@ -171,7 +171,7 @@ test.describe("Deals — CRUD", () => {
 
     // Navigate to edit page directly
     const dealUrl = crm.page.url();
-    await crm.goto(`${dealUrl.replace("http://localhost:3000", "")}/edit`);
+    await crm.goto(`${new URL(dealUrl).pathname}/edit`);
     await crm.waitForContentLoad();
 
     // Wait for the form to be ready
