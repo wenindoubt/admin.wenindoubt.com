@@ -124,18 +124,12 @@ test.describe("Deals — List & Filters", () => {
     // Click the next-page button (ChevronRight icon button after page numbers)
     const paginationNav = crm.page.locator("nav, [class*='pagination']").last();
     const nextBtn = paginationNav.locator("button").last();
-    if (
-      await nextBtn
-        .isEnabled({ timeout: 2000 })
-        .catch(() => false)
-    ) {
+    if (await nextBtn.isEnabled({ timeout: 2000 }).catch(() => false)) {
       await nextBtn.click();
       await expect(crm.page).toHaveURL(/page=2/);
       await crm.waitForContentLoad();
       // Table should still have data
-      await expect(
-        crm.page.locator("table tbody tr").first(),
-      ).toBeVisible();
+      await expect(crm.page.locator("table tbody tr").first()).toBeVisible();
     }
   });
 });
@@ -210,10 +204,7 @@ test.describe("Deals — CRUD", () => {
     // Navigate to first deal detail
     await crm.goto("/deals");
     await crm.waitForContentLoad();
-    await crm.page
-      .locator("table tbody tr a[href^='/deals/']")
-      .first()
-      .click();
+    await crm.page.locator("table tbody tr a[href^='/deals/']").first().click();
     await crm.page.waitForURL(/\/deals\/[a-f0-9-]+$/);
     await crm.waitForContentLoad();
 
@@ -222,9 +213,7 @@ test.describe("Deals — CRUD", () => {
     await crm.page
       .getByPlaceholder("Log a call, email, or meeting...")
       .fill(desc);
-    await crm.page
-      .getByRole("button", { name: "Add", exact: true })
-      .click();
+    await crm.page.getByRole("button", { name: "Add", exact: true }).click();
     await crm.expectToast("Activity added");
 
     // Activity should appear in the timeline
@@ -234,10 +223,7 @@ test.describe("Deals — CRUD", () => {
   test("add activity with different types", async ({ crm }) => {
     await crm.goto("/deals");
     await crm.waitForContentLoad();
-    await crm.page
-      .locator("table tbody tr a[href^='/deals/']")
-      .first()
-      .click();
+    await crm.page.locator("table tbody tr a[href^='/deals/']").first().click();
     await crm.page.waitForURL(/\/deals\/[a-f0-9-]+$/);
     await crm.waitForContentLoad();
 
@@ -254,9 +240,7 @@ test.describe("Deals — CRUD", () => {
     await crm.page
       .getByPlaceholder("Log a call, email, or meeting...")
       .fill(desc);
-    await crm.page
-      .getByRole("button", { name: "Add", exact: true })
-      .click();
+    await crm.page.getByRole("button", { name: "Add", exact: true }).click();
     await crm.expectToast("Activity added");
 
     await expect(crm.page.getByText(desc)).toBeVisible();

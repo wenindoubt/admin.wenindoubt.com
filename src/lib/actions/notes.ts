@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { db } from "@/db";
 import type { NoteAttachment } from "@/db/schema";
-import { deals, noteAttachments, notes } from "@/db/schema";
+import { dealContacts, deals, noteAttachments, notes } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import { countTokens } from "@/lib/ai/tokens";
 import { buildDealNoteConditions } from "@/lib/note-utils";
@@ -55,14 +55,14 @@ export async function getNotes(filters?: NoteFilters) {
   return { data: rows, total };
 }
 
-/** Auto-surface notes from a deal + its primary contact + its company */
+/** Auto-surface notes from a deal + its contacts + its company */
 export async function getNotesForDeal(
   dealId: string,
   filters?: {
     limit?: number;
     offset?: number;
     /** Pass to skip redundant deals query when caller already has these */
-    primaryContactId?: string | null;
+    contactIds?: string[];
     companyId?: string;
   },
 ) {
@@ -71,7 +71,7 @@ export async function getNotesForDeal(
 
   const deal = filters?.companyId
     ? {
-        primaryContactId: filters.primaryContactId ?? null,
+        contactIds: filters.contactIds ?? [],
         companyId: filters.companyId,
       }
     : await resolveDealEntities(dealId);
@@ -79,7 +79,7 @@ export async function getNotesForDeal(
 
   const where = buildDealNoteConditions(
     dealId,
-    deal.primaryContactId,
+    deal.contactIds,
     deal.companyId,
   );
 
@@ -268,7 +268,7 @@ export async function getNoteTokenStats(
   entityType: NoteEntityType,
   entityId: string,
   /** Pass to skip redundant deals query when caller already has these */
-  resolvedDeal?: { primaryContactId: string | null; companyId: string },
+  resolvedDeal?: { contactIds: string[]; companyId: string },
 ): Promise<NoteTokenStats> {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
@@ -282,11 +282,7 @@ export async function getNoteTokenStats(
     const deal = resolvedDeal ?? (await resolveDealEntities(entityId));
     if (!deal) return { noteCount: 0, totalTokens: 0 };
 
-    where = buildDealNoteConditions(
-      entityId,
-      deal.primaryContactId,
-      deal.companyId,
-    );
+    where = buildDealNoteConditions(entityId, deal.contactIds, deal.companyId);
   } else {
     where = eq(
       entityType === "contact" ? notes.contactId : notes.companyId,
@@ -312,14 +308,21 @@ export async function getNoteTokenStats(
 
 /** Resolve deal's contact/company IDs (shared by getNotesForDeal + getNoteTokenStats) */
 async function resolveDealEntities(dealId: string) {
-  const [deal] = await db
-    .select({
-      primaryContactId: deals.primaryContactId,
-      companyId: deals.companyId,
-    })
-    .from(deals)
-    .where(eq(deals.id, dealId));
-  return deal ?? null;
+  const [[deal], contactRows] = await Promise.all([
+    db
+      .select({ companyId: deals.companyId })
+      .from(deals)
+      .where(eq(deals.id, dealId)),
+    db
+      .select({ contactId: dealContacts.contactId })
+      .from(dealContacts)
+      .where(eq(dealContacts.dealId, dealId)),
+  ]);
+  if (!deal) return null;
+  return {
+    contactIds: contactRows.map((r) => r.contactId),
+    companyId: deal.companyId,
+  };
 }
 
 /** Generate embedding after the response is sent */

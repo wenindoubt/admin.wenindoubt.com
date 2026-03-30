@@ -3,7 +3,20 @@
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Bold, Code, Italic, List, ListOrdered } from "lucide-react";
+import {
+  Bold,
+  Code,
+  Heading2,
+  Heading3,
+  Italic,
+  List,
+  ListOrdered,
+  Minus,
+  Quote,
+  Redo,
+  Strikethrough,
+  Undo,
+} from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { Markdown } from "tiptap-markdown";
 
@@ -76,6 +89,13 @@ export function TiptapEditor({
   );
 }
 
+type ToolbarButton = {
+  icon: React.ComponentType<{ className?: string }>;
+  action: () => void;
+  active: boolean;
+  label: string;
+};
+
 function Toolbar({
   editor,
   disabled,
@@ -90,8 +110,12 @@ function Toolbar({
         ? {
             bold: e.isActive("bold"),
             italic: e.isActive("italic"),
+            strike: e.isActive("strike"),
+            heading2: e.isActive("heading", { level: 2 }),
+            heading3: e.isActive("heading", { level: 3 }),
             bulletList: e.isActive("bulletList"),
             orderedList: e.isActive("orderedList"),
+            blockquote: e.isActive("blockquote"),
             codeBlock: e.isActive("codeBlock"),
           }
         : null,
@@ -99,7 +123,7 @@ function Toolbar({
 
   if (!activeStates) return null;
 
-  const buttons = [
+  const textButtons: ToolbarButton[] = [
     {
       icon: Bold,
       action: () => editor.chain().focus().toggleBold().run(),
@@ -111,6 +135,27 @@ function Toolbar({
       action: () => editor.chain().focus().toggleItalic().run(),
       active: activeStates.italic,
       label: "Italic",
+    },
+    {
+      icon: Strikethrough,
+      action: () => editor.chain().focus().toggleStrike().run(),
+      active: activeStates.strike,
+      label: "Strikethrough",
+    },
+  ];
+
+  const blockButtons: ToolbarButton[] = [
+    {
+      icon: Heading2,
+      action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+      active: activeStates.heading2,
+      label: "Heading",
+    },
+    {
+      icon: Heading3,
+      action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
+      active: activeStates.heading3,
+      label: "Subheading",
     },
     {
       icon: List,
@@ -125,30 +170,68 @@ function Toolbar({
       label: "Numbered list",
     },
     {
+      icon: Quote,
+      action: () => editor.chain().focus().toggleBlockquote().run(),
+      active: activeStates.blockquote,
+      label: "Blockquote",
+    },
+    {
       icon: Code,
       action: () => editor.chain().focus().toggleCodeBlock().run(),
       active: activeStates.codeBlock,
-      label: "Code",
+      label: "Code block",
     },
+    {
+      icon: Minus,
+      action: () => editor.chain().focus().setHorizontalRule().run(),
+      active: false,
+      label: "Horizontal rule",
+    },
+  ];
+
+  const historyButtons: ToolbarButton[] = [
+    {
+      icon: Undo,
+      action: () => editor.chain().focus().undo().run(),
+      active: false,
+      label: "Undo",
+    },
+    {
+      icon: Redo,
+      action: () => editor.chain().focus().redo().run(),
+      active: false,
+      label: "Redo",
+    },
+  ];
+
+  const groups = [
+    { key: "text", buttons: textButtons },
+    { key: "block", buttons: blockButtons },
+    { key: "history", buttons: historyButtons },
   ];
 
   return (
     <div className="flex items-center gap-0.5 border-b border-border/30 px-1.5 py-1">
-      {buttons.map((btn) => (
-        <button
-          key={btn.label}
-          type="button"
-          onClick={btn.action}
-          disabled={disabled}
-          title={btn.label}
-          className={`flex size-7 items-center justify-center rounded-md transition-colors ${
-            btn.active
-              ? "bg-neon-400/15 text-neon-500"
-              : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/60"
-          } disabled:opacity-40`}
-        >
-          <btn.icon className="size-3.5" />
-        </button>
+      {groups.map((group, gi) => (
+        <div key={group.key} className="flex items-center gap-0.5">
+          {gi > 0 && <div className="mx-1 h-4 w-px bg-border/30" />}
+          {group.buttons.map((btn) => (
+            <button
+              key={btn.label}
+              type="button"
+              onClick={btn.action}
+              disabled={disabled}
+              title={btn.label}
+              className={`flex size-7 items-center justify-center rounded-md transition-colors ${
+                btn.active
+                  ? "bg-neon-400/15 text-neon-500"
+                  : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/60"
+              } disabled:opacity-40`}
+            >
+              <btn.icon className="size-3.5" />
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   );

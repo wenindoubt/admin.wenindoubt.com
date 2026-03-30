@@ -21,19 +21,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getDeal, getTags } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ analyze?: string }>;
 };
 
-export default async function DealDetailPage({ params }: Props) {
-  const { id } = await params;
+export default async function DealDetailPage({ params, searchParams }: Props) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const suppressAutoAnalyze = sp.analyze === "false";
   const [deal, allTags] = await Promise.all([getDeal(id), getTags()]);
   if (!deal) notFound();
 
   const resolvedDeal = {
-    primaryContactId: deal.primaryContact?.id ?? null,
+    contactIds: deal.contacts.map((c) => c.id),
     companyId: deal.company.id,
   };
 
@@ -57,8 +60,13 @@ export default async function DealDetailPage({ params }: Props) {
             {deal.primaryContact && (
               <>
                 {" "}
-                &middot; {deal.primaryContact.firstName}{" "}
-                {deal.primaryContact.lastName}
+                &middot;{" "}
+                <Link
+                  href={`/contacts/${deal.primaryContact.id}`}
+                  className="text-foreground/80 hover:text-neon-400 transition-colors"
+                >
+                  {deal.primaryContact.firstName} {deal.primaryContact.lastName}
+                </Link>
               </>
             )}
           </p>
@@ -114,9 +122,15 @@ export default async function DealDetailPage({ params }: Props) {
                 <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
                   Contact
                 </span>
-                <p className="mt-0.5 inline-flex items-center gap-1">
-                  <User className="size-3 text-neon-400/60" />
-                  {deal.primaryContact.firstName} {deal.primaryContact.lastName}
+                <p className="mt-0.5">
+                  <Link
+                    href={`/contacts/${deal.primaryContact.id}`}
+                    className="hover:text-neon-400 transition-colors inline-flex items-center gap-1"
+                  >
+                    <User className="size-3 text-neon-400/60" />
+                    {deal.primaryContact.firstName}{" "}
+                    {deal.primaryContact.lastName}
+                  </Link>
                 </p>
               </div>
             )}
@@ -193,53 +207,77 @@ export default async function DealDetailPage({ params }: Props) {
               Contact Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
-            {deal.primaryContact ? (
-              <>
-                <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                  <User className="size-4 text-neon-400/60" />
-                  <span>
-                    {deal.primaryContact.firstName}{" "}
-                    {deal.primaryContact.lastName}
-                    {deal.primaryContact.jobTitle && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        &middot; {deal.primaryContact.jobTitle}
-                      </span>
+          <CardContent className="space-y-2 text-sm">
+            {deal.contacts.length > 0 ? (
+              deal.contacts.map((contact) => {
+                const isPrimary = contact.id === deal.primaryContactId;
+                return (
+                  <div
+                    key={contact.id}
+                    className={`flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md px-3 py-2.5 ${isPrimary ? "bg-neon-400/[0.03] border border-neon-400/10" : "bg-card/60"}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="size-3.5 text-neon-400/60" />
+                      <Link
+                        href={`/contacts/${contact.id}`}
+                        className="font-medium hover:text-neon-400 transition-colors"
+                      >
+                        {contact.firstName} {contact.lastName}
+                      </Link>
+                      {isPrimary && (
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-neon-400/70">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                    {contact.jobTitle && (
+                      <>
+                        <span className="hidden sm:inline text-border">|</span>
+                        <span className="text-muted-foreground text-xs">
+                          {contact.jobTitle}
+                        </span>
+                      </>
                     )}
-                  </span>
-                </div>
-                {deal.primaryContact.email && (
-                  <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                    <Mail className="size-4 text-neon-400/60" />
-                    <a
-                      href={`mailto:${deal.primaryContact.email}`}
-                      className="hover:text-neon-400 transition-colors"
-                    >
-                      {deal.primaryContact.email}
-                    </a>
+                    <div className="flex items-center gap-4 ml-auto text-muted-foreground">
+                      {contact.email && (
+                        <a
+                          href={`mailto:${contact.email}`}
+                          className="flex items-center gap-1.5 hover:text-neon-400 transition-colors"
+                        >
+                          <Mail className="size-3.5" />
+                          <span className="hidden lg:inline">
+                            {contact.email}
+                          </span>
+                        </a>
+                      )}
+                      {contact.phone && (
+                        <a
+                          href={`tel:${contact.phone}`}
+                          className="flex items-center gap-1.5 hover:text-neon-400 transition-colors"
+                        >
+                          <Phone className="size-3.5" />
+                          <span className="hidden lg:inline">
+                            {formatPhoneDisplay(contact.phone)}
+                          </span>
+                        </a>
+                      )}
+                    </div>
                   </div>
-                )}
-                {deal.primaryContact.phone && (
-                  <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                    <Phone className="size-4 text-neon-400/60" />
-                    <span>{deal.primaryContact.phone}</span>
-                  </div>
-                )}
-              </>
+                );
+              })
             ) : (
-              <p className="text-sm text-muted-foreground col-span-2">
-                No primary contact assigned
+              <p className="text-sm text-muted-foreground">
+                No contacts assigned
               </p>
             )}
             {deal.company.website && (
-              <div className="flex items-center gap-2.5 rounded-md bg-card/80 px-3 py-2">
-                <ExternalLink className="size-4 text-neon-400/60" />
+              <div className="flex items-center gap-2.5 rounded-md bg-card/60 px-3 py-2.5">
+                <ExternalLink className="size-3.5 text-neon-400/60" />
                 <a
                   href={deal.company.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-neon-400 transition-colors truncate"
+                  className="text-muted-foreground hover:text-neon-400 transition-colors truncate"
                 >
                   {deal.company.website}
                 </a>
@@ -256,6 +294,7 @@ export default async function DealDetailPage({ params }: Props) {
         contact={deal.primaryContact}
         insights={deal.insights}
         insightsTotal={deal.insightsTotal}
+        suppressAutoAnalyze={suppressAutoAnalyze}
       />
 
       {/* Notes */}

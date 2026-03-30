@@ -1,4 +1,5 @@
 import type { Company, Contact, Deal, DealActivity, Note } from "@/db/schema";
+import { formatPhoneDisplay } from "@/lib/phone";
 
 type ContactContext = Pick<
   Contact,
@@ -11,16 +12,22 @@ type NoteContext = Pick<Note, "title" | "content" | "type" | "createdAt">;
 export function buildDealContext(
   deal: Deal,
   company: Company,
-  contact: ContactContext | null,
+  contacts: ContactContext[],
   activities?: DealActivity[],
   notes?: NoteContext[],
 ): string {
+  const contactFields = contacts.flatMap((c, i) => {
+    const label = i === 0 ? "Primary Contact" : "Additional Contact";
+    return [
+      `${label}: ${c.firstName} ${c.lastName}`,
+      c.email && `  Email: ${c.email}`,
+      c.phone && `  Phone: ${formatPhoneDisplay(c.phone)}`,
+      c.jobTitle && `  Title: ${c.jobTitle}`,
+    ];
+  });
   const fields = [
     `Deal: ${deal.title}`,
-    contact && `Contact: ${contact.firstName} ${contact.lastName}`,
-    contact?.email && `Email: ${contact.email}`,
-    contact?.phone && `Phone: ${contact.phone}`,
-    contact?.jobTitle && `Title: ${contact.jobTitle}`,
+    ...contactFields,
     `Company: ${company.name}`,
     company.website && `Website: ${company.website}`,
     company.industry && `Industry: ${company.industry}`,

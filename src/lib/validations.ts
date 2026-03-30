@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhone } from "./phone";
 import { stripCommas } from "./utils";
 
 // ── Company ──
@@ -38,7 +39,10 @@ const contact = {
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
   email: z.string().max(255),
-  phone: z.string().max(50),
+  phone: z
+    .string()
+    .max(50)
+    .refine((v) => !v || isValidPhone(v), "Invalid phone number"),
   linkedinUrl: z.string().url("Invalid URL"),
   jobTitle: z.string().max(200),
 };
@@ -106,6 +110,7 @@ const deal = {
 export const dealFormSchema = z.object({
   companyId: deal.companyId,
   primaryContactId: deal.primaryContactId,
+  additionalContactIds: z.array(z.string().uuid()),
   title: deal.title,
   stage: deal.stage,
   source: deal.source,
@@ -125,6 +130,7 @@ export type DealFormValues = z.infer<typeof dealFormSchema>;
 export const createDealSchema = z.object({
   companyId: deal.companyId,
   primaryContactId: deal.primaryContactId,
+  additionalContactIds: z.array(z.string().uuid()).optional().default([]),
   title: deal.title,
   stage: deal.stage,
   source: deal.source,

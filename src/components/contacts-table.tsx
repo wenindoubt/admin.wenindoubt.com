@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import type { Contact } from "@/db/schema";
 import { deleteContact } from "@/lib/actions/contacts";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { formatDate } from "@/lib/utils";
 
 type ContactRow = Contact & {
@@ -105,7 +106,9 @@ export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
                 </Link>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {contact.phone ?? (
+                {contact.phone ? (
+                  formatPhoneDisplay(contact.phone)
+                ) : (
                   <span className="text-muted-foreground/50">&mdash;</span>
                 )}
               </TableCell>
