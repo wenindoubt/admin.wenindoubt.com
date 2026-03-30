@@ -13,7 +13,7 @@ import type { LinkedEntity } from "@/lib/types";
 type DealProps = {
   entityType: "deal";
   entityId: string;
-  resolvedDeal: { primaryContactId: string | null; companyId: string };
+  resolvedDeal: { contactIds: string[]; companyId: string };
   linkedContact?: LinkedEntity;
   linkedCompany: LinkedEntity;
 };

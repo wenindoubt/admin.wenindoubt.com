@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         .where(
           buildDealNoteConditions(
             dealId,
-            deal.primaryContactId,
+            deal.primaryContactId ? [deal.primaryContactId] : [],
             deal.companyId,
           ),
         ),
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const context = buildDealContext(
     deal,
     company,
-    contact,
+    contact ? [contact] : [],
     activities,
     contextNotes,
   );

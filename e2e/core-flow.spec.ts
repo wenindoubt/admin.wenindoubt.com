@@ -89,9 +89,7 @@ test.describe("Core User Flow", () => {
       "Log a call, email, or meeting...",
     );
     await activityTextarea.fill(activityDesc);
-    await crm.page
-      .getByRole("button", { name: "Add", exact: true })
-      .click();
+    await crm.page.getByRole("button", { name: "Add", exact: true }).click();
     await crm.expectToast("Activity added");
 
     // Verify the activity appears in the timeline
@@ -113,19 +111,14 @@ test.describe("Core User Flow", () => {
     // Navigate to any deal
     await crm.goto("/deals");
     await crm.waitForContentLoad();
-    await crm.page
-      .locator("table tbody tr a[href^='/deals/']")
-      .first()
-      .click();
+    await crm.page.locator("table tbody tr a[href^='/deals/']").first().click();
     await crm.page.waitForURL(/\/deals\/[a-f0-9-]+$/);
     await crm.waitForContentLoad();
 
     // All core sections should render
     await expect(crm.page.getByText("Deal Details")).toBeVisible();
     await expect(crm.page.getByText("Activity")).toBeVisible();
-    await expect(
-      crm.page.getByText("Notes", { exact: true }),
-    ).toBeVisible();
+    await expect(crm.page.getByText("Notes", { exact: true })).toBeVisible();
     await expect(crm.page.getByText("AI Insights")).toBeVisible();
   });
 

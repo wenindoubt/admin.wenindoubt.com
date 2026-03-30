@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { PhoneInput } from "@/components/phone-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import type { Contact } from "@/db/schema";
 import { createContact, updateContact } from "@/lib/actions/contacts";
+import { toE164 } from "@/lib/phone";
 import { cn, FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "@/lib/utils";
 import { type ContactFormValues, contactFormSchema } from "@/lib/validations";
 
@@ -47,6 +49,7 @@ export function ContactForm({
     reset,
     setValue,
     watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -72,7 +75,7 @@ export function ContactForm({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        phone: data.phone || null,
+        phone: data.phone ? toE164(data.phone) : null,
         jobTitle: data.jobTitle || null,
       };
 
@@ -193,7 +196,22 @@ export function ContactForm({
           <Label htmlFor="phone" className={labelClasses}>
             Phone
           </Label>
-          <Input id="phone" {...register("phone")} className={inputClasses} />
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field }) => (
+              <PhoneInput
+                id="phone"
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                className={inputClasses}
+              />
+            )}
+          />
+          {errors.phone && (
+            <p className="text-xs text-destructive">{errors.phone.message}</p>
+          )}
         </div>
       </div>
       <div className="space-y-1">

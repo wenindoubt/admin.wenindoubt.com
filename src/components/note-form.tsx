@@ -225,19 +225,12 @@ export function NoteForm({
       )}
 
       {/* File drop zone */}
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            fileInputRef.current?.click();
-          }
-        }}
         className={`flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-xs transition-colors ${
           isDragging
             ? "border-neon-400 bg-neon-400/5 text-neon-500"
@@ -260,7 +253,7 @@ export function NoteForm({
             e.target.value = "";
           }}
         />
-      </div>
+      </button>
 
       {/* Pending files */}
       {pendingFiles.length > 0 && (
@@ -294,10 +287,10 @@ export function NoteForm({
 
       <div className="flex items-center gap-4">
         {showLinkOptions && (
-          <div className="flex items-center gap-4 text-xs text-muted-foreground/60">
-            <span>Also link to:</span>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="text-muted-foreground/60">Also show on:</span>
             {linkedContact && (
-              <label className="flex items-center gap-1.5 cursor-pointer">
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-foreground transition-colors">
                 <input
                   type="checkbox"
                   checked={alsoLinkContact}
@@ -308,7 +301,7 @@ export function NoteForm({
               </label>
             )}
             {linkedCompany && (
-              <label className="flex items-center gap-1.5 cursor-pointer">
+              <label className="flex items-center gap-1.5 cursor-pointer hover:text-foreground transition-colors">
                 <input
                   type="checkbox"
                   checked={alsoLinkCompany}

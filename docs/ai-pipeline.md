@@ -11,7 +11,7 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     Browser->>API: POST {dealId, prompt?}
-    API->>DB: Fetch deal + company + contact + activities
+    API->>DB: Fetch deal + company + contacts + activities
     activate API
     alt Full analysis
         API->>DB: Fetch all notes (deal + contact + company)
@@ -57,7 +57,7 @@ sequenceDiagram
 
 - **Streaming**: Both `/api/ai/analyze` and `/api/ai/outreach` stream Claude responses. Other AI actions return complete responses via server actions.
 - **Embedding pipeline**: After the stream closes, `after()` from `next/server` runs embedding generation + DB persistence post-response. Gemini embeds the analysis text into a 768-dim vector stored alongside the insight. This powers `semanticSearch()` and `findSimilarDeals()`. Notes also get embeddings (fire-and-forget on create/update) powering `findRelevantNotes()`. HNSW indexes on `vector_cosine_ops` accelerate similarity queries.
-- **Notes in AI context**: Full analysis includes all auto-surfaced notes (deal + contact + company), sorted chronologically oldest→newest. Custom queries use semantic retrieval (embed question → cosine similarity search → merge with 5 most recent → sort chronologically). Prompts instruct the AI that most recent notes take precedence when information conflicts.
+- **Notes in AI context**: Full analysis includes all auto-surfaced notes (deal + all associated contacts + company), sorted chronologically oldest→newest. Custom queries use semantic retrieval (embed question → cosine similarity search → merge with 5 most recent → sort chronologically). Prompts instruct the AI that most recent notes take precedence when information conflicts.
 - **Token counting**: `claude.messages.countTokens()` provides exact token counts per note (stored in `notes.token_count`). Displayed as a badge on detail pages. Runs in `after()` alongside embedding generation — lifecycle-safe fire-and-forget.
 - **Prompts**: All system prompts are in `src/lib/ai/prompts.ts` — structured with explicit output format instructions, temporal precedence rules for notes.
 - **Token limits**: Streaming analysis capped at 4096 tokens, streaming outreach at 1024 tokens, server action calls at 2048 tokens.

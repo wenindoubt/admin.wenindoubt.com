@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, cosineDistance, desc, eq, or, sql } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { notes } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
@@ -10,7 +10,7 @@ export async function findRelevantNotes(
   query: string,
   entityFilter: {
     dealId?: string;
-    contactId?: string;
+    contactIds?: string[];
     companyId?: string;
   },
   options?: { limit?: number; minSimilarity?: number },
@@ -24,8 +24,10 @@ export async function findRelevantNotes(
   const conditions = [];
   if (entityFilter.dealId)
     conditions.push(eq(notes.dealId, entityFilter.dealId));
-  if (entityFilter.contactId)
-    conditions.push(eq(notes.contactId, entityFilter.contactId));
+  if (entityFilter.contactIds && entityFilter.contactIds.length === 1)
+    conditions.push(eq(notes.contactId, entityFilter.contactIds[0]));
+  else if (entityFilter.contactIds && entityFilter.contactIds.length > 1)
+    conditions.push(inArray(notes.contactId, entityFilter.contactIds));
   if (entityFilter.companyId)
     conditions.push(eq(notes.companyId, entityFilter.companyId));
 

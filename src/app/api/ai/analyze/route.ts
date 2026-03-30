@@ -1,11 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { after, type NextRequest } from "next/server";
 import { db } from "@/db";
 import {
   companies,
   contacts,
   dealActivities,
+  dealContacts,
   dealInsights,
   deals,
   notes,
@@ -55,16 +56,23 @@ export async function POST(req: NextRequest) {
     return new Response("Company not found", { status: 404 });
   }
 
+  // Fetch all associated contacts from junction table
+  const dealContactRows = await db
+    .select({ contactId: dealContacts.contactId })
+    .from(dealContacts)
+    .where(eq(dealContacts.dealId, dealId));
+  const contactIds = dealContactRows.map((r) => r.contactId);
+
   const entityFilter = {
     dealId,
-    contactId: deal.primaryContactId ?? undefined,
+    contactIds: contactIds.length > 0 ? contactIds : undefined,
     companyId: deal.companyId,
   };
 
   // Custom query: semantic retrieval. Full analysis: all notes.
   const [contactRows, activities, contextNotes] = await Promise.all([
-    deal.primaryContactId
-      ? db.select().from(contacts).where(eq(contacts.id, deal.primaryContactId))
+    contactIds.length > 0
+      ? db.select().from(contacts).where(inArray(contacts.id, contactIds))
       : Promise.resolve([]),
     db
       .select()
@@ -76,20 +84,22 @@ export async function POST(req: NextRequest) {
       : db
           .select()
           .from(notes)
-          .where(
-            buildDealNoteConditions(
-              dealId,
-              deal.primaryContactId,
-              deal.companyId,
-            ),
-          ),
+          .where(buildDealNoteConditions(dealId, contactIds, deal.companyId)),
   ]);
-  const contact = contactRows[0] ?? null;
+
+  // Sort so primary contact is first
+  const sortedContacts = contactRows.sort((a, b) =>
+    a.id === deal.primaryContactId
+      ? -1
+      : b.id === deal.primaryContactId
+        ? 1
+        : 0,
+  );
 
   const dealFields = buildDealContext(
     deal,
     company,
-    contact,
+    sortedContacts,
     activities,
     contextNotes,
   );

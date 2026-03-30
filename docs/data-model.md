@@ -1,6 +1,6 @@
 # Data Model
 
-Drizzle ORM schema with 11 tables. Defined in `src/db/schema.ts`.
+Drizzle ORM schema with 12 tables. Defined in `src/db/schema.ts`.
 
 ```mermaid
 erDiagram
@@ -71,6 +71,10 @@ erDiagram
         text name UK
         text color
     }
+    deal_contacts {
+        uuid deal_id PK,FK
+        uuid contact_id PK,FK
+    }
     deal_tags {
         uuid deal_id PK,FK
         uuid tag_id PK,FK
@@ -118,6 +122,8 @@ erDiagram
     companies ||--o{ contacts : "has"
     companies ||--o{ deals : "has"
     contacts ||--o{ deals : "primary contact"
+    deals ||--o{ deal_contacts : "has contacts"
+    contacts ||--o{ deal_contacts : "associated with"
     deals ||--o{ deal_insights : "has analyses"
     deals ||--o{ deal_activities : "has activities"
     deals ||--o{ deal_tags : "tagged with"
@@ -133,7 +139,8 @@ erDiagram
 ## Key Details
 
 - **Enums**: `deal_stage` (new, contacted, qualifying, proposal_sent, negotiating, nurture, won, lost), `deal_source` (website, referral, linkedin, conference, cold_outreach, other)
-- **Cascade deletes**: deleting a company cascades to contacts and deals. Deleting a deal cascades to insights, activities, and tag associations. Contacts referenced as primary contact use `ON DELETE RESTRICT`.
+- **Multi-contact deals**: `deal_contacts` junction table links deals to multiple contacts (primary + additional). `deals.primary_contact_id` remains for fast common queries. Notes auto-surface across all associated contacts. AI analysis includes all contacts.
+- **Cascade deletes**: deleting a company cascades to contacts and deals. Deleting a deal cascades to insights, activities, deal_contacts, and tag associations. Contacts referenced as primary contact use `ON DELETE RESTRICT`.
 - **Unique constraint**: `contacts(company_id, email)` prevents duplicate contacts per company
 - **Vector column**: `deal_insights.embedding` is 768-dim (Gemini `gemini-embedding-2-preview`) with HNSW index (`vector_cosine_ops`) for semantic search
 - **RLS**: enabled on all tables except `note_attachments` — authenticated Clerk users get full access, anon role blocked. `gmail_tokens` has an additional explicit deny-anon policy. RLS on `deals` enforced on Supabase Realtime subscriptions.

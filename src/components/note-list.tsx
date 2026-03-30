@@ -214,79 +214,55 @@ function NoteCard({
   return (
     <div className="rounded-lg border border-border/30 bg-card transition-colors hover:border-border/50">
       {/* Collapsed header row */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className="group flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
-      >
-        <ChevronRight
-          className={`size-3.5 shrink-0 text-muted-foreground/30 transition-transform duration-200 ${
-            isExpanded ? "rotate-90" : ""
-          }`}
-        />
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          {attribution && (
-            <span className="shrink-0 rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground/50">
-              {attribution}
-            </span>
-          )}
-          <span className="truncate text-sm font-medium text-foreground">
-            {preview}
-          </span>
-          {!isExpanded && note.title && hasContent && (
-            <span className="truncate text-sm text-muted-foreground/35">
-              — {getPreviewText(note.content, 50)}
-            </span>
-          )}
-        </div>
-        {attachments.length > 0 && (
-          <span className="shrink-0 text-xs text-muted-foreground/60">
-            {attachments.length} file{attachments.length !== 1 ? "s" : ""}
-          </span>
-        )}
-        <span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
-          {formatDateTime(note.createdAt)}
-        </span>
-        {/* Hover actions */}
-        <div
-          className={`flex shrink-0 items-center gap-0.5 transition-opacity ${
-            confirmDelete ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
+      <div className="group flex items-center gap-0.5 pr-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2.5 text-left"
         >
+          <ChevronRight
+            className={`size-3.5 shrink-0 text-muted-foreground/30 transition-transform duration-200 ${
+              isExpanded ? "rotate-90" : ""
+            }`}
+          />
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {attribution && (
+              <span className="shrink-0 rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground/50">
+                {attribution}
+              </span>
+            )}
+            <span className="truncate text-sm font-medium text-foreground">
+              {preview}
+            </span>
+            {!isExpanded && note.title && hasContent && (
+              <span className="truncate text-sm text-muted-foreground/35">
+                — {getPreviewText(note.content, 50)}
+              </span>
+            )}
+          </div>
+          {attachments.length > 0 && (
+            <span className="shrink-0 text-xs text-muted-foreground/60">
+              {attachments.length} file{attachments.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
+            {formatDateTime(note.createdAt)}
+          </span>
+        </button>
+        {/* Hover actions — outside the toggle button to avoid nested buttons */}
+        <div className="flex shrink-0 items-center gap-0.5">
           {!isEditing && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEdit();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleEdit();
-                }
-              }}
+            <button
+              type="button"
+              onClick={handleEdit}
               className="flex items-center rounded-md p-1.5 text-muted-foreground/40 transition-all hover:bg-muted/60 hover:text-foreground"
             >
               <Pencil className="size-3" />
-            </span>
+            </button>
           )}
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDelete();
-              }
-            }}
+          <button
+            type="button"
+            onClick={handleDelete}
             className={`flex items-center rounded-md p-1.5 transition-all ${
               confirmDelete
                 ? "bg-red-500/10 text-red-600"
@@ -299,9 +275,9 @@ function NoteCard({
             ) : confirmDelete ? (
               <span className="ml-1 text-xs">Confirm?</span>
             ) : null}
-          </span>
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Expandable body */}
       <div

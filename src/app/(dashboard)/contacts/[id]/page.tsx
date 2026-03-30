@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { getContact } from "@/lib/actions/contacts";
 import { DEAL_STAGES } from "@/lib/constants";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type Props = {
@@ -93,7 +94,12 @@ export default async function ContactDetailPage({ params }: Props) {
             {contact.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="size-4 text-muted-foreground/60" />
-                <span>{contact.phone}</span>
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="text-foreground hover:text-neon-400 transition-colors"
+                >
+                  {formatPhoneDisplay(contact.phone)}
+                </a>
               </div>
             )}
             {contact.linkedinUrl && (

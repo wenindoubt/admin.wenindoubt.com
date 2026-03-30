@@ -121,7 +121,7 @@ describe("contactFormSchema", () => {
   it("allows optional phone, linkedinUrl, jobTitle", () => {
     const r = contactFormSchema.safeParse({
       ...valid,
-      phone: "555-1234",
+      phone: "+15188672033",
       linkedinUrl: "https://linkedin.com/in/jane",
       jobTitle: "CEO",
     });
@@ -148,6 +148,7 @@ describe("dealFormSchema", () => {
   const valid = {
     companyId: uuid(),
     primaryContactId: uuid(),
+    additionalContactIds: [],
     title: "Big Deal",
     stage: "new" as const,
     source: "website" as const,

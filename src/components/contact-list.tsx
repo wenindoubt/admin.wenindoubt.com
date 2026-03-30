@@ -7,6 +7,7 @@ import { ContactForm } from "@/components/contact-form";
 import { Separator } from "@/components/ui/separator";
 import type { Contact } from "@/db/schema";
 import { deleteContact } from "@/lib/actions/contacts";
+import { formatPhoneDisplay } from "@/lib/phone";
 
 type ContactListProps = {
   companyId: string;
@@ -73,7 +74,7 @@ export function ContactList({
                   {contact.phone && (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Phone className="size-3" />
-                      {contact.phone}
+                      {formatPhoneDisplay(contact.phone)}
                     </span>
                   )}
                 </div>

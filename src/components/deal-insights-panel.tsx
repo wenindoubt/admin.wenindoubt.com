@@ -75,6 +75,7 @@ type Props = {
   } | null;
   insights: DealInsight[];
   insightsTotal?: number;
+  suppressAutoAnalyze?: boolean;
 };
 
 const PAGE_SIZE = 3;
@@ -426,6 +427,7 @@ export function DealInsightsPanel({
   contact,
   insights,
   insightsTotal,
+  suppressAutoAnalyze,
 }: Props) {
   const dealId = deal.id;
   const router = useRouter();
@@ -444,24 +446,26 @@ export function DealInsightsPanel({
     0,
   );
 
-  const contactForContext = useMemo(
+  const contactsForContext = useMemo(
     () =>
       contact
-        ? {
-            firstName: contact.firstName ?? "",
-            lastName: contact.lastName ?? "",
-            email: contact.email,
-            phone: contact.phone,
-            jobTitle: contact.jobTitle,
-          }
-        : null,
+        ? [
+            {
+              firstName: contact.firstName ?? "",
+              lastName: contact.lastName ?? "",
+              email: contact.email,
+              phone: contact.phone,
+              jobTitle: contact.jobTitle,
+            },
+          ]
+        : [],
     [contact],
   );
 
   // Detect which fields changed since last analysis
   const currentContext = useMemo(
-    () => buildDealContext(deal, company, contactForContext),
-    [deal, company, contactForContext],
+    () => buildDealContext(deal, company, contactsForContext),
+    [deal, company, contactsForContext],
   );
   const staleChanges = useMemo(() => {
     if (dismissedStale) return [];
@@ -506,11 +510,22 @@ export function DealInsightsPanel({
     setAnalysisKey((k) => k + 1);
   }
 
+  const hasRunAutoAnalysis = useRef(false);
+
   // Reconnect to in-progress or recently-completed analysis (survives navigation)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reconnect on mount or after starting new analysis
   useEffect(() => {
     const existing = getActiveAnalysis(dealId);
-    if (!existing) return;
+
+    // No active/recent entry in the store — if we also have no insights,
+    // the analysis may have completed while we were away and the store entry
+    // was already cleaned up. Force a server refresh to pick up DB data.
+    if (!existing) {
+      if (insights.length === 0 && hasRunAutoAnalysis.current) {
+        router.refresh();
+      }
+      return;
+    }
 
     if (existing.done) {
       if (!existing.error) router.refresh();
@@ -536,10 +551,13 @@ export function DealInsightsPanel({
   }, [dealId, analysisKey]);
 
   // Auto-trigger analysis for new deals with no insights
-  const hasRunAutoAnalysis = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref-guarded one-shot effect
   useEffect(() => {
-    if (insights.length === 0 && !hasRunAutoAnalysis.current) {
+    if (
+      insights.length === 0 &&
+      !suppressAutoAnalyze &&
+      !hasRunAutoAnalysis.current
+    ) {
       hasRunAutoAnalysis.current = true;
       // Skip if analysis already in-progress from before navigation
       if (!getActiveAnalysis(dealId)) {
@@ -600,7 +618,7 @@ export function DealInsightsPanel({
               disabled={isAnalyzing}
               maxLength={500}
               placeholder="Ask something specific about this deal..."
-              className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 pr-10 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-neon-400/30 focus:border-neon-400/30 disabled:opacity-50"
+              className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 pr-10 text-sm placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-neon-400/30 focus:border-neon-400/30 disabled:opacity-50"
             />
             <button
               type="submit"

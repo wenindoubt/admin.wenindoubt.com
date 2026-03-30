@@ -12,6 +12,7 @@ import {
   companyTags,
   contacts,
   dealActivities,
+  dealContacts,
   deals,
   dealTags,
   notes,
@@ -115,7 +116,7 @@ const sampleContacts = [
     firstName: "Sarah",
     lastName: "Chen",
     email: "sarah.chen@acmecorp.io",
-    phone: "+1 415-555-0101",
+    phone: "+14155550101",
     jobTitle: "VP of Engineering",
     linkedinUrl: "https://linkedin.com/in/sarahchen",
   },
@@ -123,7 +124,7 @@ const sampleContacts = [
     firstName: "James",
     lastName: "Kowalski",
     email: "j.kowalski@neonlabs.com",
-    phone: "+1 212-555-0142",
+    phone: "+12125550142",
     jobTitle: "CTO",
     linkedinUrl: "https://linkedin.com/in/jameskowalski",
   },
@@ -131,7 +132,7 @@ const sampleContacts = [
     firstName: "Priya",
     lastName: "Sharma",
     email: "priya@vaultfinance.co",
-    phone: "+1 650-555-0199",
+    phone: "+16505550199",
     jobTitle: "Head of Product",
     linkedinUrl: null,
   },
@@ -155,7 +156,7 @@ const sampleContacts = [
     firstName: "Marcus",
     lastName: "Bell",
     email: "mbell@stratoscloud.io",
-    phone: "+1 303-555-0178",
+    phone: "+13035550178",
     jobTitle: "VP Sales",
     linkedinUrl: null,
   },
@@ -179,7 +180,7 @@ const sampleContacts = [
     firstName: "Lena",
     lastName: "Andersen",
     email: "lena@nordicpay.eu",
-    phone: "+45 31-555-0144",
+    phone: "+45315550144",
     jobTitle: "Head of Partnerships",
     linkedinUrl: null,
   },
@@ -203,7 +204,7 @@ const sampleContacts = [
     firstName: "Oliver",
     lastName: "Grant",
     email: "ogrant@summitcap.com",
-    phone: "+1 917-555-0166",
+    phone: "+19175550166",
     jobTitle: "Managing Partner",
     linkedinUrl: null,
   },
@@ -506,6 +507,32 @@ async function seed() {
     insertedDeals.push(inserted);
   }
   console.log(`  Deals:      ${insertedDeals.length} created`);
+
+  // Deal contacts (primary + random 0-2 additional from other companies' contacts)
+  let dcCount = 0;
+  for (let i = 0; i < insertedDeals.length; i++) {
+    const deal = insertedDeals[i];
+    // Always include primary contact
+    await db
+      .insert(dealContacts)
+      .values({ dealId: deal.id, contactId: insertedContacts[i].id })
+      .onConflictDoNothing();
+    dcCount++;
+    // 50% chance to add 1-2 additional contacts from other companies
+    if (Math.random() > 0.5) {
+      const others = insertedContacts.filter((_, idx) => idx !== i);
+      const shuffled = [...others].sort(() => Math.random() - 0.5);
+      const pick = shuffled.slice(0, 1 + Math.floor(Math.random() * 2));
+      for (const contact of pick) {
+        await db
+          .insert(dealContacts)
+          .values({ dealId: deal.id, contactId: contact.id })
+          .onConflictDoNothing();
+        dcCount++;
+      }
+    }
+  }
+  console.log(`  Deal contacts: ${dcCount} created`);
 
   // Deal tags (random 1-3 per deal)
   const tagNames = Object.keys(tagsByName);

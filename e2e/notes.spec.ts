@@ -95,7 +95,8 @@ test.describe("Notes", () => {
       .locator("button")
       .filter({ hasText: title })
       .first();
-    if (!(await noteRow.isVisible({ timeout: 3000 }).catch(() => false))) return;
+    if (!(await noteRow.isVisible({ timeout: 3000 }).catch(() => false)))
+      return;
 
     // Hover to reveal edit action, then click pencil
     await noteRow.hover();

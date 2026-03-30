@@ -192,6 +192,22 @@ export const tags = pgTable("tags", {
   color: text(),
 });
 
+export const dealContacts = pgTable(
+  "deal_contacts",
+  {
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.dealId, table.contactId] }),
+    index("idx_deal_contacts_contact_id").on(table.contactId),
+  ],
+);
+
 export const dealTags = pgTable(
   "deal_tags",
   {

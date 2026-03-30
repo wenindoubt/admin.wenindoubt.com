@@ -8,6 +8,7 @@ import {
   companies,
   contacts,
   dealActivities,
+  dealContacts,
   dealInsights,
   deals,
   dealTags,
@@ -168,39 +169,52 @@ export async function getDeal(id: string) {
 
   if (!row) return null;
 
-  const [activityRows, insightRows, dealTagRows] = await Promise.all([
-    db
-      .select({
-        activity: dealActivities,
-        totalCount,
-      })
-      .from(dealActivities)
-      .where(eq(dealActivities.dealId, id))
-      .orderBy(desc(dealActivities.createdAt))
-      .limit(50),
-    db
-      .select({
-        id: dealInsights.id,
-        dealId: dealInsights.dealId,
-        prompt: dealInsights.prompt,
-        rawInput: dealInsights.rawInput,
-        analysisText: dealInsights.analysisText,
-        summary: dealInsights.summary,
-        analysisModel: dealInsights.analysisModel,
-        embeddingModel: dealInsights.embeddingModel,
-        generatedAt: dealInsights.generatedAt,
-        totalCount,
-      })
-      .from(dealInsights)
-      .where(eq(dealInsights.dealId, id))
-      .orderBy(desc(dealInsights.generatedAt))
-      .limit(20),
-    db
-      .select({ tag: tags })
-      .from(dealTags)
-      .innerJoin(tags, eq(dealTags.tagId, tags.id))
-      .where(eq(dealTags.dealId, id)),
-  ]);
+  const [activityRows, insightRows, dealTagRows, dealContactRows] =
+    await Promise.all([
+      db
+        .select({
+          activity: dealActivities,
+          totalCount,
+        })
+        .from(dealActivities)
+        .where(eq(dealActivities.dealId, id))
+        .orderBy(desc(dealActivities.createdAt))
+        .limit(50),
+      db
+        .select({
+          id: dealInsights.id,
+          dealId: dealInsights.dealId,
+          prompt: dealInsights.prompt,
+          rawInput: dealInsights.rawInput,
+          analysisText: dealInsights.analysisText,
+          summary: dealInsights.summary,
+          analysisModel: dealInsights.analysisModel,
+          embeddingModel: dealInsights.embeddingModel,
+          generatedAt: dealInsights.generatedAt,
+          totalCount,
+        })
+        .from(dealInsights)
+        .where(eq(dealInsights.dealId, id))
+        .orderBy(desc(dealInsights.generatedAt))
+        .limit(20),
+      db
+        .select({ tag: tags })
+        .from(dealTags)
+        .innerJoin(tags, eq(dealTags.tagId, tags.id))
+        .where(eq(dealTags.dealId, id)),
+      db
+        .select({
+          id: contacts.id,
+          firstName: contacts.firstName,
+          lastName: contacts.lastName,
+          email: contacts.email,
+          phone: contacts.phone,
+          jobTitle: contacts.jobTitle,
+        })
+        .from(dealContacts)
+        .innerJoin(contacts, eq(dealContacts.contactId, contacts.id))
+        .where(eq(dealContacts.dealId, id)),
+    ]);
 
   return {
     ...row.deal,
@@ -215,6 +229,7 @@ export async function getDeal(id: string) {
           jobTitle: row.contactJobTitle,
         }
       : null,
+    contacts: dealContactRows,
     activities: activityRows.map((r) => r.activity),
     activitiesTotal: activityRows[0]?.totalCount ?? 0,
     insights: insightRows.map(({ totalCount: _, ...rest }) => rest),
@@ -238,9 +253,23 @@ export async function getDealForEdit(id: string) {
     .where(eq(deals.id, id));
 
   if (!row) return null;
+
+  const additionalContactRows = await db
+    .select({ contactId: dealContacts.contactId })
+    .from(dealContacts)
+    .where(
+      and(
+        eq(dealContacts.dealId, id),
+        row.deal.primaryContactId
+          ? sql`${dealContacts.contactId} != ${row.deal.primaryContactId}`
+          : undefined,
+      ),
+    );
+
   return {
     ...row.deal,
     company: { id: row.companyId, name: row.companyName },
+    additionalContactIds: additionalContactRows.map((r) => r.contactId),
   };
 }
 
@@ -253,7 +282,11 @@ export async function createDeal(data: CreateDealInput) {
     throw new Error(parsed.error.issues[0].message);
   }
 
-  const { followUpAt: followUpStr, ...rest } = parsed.data;
+  const {
+    followUpAt: followUpStr,
+    additionalContactIds,
+    ...rest
+  } = parsed.data;
   const values = {
     ...rest,
     assignedTo: rest.assignedTo || userId,
@@ -274,6 +307,18 @@ export async function createDeal(data: CreateDealInput) {
       createdBy: userId,
       metadata: { to_stage: row.stage },
     });
+    // Junction table: primary + additional contacts
+    const allContactIds = [
+      row.primaryContactId,
+      ...(additionalContactIds ?? []),
+    ].filter((id): id is string => !!id);
+    if (allContactIds.length > 0) {
+      await tx
+        .insert(dealContacts)
+        .values(
+          allContactIds.map((contactId) => ({ dealId: row.id, contactId })),
+        );
+    }
     return row;
   });
 
@@ -290,7 +335,11 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
     throw new Error(parsed.error.issues[0].message);
   }
 
-  const { followUpAt: followUpStr, ...rest } = parsed.data;
+  const {
+    followUpAt: followUpStr,
+    additionalContactIds,
+    ...rest
+  } = parsed.data;
 
   const updated = await db.transaction(async (tx) => {
     const [existing] = await tx.select().from(deals).where(eq(deals.id, id));
@@ -329,6 +378,22 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
         createdBy: userId,
         metadata: { from_stage: existing.stage, to_stage: data.stage },
       });
+    }
+
+    // Sync deal_contacts junction table
+    if (additionalContactIds !== undefined || rest.primaryContactId) {
+      await tx.delete(dealContacts).where(eq(dealContacts.dealId, id));
+      const primaryId = rest.primaryContactId ?? existing.primaryContactId;
+      const allContactIds = [primaryId, ...(additionalContactIds ?? [])].filter(
+        (id): id is string => !!id,
+      );
+      if (allContactIds.length > 0) {
+        await tx
+          .insert(dealContacts)
+          .values(
+            allContactIds.map((contactId) => ({ dealId: id, contactId })),
+          );
+      }
     }
 
     return row;
