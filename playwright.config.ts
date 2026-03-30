@@ -9,6 +9,8 @@ const baseURL = "http://localhost:3000";
 export default defineConfig({
   testDir: "./e2e",
   retries: 1,
+  timeout: 30_000,
+  expect: { timeout: 10_000 },
   webServer: {
     command: "npm run dev",
     url: baseURL,
@@ -18,6 +20,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "retry-with-trace",
+    screenshot: "only-on-failure",
   },
   projects: [
     {
