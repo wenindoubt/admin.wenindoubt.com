@@ -1,6 +1,6 @@
+import path from "node:path";
 import { clerk, clerkSetup } from "@clerk/testing/playwright";
 import { test as setup } from "@playwright/test";
-import path from "path";
 
 setup.describe.configure({ mode: "serial" });
 

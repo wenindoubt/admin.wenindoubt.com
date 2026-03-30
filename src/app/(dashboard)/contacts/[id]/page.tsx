@@ -14,12 +14,7 @@ import { EntityNotesSection } from "@/components/entity-notes-section";
 import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,

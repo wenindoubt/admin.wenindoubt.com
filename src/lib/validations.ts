@@ -113,7 +113,7 @@ export const dealFormSchema = z.object({
   estimatedValue: deal.estimatedValue
     .optional()
     .refine(
-      (v) => !v || !isNaN(Number(stripCommas(v))),
+      (v) => !v || !Number.isNaN(Number(stripCommas(v))),
       "Must be a valid dollar amount",
     ),
   assignedTo: deal.assignedTo.optional(),

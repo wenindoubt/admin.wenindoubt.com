@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 const ALLOWED_TYPES: Record<string, number> = {
   "application/pdf": 10 * 1024 * 1024,
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
   const storagePath = `${userId}/${crypto.randomUUID()}_${file.name}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error } = await supabaseAdmin.storage
-    .from("note-attachments")
+  const { error } = await getSupabaseAdmin()
+    .storage.from("note-attachments")
     .upload(storagePath, buffer, { contentType: file.type, upsert: false });
 
   if (error) {
