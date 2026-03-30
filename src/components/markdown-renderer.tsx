@@ -38,9 +38,7 @@ const mdComponents: Components = {
       {children}
     </ol>
   ),
-  li: ({ children }) => (
-    <li className="leading-relaxed">{children}</li>
-  ),
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
   hr: () => (
     <hr className="my-4 border-0 h-px bg-gradient-to-r from-transparent via-neon-400/25 to-transparent" />
   ),

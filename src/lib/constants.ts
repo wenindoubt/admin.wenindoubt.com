@@ -76,7 +76,6 @@ export const DEAL_SOURCES = [
   { value: "other", label: "Other" },
 ] as const;
 
-
 export const ACTIVITY_TYPES = [
   { value: "email", label: "Email" },
   { value: "call", label: "Call" },

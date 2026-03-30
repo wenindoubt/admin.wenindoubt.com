@@ -95,14 +95,6 @@ export function NoteList({
     });
   }, []);
 
-  if (notes.length === 0) {
-    return (
-      <p className="py-6 text-center text-sm text-muted-foreground/50">
-        No notes yet
-      </p>
-    );
-  }
-
   const totalPages = Math.ceil(total / pageSize);
 
   const attachmentsByNote = useMemo(() => {
@@ -114,6 +106,14 @@ export function NoteList({
     }
     return map;
   }, [attachments]);
+
+  if (notes.length === 0) {
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground/50">
+        No notes yet
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-1">

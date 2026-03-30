@@ -1,11 +1,6 @@
 import { NotesSection } from "@/components/notes-section";
 import { TokenStatsBadge } from "@/components/token-stats-badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getAttachmentsForNotes,
   getNotes,

@@ -133,10 +133,7 @@ export async function createNote(data: CreateNoteInput) {
 
   if (note.content.trim()) {
     const tokenCount = await countTokens(note.content);
-    await db
-      .update(notes)
-      .set({ tokenCount })
-      .where(eq(notes.id, note.id));
+    await db.update(notes).set({ tokenCount }).where(eq(notes.id, note.id));
     note.tokenCount = tokenCount;
     generateEmbeddingAfterResponse(note.id, note.content);
   }
@@ -192,9 +189,9 @@ export async function deleteNote(id: string) {
     // Clean up storage files after response
     if (attachments.length > 0) {
       after(async () => {
-        const { supabaseAdmin } = await import("@/lib/supabase/server");
-        await supabaseAdmin.storage
-          .from("note-attachments")
+        const { getSupabaseAdmin } = await import("@/lib/supabase/server");
+        await getSupabaseAdmin()
+          .storage.from("note-attachments")
           .remove(attachments.map((a) => a.storagePath));
       });
     }
@@ -221,9 +218,9 @@ export async function getAttachmentUrl(storagePath: string): Promise<string> {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const { supabaseAdmin } = await import("@/lib/supabase/server");
-  const { data, error } = await supabaseAdmin.storage
-    .from("note-attachments")
+  const { getSupabaseAdmin } = await import("@/lib/supabase/server");
+  const { data, error } = await getSupabaseAdmin()
+    .storage.from("note-attachments")
     .createSignedUrl(storagePath, 60 * 60); // 1 hour
 
   if (error || !data?.signedUrl) throw new Error("Failed to generate URL");
@@ -331,10 +328,7 @@ function generateEmbeddingAfterResponse(noteId: string, content: string) {
   after(async () => {
     try {
       const embedding = await generateEmbedding(content);
-      await db
-        .update(notes)
-        .set({ embedding })
-        .where(eq(notes.id, noteId));
+      await db.update(notes).set({ embedding }).where(eq(notes.id, noteId));
     } catch (error) {
       console.error("Failed to generate embedding", noteId, error);
     }
