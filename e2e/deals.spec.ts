@@ -111,6 +111,33 @@ test.describe("Deals — List & Filters", () => {
     await titleHeader.click();
     await expect(crm.page).toHaveURL(/sortBy=title/);
   });
+
+  test("pagination navigates between pages", async ({ crm }) => {
+    await crm.goto("/deals");
+    await crm.waitForContentLoad();
+
+    // Check if pagination exists (need enough seeded deals)
+    const showingText = crm.page.getByText(/Showing \d+–\d+ of \d+/);
+    if (!(await showingText.isVisible({ timeout: 3000 }).catch(() => false)))
+      return;
+
+    // Click the next-page button (ChevronRight icon button after page numbers)
+    const paginationNav = crm.page.locator("nav, [class*='pagination']").last();
+    const nextBtn = paginationNav.locator("button").last();
+    if (
+      await nextBtn
+        .isEnabled({ timeout: 2000 })
+        .catch(() => false)
+    ) {
+      await nextBtn.click();
+      await expect(crm.page).toHaveURL(/page=2/);
+      await crm.waitForContentLoad();
+      // Table should still have data
+      await expect(
+        crm.page.locator("table tbody tr").first(),
+      ).toBeVisible();
+    }
+  });
 });
 
 test.describe("Deals — CRUD", () => {
@@ -177,6 +204,62 @@ test.describe("Deals — CRUD", () => {
     await crm.page.getByRole("menuitem", { name: "Delete" }).click();
 
     await crm.expectToast("Deal deleted");
+  });
+
+  test("add activity on deal detail", async ({ crm }) => {
+    // Navigate to first deal detail
+    await crm.goto("/deals");
+    await crm.waitForContentLoad();
+    await crm.page
+      .locator("table tbody tr a[href^='/deals/']")
+      .first()
+      .click();
+    await crm.page.waitForURL(/\/deals\/[a-f0-9-]+$/);
+    await crm.waitForContentLoad();
+
+    // Fill activity form (defaults to "Call" type)
+    const desc = uniqueName("E2E call");
+    await crm.page
+      .getByPlaceholder("Log a call, email, or meeting...")
+      .fill(desc);
+    await crm.page
+      .getByRole("button", { name: "Add", exact: true })
+      .click();
+    await crm.expectToast("Activity added");
+
+    // Activity should appear in the timeline
+    await expect(crm.page.getByText(desc)).toBeVisible();
+  });
+
+  test("add activity with different types", async ({ crm }) => {
+    await crm.goto("/deals");
+    await crm.waitForContentLoad();
+    await crm.page
+      .locator("table tbody tr a[href^='/deals/']")
+      .first()
+      .click();
+    await crm.page.waitForURL(/\/deals\/[a-f0-9-]+$/);
+    await crm.waitForContentLoad();
+
+    // Change type to "Email" — the activity select trigger contains "Call" by default
+    const typeTrigger = crm.page
+      .locator('[role="combobox"]')
+      .filter({ hasText: /Call/ });
+    if (await typeTrigger.isVisible().catch(() => false)) {
+      await typeTrigger.click();
+      await crm.page.getByRole("option", { name: "Email" }).click();
+    }
+
+    const desc = uniqueName("E2E email");
+    await crm.page
+      .getByPlaceholder("Log a call, email, or meeting...")
+      .fill(desc);
+    await crm.page
+      .getByRole("button", { name: "Add", exact: true })
+      .click();
+    await crm.expectToast("Activity added");
+
+    await expect(crm.page.getByText(desc)).toBeVisible();
   });
 
   test("nurture stage shows follow-up date field", async ({ crm }) => {
