@@ -1,15 +1,17 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let _client: SupabaseClient | null = null;
+const globalForSupabase = globalThis as unknown as {
+  supabaseAdmin: SupabaseClient | undefined;
+};
 
 /** Server-side Supabase client with service role — bypasses RLS. */
 export function getSupabaseAdmin(): SupabaseClient {
-  if (!_client) {
-    _client = createClient(
+  if (!globalForSupabase.supabaseAdmin) {
+    globalForSupabase.supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } },
     );
   }
-  return _client;
+  return globalForSupabase.supabaseAdmin;
 }
