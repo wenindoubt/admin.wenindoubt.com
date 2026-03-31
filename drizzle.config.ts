@@ -8,4 +8,10 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
+  schemaFilter: ["public"],
+  entities: {
+    roles: {
+      provider: "supabase",
+    },
+  },
 });

@@ -20,12 +20,12 @@ import {
 import { PaginationBar } from "@/components/pagination";
 
 import { Button } from "@/components/ui/button";
-import type { Note, NoteAttachment } from "@/db/schema";
+import type { NoteAttachment, NoteRow } from "@/db/schema";
 import { deleteNote, getAttachmentUrl, updateNote } from "@/lib/actions/notes";
 import { formatDateTime, formatFileSize } from "@/lib/utils";
 
 type Props = {
-  notes: Note[];
+  notes: NoteRow[];
   attachments: NoteAttachment[];
   total: number;
   pageSize: number;
@@ -40,7 +40,7 @@ function getFileIcon(mime: string) {
   return File;
 }
 
-function getAttribution(note: Note, currentDealId?: string) {
+function getAttribution(note: NoteRow, currentDealId?: string) {
   if (!currentDealId) return null;
   if (note.dealId === currentDealId) return null;
   if (note.contactId) return "via Contact";
@@ -145,7 +145,7 @@ function NoteCard({
   isExpanded,
   onToggle,
 }: {
-  note: Note;
+  note: NoteRow;
   attachments: NoteAttachment[];
   attribution: string | null;
   isExpanded: boolean;

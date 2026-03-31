@@ -1,7 +1,16 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, totalCount } from "@/db";
 import {
@@ -16,6 +25,12 @@ import {
 } from "@/db/schema";
 import { stageLabel } from "@/lib/constants";
 import { buildTsquery } from "@/lib/utils";
+
+/** Deal/company columns for reads — excludes searchVector */
+const { searchVector: _, ...dealColumns } = getTableColumns(deals);
+const { searchVector: _csv, ...companyColumnsSlim } =
+  getTableColumns(companies);
+
 import {
   addDealActivitySchema,
   type CreateDealInput,
@@ -88,7 +103,7 @@ export async function getDeals(filters?: DealFilters) {
 
   let query = db
     .select({
-      deal: deals,
+      deal: dealColumns,
       companyName: companies.name,
       contactFirstName: contacts.firstName,
       contactLastName: contacts.lastName,
@@ -153,8 +168,8 @@ export async function getDeal(id: string) {
 
   const [row] = await db
     .select({
-      deal: deals,
-      company: companies,
+      deal: dealColumns,
+      company: companyColumnsSlim,
       contactFirstName: contacts.firstName,
       contactLastName: contacts.lastName,
       contactEmail: contacts.email,
@@ -244,7 +259,7 @@ export async function getDealForEdit(id: string) {
 
   const [row] = await db
     .select({
-      deal: deals,
+      deal: dealColumns,
       companyId: companies.id,
       companyName: companies.name,
     })
@@ -342,7 +357,15 @@ export async function updateDeal(id: string, data: UpdateDealInput) {
   } = parsed.data;
 
   const updated = await db.transaction(async (tx) => {
-    const [existing] = await tx.select().from(deals).where(eq(deals.id, id));
+    const [existing] = await tx
+      .select({
+        stage: deals.stage,
+        primaryContactId: deals.primaryContactId,
+        convertedAt: deals.convertedAt,
+        closedAt: deals.closedAt,
+      })
+      .from(deals)
+      .where(eq(deals.id, id));
     if (!existing) throw new Error("Deal not found");
 
     let followUpAt: Date | null | undefined;
@@ -486,23 +509,21 @@ export async function getRecentActivities(filters?: {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [rows, [{ count: total }]] = await Promise.all([
-    db
-      .select({
-        activity: dealActivities,
-        dealTitle: deals.title,
-        companyName: companies.name,
-      })
-      .from(dealActivities)
-      .innerJoin(deals, eq(dealActivities.dealId, deals.id))
-      .innerJoin(companies, eq(deals.companyId, companies.id))
-      .orderBy(desc(dealActivities.createdAt))
-      .limit(filters?.limit ?? 5)
-      .offset(filters?.offset ?? 0),
-    db.select({ count: count() }).from(dealActivities),
-  ]);
+  const rows = await db
+    .select({
+      activity: dealActivities,
+      dealTitle: deals.title,
+      companyName: companies.name,
+      totalCount,
+    })
+    .from(dealActivities)
+    .innerJoin(deals, eq(dealActivities.dealId, deals.id))
+    .innerJoin(companies, eq(deals.companyId, companies.id))
+    .orderBy(desc(dealActivities.createdAt))
+    .limit(filters?.limit ?? 5)
+    .offset(filters?.offset ?? 0);
 
-  return { data: rows, total };
+  return { data: rows, total: rows[0]?.totalCount ?? 0 };
 }
 
 // Tags
@@ -542,7 +563,6 @@ export async function checkStageTransition(
     .select({
       id: deals.id,
       stage: deals.stage,
-      assignedTo: deals.assignedTo,
       primaryContactId: deals.primaryContactId,
     })
     .from(deals)

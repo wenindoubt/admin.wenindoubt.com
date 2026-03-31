@@ -27,12 +27,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Deal, Tag } from "@/db/schema";
+import type { DealRow, Tag } from "@/db/schema";
 import { deleteDeal, updateDeal } from "@/lib/actions/deals";
 import { DEAL_SOURCES, DEAL_STAGES, stageLabel } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-type DealRow = Deal & {
+type DealRowWithRelations = DealRow & {
   company: { name: string };
   contact: { name: string } | null;
   tags: Tag[];
@@ -47,11 +47,11 @@ function StageBadge({ stage }: { stage: string }) {
   );
 }
 
-function StageDropdown({ deal }: { deal: Deal }) {
+function StageDropdown({ deal }: { deal: DealRow }) {
   async function handleStageChange(newStage: string) {
     try {
       await updateDeal(deal.id, {
-        stage: newStage as Deal["stage"],
+        stage: newStage as DealRow["stage"],
       });
       toast.success(`Stage updated to ${stageLabel(newStage)}`);
     } catch {
@@ -81,7 +81,7 @@ function StageDropdown({ deal }: { deal: Deal }) {
   );
 }
 
-export function DealsTable({ deals }: { deals: DealRow[] }) {
+export function DealsTable({ deals }: { deals: DealRowWithRelations[] }) {
   const router = useRouter();
 
   async function handleDelete(id: string) {

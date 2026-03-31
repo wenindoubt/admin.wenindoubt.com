@@ -1,19 +1,33 @@
 import type { Company, Contact, Deal, DealActivity, Note } from "@/db/schema";
 import { formatPhoneDisplay } from "@/lib/phone";
 
+type DealContext = Pick<
+  Deal,
+  | "title"
+  | "sourceDetail"
+  | "estimatedValue"
+  | "stage"
+  | "source"
+  | "followUpAt"
+>;
+
+type CompanyContext = Pick<Company, "name" | "website" | "industry" | "size">;
+
 type ContactContext = Pick<
   Contact,
   "firstName" | "lastName" | "email" | "phone" | "jobTitle"
 >;
 
+type ActivityContext = Pick<DealActivity, "createdAt" | "type" | "description">;
+
 type NoteContext = Pick<Note, "title" | "content" | "type" | "createdAt">;
 
 /** Build a text summary of deal + company + contact fields for AI context and staleness detection */
 export function buildDealContext(
-  deal: Deal,
-  company: Company,
+  deal: DealContext,
+  company: CompanyContext,
   contacts: ContactContext[],
-  activities?: DealActivity[],
+  activities?: ActivityContext[],
   notes?: NoteContext[],
 ): string {
   const contactFields = contacts.flatMap((c, i) => {
@@ -73,4 +87,25 @@ export function buildDealContext(
   }
 
   return result;
+}
+
+const TOKEN_WARN_THRESHOLD = 800_000;
+
+/** Rough token estimate: ~4 chars/token for English text */
+export function estimateContextTokens(
+  contextText: string,
+  notes?: { tokenCount: number | null }[],
+): { estimatedTokens: number; warning: string | null } {
+  // Use stored token counts for notes when available, fall back to char estimate
+  const noteTokens =
+    notes?.reduce((sum, n) => sum + (n.tokenCount ?? 0), 0) ?? 0;
+  const charEstimate = Math.ceil(contextText.length / 4);
+  const estimatedTokens = Math.max(charEstimate, noteTokens + charEstimate);
+
+  const warning =
+    estimatedTokens > TOKEN_WARN_THRESHOLD
+      ? `Context is ~${Math.round(estimatedTokens / 1000)}K tokens — approaching 1M limit`
+      : null;
+
+  return { estimatedTokens, warning };
 }

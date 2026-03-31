@@ -46,8 +46,8 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
-  Company,
-  Deal,
+  CompanyRow,
+  DealRow,
   DealInsight as FullDealInsight,
 } from "@/db/schema";
 
@@ -63,8 +63,8 @@ import {
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 type Props = {
-  deal: Deal;
-  company: Company;
+  deal: DealRow;
+  company: CompanyRow;
   contact: {
     id: string;
     firstName: string;

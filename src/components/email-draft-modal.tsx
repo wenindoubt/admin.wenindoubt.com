@@ -230,6 +230,23 @@ export function EmailDraftModal({
       .catch(() => setGmailConnected(false));
   }, []);
 
+  // Listen for Gmail OAuth popup completion
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "gmail-connected") {
+        getGmailStatus().then((status) => {
+          setGmailConnected(status.connected);
+          setGmailEmail(status.email);
+        });
+      } else if (e.data?.type === "gmail-error") {
+        toast.error("Failed to connect Gmail");
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
   // Generate initial draft on mount
   useEffect(() => {
     if (didInitialGenerate.current) return;
@@ -459,7 +476,13 @@ export function EmailDraftModal({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open("/api/gmail/authorize", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "/api/gmail/authorize",
+                    "gmail-auth",
+                    "width=500,height=600,popup",
+                  )
+                }
                 className="shrink-0 border-amber-400/30 text-amber-600"
               >
                 Connect Gmail

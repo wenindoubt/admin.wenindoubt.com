@@ -1,7 +1,15 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { db } from "@/db";
@@ -19,6 +27,13 @@ import {
   type UpdateNoteInput,
   updateNoteSchema,
 } from "@/lib/validations";
+
+/** Columns for note reads — excludes embedding (~3KB) and searchVector */
+const {
+  embedding: _,
+  searchVector: _sv,
+  ...noteColumns
+} = getTableColumns(notes);
 
 type NoteFilters = {
   dealId?: string;
@@ -43,7 +58,7 @@ export async function getNotes(filters?: NoteFilters) {
 
   const [rows, [{ count: total }]] = await Promise.all([
     db
-      .select()
+      .select(noteColumns)
       .from(notes)
       .where(where)
       .orderBy(desc(notes.createdAt))
@@ -85,7 +100,7 @@ export async function getNotesForDeal(
 
   const [rows, [{ count: total }]] = await Promise.all([
     db
-      .select()
+      .select(noteColumns)
       .from(notes)
       .where(where)
       .orderBy(desc(notes.createdAt))
@@ -247,7 +262,7 @@ export async function searchNotes(query: string, filters?: NoteFilters) {
 
   const [rows, [{ count: total }]] = await Promise.all([
     db
-      .select()
+      .select(noteColumns)
       .from(notes)
       .where(where)
       .orderBy(desc(notes.createdAt))

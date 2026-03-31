@@ -3,6 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 @AGENTS.md
+@/Users/wenje/.claude/learnings/supabase.md
+@/Users/wenje/.claude/learnings/drizzle.md
 
 ## Commands
 
@@ -35,7 +37,7 @@ mise run test:e2e:ui       # playwright with UI
 - **AI**: Claude (`@anthropic-ai/sdk`) for analysis, scoring, research, outreach drafting, token counting. Gemini (`@google/genai`) for embeddings only (768-dim vectors). Model configured via `ANTHROPIC_MODEL` env var.
 - **Notes**: Centralized `notes` table with multi-entity association (deal/contact/company). Rich text via Tiptap (`tiptap-markdown`), stored as markdown. Gemini embeddings for semantic retrieval. Auto-surfaces related notes across entity graph (deal + all associated contacts + company) on deal pages.
 - **Multi-contact deals**: `deal_contacts` junction table links deals to multiple contacts. `deals.primaryContactId` remains for backward compat. Notes, AI context, and semantic search operate on all associated contacts.
-- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled on all tables (except `note_attachments`).
+- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled + forced on all 12 tables; SELECT-only for `authenticated`, `anon` revoked.
 - **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
 

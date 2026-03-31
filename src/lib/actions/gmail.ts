@@ -133,7 +133,10 @@ export async function confirmStageTransitionWithDraft(
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+  const [deal] = await db
+    .select({ id: deals.id })
+    .from(deals)
+    .where(eq(deals.id, dealId));
 
   if (!deal) return { success: false, error: "Deal not found" };
 

@@ -6,7 +6,7 @@ import { NoteForm } from "@/components/note-form";
 import { NoteList } from "@/components/note-list";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import type { Note, NoteAttachment } from "@/db/schema";
+import type { NoteAttachment, NoteRow } from "@/db/schema";
 import {
   getAttachmentsForNotes,
   getNotes,
@@ -20,7 +20,7 @@ import { FORM_INPUT_CLASSES } from "@/lib/utils";
 type Props = {
   entityType: NoteEntityType;
   entityId: string;
-  initialNotes: Note[];
+  initialNotes: NoteRow[];
   initialTotal: number;
   initialAttachments: NoteAttachment[];
   linkedContact?: LinkedEntity;
@@ -47,7 +47,7 @@ export function NotesSection({
     async (p: number, query?: string) => {
       const offset = (p - 1) * PAGE_SIZE_NOTES;
 
-      let result: { data: Note[]; total: number };
+      let result: { data: NoteRow[]; total: number };
 
       if (query) {
         result = await searchNotes(query, {

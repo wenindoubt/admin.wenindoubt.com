@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Contact } from "@/db/schema";
+import type { ContactRow } from "@/db/schema";
 import { createContact, updateContact } from "@/lib/actions/contacts";
 import { toE164 } from "@/lib/phone";
 import { cn, FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "@/lib/utils";
@@ -26,7 +26,7 @@ type CompanyOption = { id: string; name: string };
 
 type ContactFormProps = {
   companyId?: string;
-  contact?: Contact;
+  contact?: ContactRow;
   companies?: CompanyOption[];
   onDone?: () => void;
   onCancel?: () => void;
