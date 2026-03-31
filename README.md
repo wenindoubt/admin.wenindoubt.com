@@ -8,23 +8,23 @@
 
 ## ⚡ Setup
 
-**Prerequisites:** Node.js 20+, Docker (for local Supabase)
+**Prerequisites:** [mise](https://mise.jdx.dev/), Docker (for local Supabase)
 
 ```bash
 # Install dependencies
-npm install
+mise run install
 
-# Start local Supabase (Postgres + Realtime)
-supabase start
+# Start local Supabase (Postgres + Realtime + runs migrations)
+mise run db:start
 
-# Push database schema
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres" npx drizzle-kit push
+# Push Drizzle schema (should be a no-op after migrations)
+mise run db:push
 
 # Seed sample data (optional)
-npx tsx scripts/seed.ts
+mise run seed
 
 # Start dev server
-npm run dev
+mise run dev
 ```
 
 > ⚠️ First `supabase start` pulls ~2GB of Docker images. Subsequent starts are fast.
@@ -51,18 +51,34 @@ Local dev uses Supabase CLI defaults. Production values go in Vercel.
 
 ## 🚀 Usage
 
+All commands run via `mise run <task>`. Env vars auto-loaded from `.env.local`.
+
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Production build |
-| `npm run lint` | Run Biome (lint + format) |
-| `supabase start` | Start local Postgres + services |
-| `supabase stop` | Stop local stack |
-| `npx tsx scripts/seed.ts` | Seed sample data |
-| `npx tsx scripts/seed.ts --clean` | Remove sample data |
-| `mise run backfill:embeddings` | Backfill note embeddings + token counts (run after seeding) |
-| `npm test` | Run unit tests (vitest) |
-| `npm run test:e2e` | Run E2E tests (Playwright) |
+| `mise run dev` | Start development server |
+| `mise run build` | Production build |
+| `mise run lint` | Run Biome (lint + format) |
+| `mise run db:start` | Start local Postgres + services |
+| `mise run db:stop` | Stop local stack |
+| `mise run db:reset` | Wipe local DB + re-run migrations |
+| `mise run seed` | Seed sample data |
+| `mise run seed:clean` | Remove sample data |
+| `mise run backfill:embeddings` | Backfill note embeddings + token counts |
+| `mise run test` | Run unit tests (vitest) |
+| `mise run test:e2e` | Run E2E tests (Playwright) |
+
+<details>
+<summary>Production database commands</summary>
+
+Requires `.env.prod` with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`.
+
+| Command | Description |
+|---------|-------------|
+| `mise run db:prod:link` | Link to production Supabase project (one-time) |
+| `mise run db:prod:push` | Push pending migrations (dry-run first) |
+| `mise run db:prod:reset` | Reset production DB + replay migrations (DESTRUCTIVE) |
+
+</details>
 
 ## 🔧 Tech Stack
 

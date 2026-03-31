@@ -19,6 +19,12 @@ mise run check           # lint + typecheck
 mise run db:start        # start local Postgres + Supabase services
 mise run db:stop         # stop local stack
 mise run db:push         # push Drizzle schema to local DB
+mise run db:reset        # wipe local DB + re-run all migrations
+mise run db:migrate      # create new migration file
+mise run db:status       # show Supabase service URLs/keys
+mise run db:prod:link    # link to production Supabase project
+mise run db:prod:push    # push pending migrations to production (dry-run first)
+mise run db:prod:reset   # reset production DB + re-run migrations (DESTRUCTIVE)
 mise run seed            # seed sample data
 mise run seed:clean      # remove sample data
 mise run backfill:embeddings  # backfill embeddings + token counts (run after seeding)
@@ -37,7 +43,8 @@ mise run test:e2e:ui       # playwright with UI
 - **AI**: Claude (`@anthropic-ai/sdk`) for analysis, scoring, research, outreach drafting, token counting. Gemini (`@google/genai`) for embeddings only (768-dim vectors). Model configured via `ANTHROPIC_MODEL` env var.
 - **Notes**: Centralized `notes` table with multi-entity association (deal/contact/company). Rich text via Tiptap (`tiptap-markdown`), stored as markdown. Gemini embeddings for semantic retrieval. Auto-surfaces related notes across entity graph (deal + all associated contacts + company) on deal pages.
 - **Multi-contact deals**: `deal_contacts` junction table links deals to multiple contacts. `deals.primaryContactId` remains for backward compat. Notes, AI context, and semantic search operate on all associated contacts.
-- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled + forced on all 12 tables; SELECT-only for `authenticated`, `anon` revoked.
+- **Realtime**: Supabase client-side subscriptions for Kanban board live updates. Authenticated via Clerk third-party JWT (JWKS). RLS enabled + forced on all 12 tables; SELECT-only for `authenticated`, `anon` revoked. `gmail_tokens` has owner-only RLS (JWT `sub` claim).
+- **CI/CD**: GitHub Actions for CI (lint, typecheck, build, test). `migrate.yml` runs `supabase db push` on merge to main when `supabase/migrations/**` changes. Vercel handles app deployment. Migrations finish before deploy (seconds vs minutes).
 - **UI**: shadcn v4 (built on `@base-ui/react`), Tailwind CSS v4. Light mode only.
 - Detailed architecture: `docs/`
 
