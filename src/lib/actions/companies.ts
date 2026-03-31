@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, totalCount } from "@/db";
 import {
@@ -11,8 +11,11 @@ import {
   dealActivities,
   deals,
 } from "@/db/schema";
-import { computeLifecycle } from "@/lib/constants";
 import { buildTsquery } from "@/lib/utils";
+
+/** Company columns for reads — excludes searchVector */
+const { searchVector: _, ...companyColumns } = getTableColumns(companies);
+
 import {
   type CreateCompanyInput,
   createCompanySchema,
@@ -34,6 +37,18 @@ export async function getCompanies(filters?: CompanyFilters) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  // SQL subqueries for computed fields — replaces JS-side pagination
+  const lifecycle = sql<string>`CASE
+    WHEN EXISTS (SELECT 1 FROM ${deals} d WHERE d.company_id = ${companies.id}
+      AND d.stage IN ('new','contacted','qualifying','proposal_sent','negotiating','nurture'))
+      THEN 'active_client'
+    WHEN EXISTS (SELECT 1 FROM ${deals} d WHERE d.company_id = ${companies.id} AND d.stage = 'won')
+      THEN 'former_client'
+    ELSE 'prospect'
+  END`;
+  const dealCount = sql<number>`(SELECT count(*)::int FROM ${deals} d WHERE d.company_id = ${companies.id})`;
+  const pipelineValue = sql<number>`COALESCE((SELECT sum(d.estimated_value)::float8 FROM ${deals} d WHERE d.company_id = ${companies.id}), 0)`;
+
   const conditions = [];
 
   if (filters?.search) {
@@ -47,110 +62,49 @@ export async function getCompanies(filters?: CompanyFilters) {
   if (filters?.size) {
     conditions.push(eq(companies.size, filters.size));
   }
+  if (filters?.lifecycle) {
+    conditions.push(sql`${lifecycle} = ${filters.lifecycle}`);
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  // Determine sort (computed fields sorted in JS after query)
-  const dbSortable = {
-    name: companies.name,
-    industry: companies.industry,
-    created: companies.createdAt,
-  } as const;
-  type SortKey = keyof typeof dbSortable;
-  const sortKey = filters?.sortBy as SortKey | undefined;
-  const sortCol = sortKey && sortKey in dbSortable ? dbSortable[sortKey] : null;
+  // All sort keys now work at DB level
   const sortFn = filters?.sortOrder === "asc" ? asc : desc;
-
-  // When lifecycle filter or computed sort is active, we must fetch all rows
-  // and paginate in JS (these fields are derived from deals, not in the DB)
-  const needsJsPagination =
-    !!filters?.lifecycle ||
-    filters?.sortBy === "dealCount" ||
-    filters?.sortBy === "pipelineValue";
+  const orderBy =
+    {
+      name: sortFn(companies.name),
+      industry: sortFn(companies.industry),
+      created: sortFn(companies.createdAt),
+      dealCount: sortFn(dealCount),
+      pipelineValue: sortFn(pipelineValue),
+    }[filters?.sortBy ?? "name"] ?? asc(companies.name);
 
   let query = db
-    .select()
+    .select({
+      ...companyColumns,
+      lifecycle,
+      dealCount,
+      pipelineValue,
+    })
     .from(companies)
-    .orderBy(sortCol ? sortFn(sortCol) : asc(companies.name));
+    .orderBy(orderBy);
+
   if (where) {
     query = query.where(where) as typeof query;
   }
-  if (!needsJsPagination) {
-    if (filters?.limit) {
-      query = query.limit(filters.limit) as typeof query;
-    }
-    if (filters?.offset) {
-      query = query.offset(filters.offset) as typeof query;
-    }
+  if (filters?.limit) {
+    query = query.limit(filters.limit) as typeof query;
+  }
+  if (filters?.offset) {
+    query = query.offset(filters.offset) as typeof query;
   }
 
-  const [rows, countRows] = await Promise.all([
+  const [rows, [{ count: total }]] = await Promise.all([
     query,
-    needsJsPagination
-      ? Promise.resolve(null)
-      : db.select({ count: count() }).from(companies).where(where),
+    db.select({ count: count() }).from(companies).where(where),
   ]);
 
-  if (rows.length === 0) {
-    return { data: [], total: countRows?.[0]?.count ?? 0 };
-  }
-
-  const companyIds = rows.map((r) => r.id);
-
-  // Fetch deal stage + value for lifecycle/pipeline computation
-  const companyDeals = await db
-    .select({
-      companyId: deals.companyId,
-      stage: deals.stage,
-      estimatedValue: deals.estimatedValue,
-    })
-    .from(deals)
-    .where(inArray(deals.companyId, companyIds));
-
-  const dealsByCompany = new Map<
-    string,
-    { stage: string; estimatedValue: string | null }[]
-  >();
-  for (const d of companyDeals) {
-    const existing = dealsByCompany.get(d.companyId) ?? [];
-    existing.push(d);
-    dealsByCompany.set(d.companyId, existing);
-  }
-
-  let result = rows.map((company) => {
-    const cDeals = dealsByCompany.get(company.id) ?? [];
-    const pipelineValue = cDeals.reduce(
-      (sum, d) => sum + Number(d.estimatedValue ?? 0),
-      0,
-    );
-    return {
-      ...company,
-      lifecycle: computeLifecycle(cDeals),
-      dealCount: cDeals.length,
-      pipelineValue,
-    };
-  });
-
-  // Post-filter by lifecycle (computed field)
-  if (filters?.lifecycle) {
-    result = result.filter((c) => c.lifecycle === filters.lifecycle);
-  }
-
-  // Sort by computed fields in JS
-  const computedSortBy = filters?.sortBy;
-  if (computedSortBy === "dealCount" || computedSortBy === "pipelineValue") {
-    const dir = filters?.sortOrder === "asc" ? 1 : -1;
-    result.sort((a, b) => (a[computedSortBy] - b[computedSortBy]) * dir);
-  }
-
-  if (needsJsPagination) {
-    const total = result.length;
-    const start = filters?.offset ?? 0;
-    const end = start + (filters?.limit ?? total);
-    return { data: result.slice(start, end), total };
-  }
-
-  return { data: result, total: countRows![0].count };
+  return { data: rows, total };
 }
 
 /** Lightweight list for dropdowns — no deals query, just id + name */
@@ -169,7 +123,7 @@ export async function getCompanyForEdit(id: string) {
   if (!userId) throw new Error("Unauthorized");
 
   const [company] = await db
-    .select()
+    .select(companyColumns)
     .from(companies)
     .where(eq(companies.id, id));
   return company ?? null;
@@ -180,7 +134,7 @@ export async function getCompany(id: string) {
   if (!userId) throw new Error("Unauthorized");
 
   const [company] = await db
-    .select()
+    .select(companyColumns)
     .from(companies)
     .where(eq(companies.id, id));
   if (!company) return null;

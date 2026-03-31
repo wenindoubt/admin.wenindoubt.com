@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { findRelevantNotes } from "@/lib/actions/search";
 import { claude, getClaudeModel } from "@/lib/ai/claude";
-import { buildDealContext } from "@/lib/ai/context";
+import { buildDealContext, estimateContextTokens } from "@/lib/ai/context";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import {
   DEAL_ANALYSIS_SYSTEM,
@@ -43,13 +43,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+  const [deal] = await db
+    .select({
+      id: deals.id,
+      title: deals.title,
+      sourceDetail: deals.sourceDetail,
+      estimatedValue: deals.estimatedValue,
+      stage: deals.stage,
+      source: deals.source,
+      followUpAt: deals.followUpAt,
+      companyId: deals.companyId,
+      primaryContactId: deals.primaryContactId,
+    })
+    .from(deals)
+    .where(eq(deals.id, dealId));
   if (!deal) {
     return new Response("Deal not found", { status: 404 });
   }
 
   const [company] = await db
-    .select()
+    .select({
+      name: companies.name,
+      website: companies.website,
+      industry: companies.industry,
+      size: companies.size,
+    })
     .from(companies)
     .where(eq(companies.id, deal.companyId));
   if (!company) {
@@ -70,19 +88,42 @@ export async function POST(req: NextRequest) {
   };
 
   // Custom query: semantic retrieval. Full analysis: all notes.
+  const aiContactColumns = {
+    id: contacts.id,
+    firstName: contacts.firstName,
+    lastName: contacts.lastName,
+    email: contacts.email,
+    phone: contacts.phone,
+    jobTitle: contacts.jobTitle,
+  };
+  const aiNoteColumns = {
+    title: notes.title,
+    content: notes.content,
+    type: notes.type,
+    createdAt: notes.createdAt,
+  };
+
   const [contactRows, activities, contextNotes] = await Promise.all([
     contactIds.length > 0
-      ? db.select().from(contacts).where(inArray(contacts.id, contactIds))
+      ? db
+          .select(aiContactColumns)
+          .from(contacts)
+          .where(inArray(contacts.id, contactIds))
       : Promise.resolve([]),
     db
-      .select()
+      .select({
+        createdAt: dealActivities.createdAt,
+        type: dealActivities.type,
+        description: dealActivities.description,
+      })
       .from(dealActivities)
       .where(eq(dealActivities.dealId, dealId))
-      .orderBy(dealActivities.createdAt),
+      .orderBy(dealActivities.createdAt)
+      .limit(100),
     isCustom
       ? findRelevantNotes(prompt.trim(), entityFilter)
       : db
-          .select()
+          .select(aiNoteColumns)
           .from(notes)
           .where(buildDealNoteConditions(dealId, contactIds, deal.companyId)),
   ]);
@@ -104,6 +145,8 @@ export async function POST(req: NextRequest) {
     contextNotes,
   );
   const context = `<deal_data>\n${dealFields}\n</deal_data>`;
+
+  const { warning: tokenWarning } = estimateContextTokens(dealFields);
 
   const systemPrompt = isCustom
     ? DEAL_CUSTOM_ANALYSIS_SYSTEM
@@ -162,10 +205,13 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Transfer-Encoding": "chunked",
+  };
+  if (tokenWarning) {
+    headers["X-Token-Warning"] = tokenWarning;
+  }
+
+  return new Response(stream, { headers });
 }

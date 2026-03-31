@@ -22,18 +22,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Company } from "@/db/schema";
+import type { CompanyRow } from "@/db/schema";
 import { deleteCompany } from "@/lib/actions/companies";
 import { COMPANY_LIFECYCLES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 
-type CompanyRow = Company & {
+type CompanyRowWithStats = CompanyRow & {
   lifecycle: string;
   dealCount: number;
   pipelineValue: number;
 };
 
-export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
+export function CompaniesTable({
+  companies,
+}: {
+  companies: CompanyRowWithStats[];
+}) {
   const router = useRouter();
 
   async function handleDelete(id: string) {

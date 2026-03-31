@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect } from "react";
-import type { Deal } from "@/db/schema";
+import type { DealRow } from "@/db/schema";
 import { useSupabase } from "@/lib/supabase/realtime";
 import type { DealWithRelations, KanbanColumn } from "./types";
 
@@ -14,8 +14,8 @@ function mapRealtimePayload(row: Record<string, unknown>): DealWithRelations {
     companyId: row.company_id as string,
     primaryContactId: (row.primary_contact_id as string) ?? null,
     title: row.title as string,
-    stage: row.stage as Deal["stage"],
-    source: row.source as Deal["source"],
+    stage: row.stage as DealRow["stage"],
+    source: row.source as DealRow["source"],
     sourceDetail: (row.source_detail as string) ?? null,
     estimatedValue: (row.estimated_value as string) ?? null,
     assignedTo: (row.assigned_to as string) ?? null,
@@ -27,7 +27,6 @@ function mapRealtimePayload(row: Record<string, unknown>): DealWithRelations {
       : null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
-    searchVector: (row.search_vector as string) ?? null,
     company: { name: "" },
     contact: null,
   };

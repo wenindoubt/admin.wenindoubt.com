@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { Company, Contact, Deal } from "@/db/schema";
+import type { Company, ContactRow, DealRow } from "@/db/schema";
 import { getContactsForCompany } from "@/lib/actions/contacts";
 import { createDeal, updateDeal } from "@/lib/actions/deals";
 import { createNote } from "@/lib/actions/notes";
@@ -67,7 +67,7 @@ function getFileIcon(mime: string) {
 
 type CompanyOption = Pick<Company, "id" | "name">;
 
-type DealWithCompany = Deal & {
+type DealWithCompany = DealRow & {
   company: Pick<Company, "id" | "name">;
   additionalContactIds?: string[];
 };
@@ -125,7 +125,7 @@ export function DealForm({ deal, companies, defaultCompanyId }: DealFormProps) {
   const currentContactId = watch("primaryContactId");
 
   // ── Contact fetching ──
-  const [contactOptions, setContactOptions] = useState<Contact[]>([]);
+  const [contactOptions, setContactOptions] = useState<ContactRow[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
 
   useEffect(() => {

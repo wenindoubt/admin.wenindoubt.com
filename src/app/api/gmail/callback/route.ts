@@ -5,9 +5,17 @@ import { db } from "@/db";
 import { gmailTokens } from "@/db/schema";
 import { createOAuth2Client, oauth2Client } from "@/lib/google/gmail";
 
-export async function GET(req: NextRequest) {
-  const errorUrl = new URL("/deals/board?gmail=error", req.url);
+function popupCloseResponse(status: "connected" | "error") {
+  const html = `<!DOCTYPE html><html><body><script>
+if(window.opener){window.opener.postMessage({type:"gmail-${status}"},location.origin)}
+window.close();
+</script><p>You can close this window.</p></body></html>`;
+  return new NextResponse(html, {
+    headers: { "Content-Type": "text/html" },
+  });
+}
 
+export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
@@ -23,12 +31,12 @@ export async function GET(req: NextRequest) {
       !stateNonce ||
       stateNonce !== cookieNonce
     ) {
-      return NextResponse.redirect(errorUrl);
+      return popupCloseResponse("error");
     }
 
     const { tokens } = await oauth2Client.getToken(code);
     if (!tokens.access_token || !tokens.refresh_token) {
-      return NextResponse.redirect(errorUrl);
+      return popupCloseResponse("error");
     }
 
     const client = createOAuth2Client();
@@ -52,13 +60,11 @@ export async function GET(req: NextRequest) {
         set: tokenData,
       });
 
-    const response = NextResponse.redirect(
-      new URL("/deals/board?gmail=connected", req.url),
-    );
+    const response = popupCloseResponse("connected");
     response.cookies.delete("gmail_oauth_nonce");
     return response;
   } catch (error) {
     console.error("Gmail callback error:", error);
-    return NextResponse.redirect(errorUrl);
+    return popupCloseResponse("error");
   }
 }

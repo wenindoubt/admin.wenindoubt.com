@@ -1,6 +1,6 @@
-import type { Deal } from "@/db/schema";
+import type { DealRow } from "@/db/schema";
 
-export type DealWithRelations = Deal & {
+export type DealWithRelations = DealRow & {
   company: { name: string };
   contact: { name: string } | null;
 };

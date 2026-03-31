@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Deal } from "@/db/schema";
+import type { DealRow } from "@/db/schema";
 import { checkStageTransition, updateDeal } from "@/lib/actions/deals";
 import { ACTIVE_STAGES, DEAL_STAGES } from "@/lib/constants";
 import { ColumnVisibilityFilter } from "./column-visibility-filter";
@@ -139,7 +139,7 @@ export function KanbanBoard({
           .find((d) => d.id === draggableId);
 
         if (targetCol && deal) {
-          const movedDeal = { ...deal, stage: newStage as Deal["stage"] };
+          const movedDeal = { ...deal, stage: newStage as DealRow["stage"] };
           targetCol.deals.splice(destination.index, 0, movedDeal);
         }
 
@@ -174,7 +174,7 @@ export function KanbanBoard({
       // Normal stage change (no intervention)
       try {
         await updateDeal(draggableId, {
-          stage: newStage as Deal["stage"],
+          stage: newStage as DealRow["stage"],
         });
       } catch {
         setColumns(buildColumns(previousColumns.flatMap((c) => c.deals)));

@@ -1,11 +1,16 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { companies, contacts, deals } from "@/db/schema";
 import { buildTsquery } from "@/lib/utils";
+
+/** Columns for reads — excludes searchVector */
+const { searchVector: _, ...contactColumns } = getTableColumns(contacts);
+const { searchVector: _dsv, ...dealColumns } = getTableColumns(deals);
+
 import {
   type CreateContactInput,
   createContactSchema,
@@ -49,7 +54,7 @@ export async function getContacts(filters?: ContactFilters) {
 
   let query = db
     .select({
-      contact: contacts,
+      contact: contactColumns,
       companyName: companies.name,
     })
     .from(contacts)
@@ -88,7 +93,7 @@ export async function getContact(id: string) {
   const [contactRows, contactDeals] = await Promise.all([
     db
       .select({
-        contact: contacts,
+        contact: contactColumns,
         companyName: companies.name,
         companyWebsite: companies.website,
         companyIndustry: companies.industry,
@@ -98,7 +103,7 @@ export async function getContact(id: string) {
       .where(eq(contacts.id, id)),
     db
       .select({
-        deal: deals,
+        deal: dealColumns,
         companyName: companies.name,
       })
       .from(deals)
@@ -130,7 +135,7 @@ export async function getContactsForCompany(companyId: string) {
   if (!userId) throw new Error("Unauthorized");
 
   return db
-    .select()
+    .select(contactColumns)
     .from(contacts)
     .where(eq(contacts.companyId, companyId))
     .orderBy(asc(contacts.firstName));

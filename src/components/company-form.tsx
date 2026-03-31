@@ -15,14 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Company } from "@/db/schema";
+import type { CompanyRow } from "@/db/schema";
 import { createCompany, updateCompany } from "@/lib/actions/companies";
 import { COMPANY_SIZES } from "@/lib/constants";
 import { FORM_INPUT_CLASSES, FORM_LABEL_CLASSES } from "@/lib/utils";
 import { type CompanyFormValues, companyFormSchema } from "@/lib/validations";
 
 type CompanyFormProps = {
-  company?: Company;
+  company?: CompanyRow;
 };
 
 export function CompanyForm({ company }: CompanyFormProps) {

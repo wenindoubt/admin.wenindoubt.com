@@ -6,6 +6,15 @@ import { db } from "@/db";
 import { notes } from "@/db/schema";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 
+/** AI context only needs these fields from notes */
+const noteContextColumns = {
+  id: notes.id,
+  title: notes.title,
+  content: notes.content,
+  type: notes.type,
+  createdAt: notes.createdAt,
+} as const;
+
 export async function findRelevantNotes(
   query: string,
   entityFilter: {
@@ -40,13 +49,13 @@ export async function findRelevantNotes(
 
   const [semanticResults, recentResults] = await Promise.all([
     db
-      .select({ note: notes, similarity })
+      .select({ note: noteContextColumns, similarity })
       .from(notes)
       .where(and(entityWhere, sql`${notes.embedding} IS NOT NULL`))
       .orderBy(desc(similarity))
       .limit(limit),
     db
-      .select()
+      .select(noteContextColumns)
       .from(notes)
       .where(entityWhere)
       .orderBy(desc(notes.createdAt))

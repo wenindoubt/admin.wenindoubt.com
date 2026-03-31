@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/db";
 import { companies, contacts, dealActivities, deals, notes } from "@/db/schema";
 import { claude, getClaudeModel } from "@/lib/ai/claude";
-import { buildDealContext } from "@/lib/ai/context";
+import { buildDealContext, estimateContextTokens } from "@/lib/ai/context";
 import {
   OUTREACH_DRAFT_SYSTEM,
   OUTREACH_PARTIAL_REGENERATE_SYSTEM,
@@ -37,27 +37,64 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+  const [deal] = await db
+    .select({
+      id: deals.id,
+      title: deals.title,
+      sourceDetail: deals.sourceDetail,
+      estimatedValue: deals.estimatedValue,
+      stage: deals.stage,
+      source: deals.source,
+      followUpAt: deals.followUpAt,
+      companyId: deals.companyId,
+      primaryContactId: deals.primaryContactId,
+    })
+    .from(deals)
+    .where(eq(deals.id, dealId));
   if (!deal) {
     return new Response("Deal not found", { status: 404 });
   }
 
   const [companyRows, contactRows, activities, contextNotes] =
     await Promise.all([
-      db.select().from(companies).where(eq(companies.id, deal.companyId)),
+      db
+        .select({
+          name: companies.name,
+          website: companies.website,
+          industry: companies.industry,
+          size: companies.size,
+        })
+        .from(companies)
+        .where(eq(companies.id, deal.companyId)),
       deal.primaryContactId
         ? db
-            .select()
+            .select({
+              firstName: contacts.firstName,
+              lastName: contacts.lastName,
+              email: contacts.email,
+              phone: contacts.phone,
+              jobTitle: contacts.jobTitle,
+            })
             .from(contacts)
             .where(eq(contacts.id, deal.primaryContactId))
         : Promise.resolve([]),
       db
-        .select()
+        .select({
+          createdAt: dealActivities.createdAt,
+          type: dealActivities.type,
+          description: dealActivities.description,
+        })
         .from(dealActivities)
         .where(eq(dealActivities.dealId, dealId))
-        .orderBy(dealActivities.createdAt),
+        .orderBy(dealActivities.createdAt)
+        .limit(50),
       db
-        .select()
+        .select({
+          title: notes.title,
+          content: notes.content,
+          type: notes.type,
+          createdAt: notes.createdAt,
+        })
         .from(notes)
         .where(
           buildDealNoteConditions(
@@ -79,6 +116,8 @@ export async function POST(req: NextRequest) {
     activities,
     contextNotes,
   );
+
+  const { warning: tokenWarning } = estimateContextTokens(context);
 
   let systemPrompt: string;
   let userMessage: string;
@@ -130,10 +169,13 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Transfer-Encoding": "chunked",
+  };
+  if (tokenWarning) {
+    headers["X-Token-Warning"] = tokenWarning;
+  }
+
+  return new Response(stream, { headers });
 }

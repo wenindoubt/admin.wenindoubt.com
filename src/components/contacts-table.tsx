@@ -21,19 +21,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Contact } from "@/db/schema";
+import type { ContactRow } from "@/db/schema";
 import { deleteContact } from "@/lib/actions/contacts";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { formatDate } from "@/lib/utils";
 
-type ContactRow = Contact & {
+type ContactRowWithCompany = ContactRow & {
   company: { id: string; name: string };
 };
 
-export function ContactsTable({ contacts }: { contacts: ContactRow[] }) {
+export function ContactsTable({
+  contacts,
+}: {
+  contacts: ContactRowWithCompany[];
+}) {
   const router = useRouter();
 
-  async function handleDelete(contact: ContactRow) {
+  async function handleDelete(contact: ContactRowWithCompany) {
     if (!confirm(`Delete ${contact.firstName} ${contact.lastName}?`)) return;
     try {
       await deleteContact(contact.id);

@@ -1,10 +1,13 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   customType,
   index,
   integer,
   jsonb,
   numeric,
   pgEnum,
+  pgPolicy,
   pgTable,
   primaryKey,
   text,
@@ -13,6 +16,16 @@ import {
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
+import { authenticatedRole } from "drizzle-orm/supabase";
+
+// Shared RLS policy — single-tenant, SELECT-only for authenticated role
+const authReadPolicy = () =>
+  pgPolicy("Authenticated read access", {
+    as: "permissive",
+    for: "select",
+    to: authenticatedRole,
+    using: sql`true`,
+  });
 
 const tsvector = customType<{ data: string }>({
   dataType() {
@@ -21,7 +34,7 @@ const tsvector = customType<{ data: string }>({
 });
 
 // Enums
-const dealStageEnum = pgEnum("deal_stage", [
+export const dealStageEnum = pgEnum("deal_stage", [
   "new",
   "contacted",
   "qualifying",
@@ -32,7 +45,7 @@ const dealStageEnum = pgEnum("deal_stage", [
   "lost",
 ]);
 
-const dealSourceEnum = pgEnum("deal_source", [
+export const dealSourceEnum = pgEnum("deal_source", [
   "website",
   "referral",
   "linkedin",
@@ -61,8 +74,9 @@ export const companies = pgTable(
   (table) => [
     index("idx_companies_name").on(table.name),
     index("idx_companies_search_vector").using("gin", table.searchVector),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // Contacts (people at a company)
 export const contacts = pgTable(
@@ -90,8 +104,9 @@ export const contacts = pgTable(
     index("idx_contacts_company_id").on(table.companyId),
     uniqueIndex("idx_contacts_company_email").on(table.companyId, table.email),
     index("idx_contacts_search_vector").using("gin", table.searchVector),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // Deals (sales opportunities / contracts)
 export const deals = pgTable(
@@ -125,13 +140,15 @@ export const deals = pgTable(
   },
   (table) => [
     index("idx_deals_stage").on(table.stage),
+    index("idx_deals_source").on(table.source),
     index("idx_deals_company_id").on(table.companyId),
     index("idx_deals_assigned_to").on(table.assignedTo),
     index("idx_deals_created_at").on(table.createdAt),
     index("idx_deals_primary_contact_id").on(table.primaryContactId),
     index("idx_deals_search_vector").using("gin", table.searchVector),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // AI-generated insights (per deal)
 export const dealInsights = pgTable(
@@ -160,8 +177,13 @@ export const dealInsights = pgTable(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
     ),
+    index("idx_deal_insights_deal_generated").on(
+      table.dealId,
+      table.generatedAt,
+    ),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // Activity log (per deal)
 export const dealActivities = pgTable(
@@ -182,15 +204,21 @@ export const dealActivities = pgTable(
   (table) => [
     index("idx_deal_activities_deal_id").on(table.dealId),
     index("idx_deal_activities_created_at").on(table.createdAt),
+    index("idx_deal_activities_deal_created").on(table.dealId, table.createdAt),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // Tags
-export const tags = pgTable("tags", {
-  id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull().unique(),
-  color: text(),
-});
+export const tags = pgTable(
+  "tags",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    name: text().notNull().unique(),
+    color: text(),
+  },
+  () => [authReadPolicy()],
+).enableRLS();
 
 export const dealContacts = pgTable(
   "deal_contacts",
@@ -205,8 +233,9 @@ export const dealContacts = pgTable(
   (table) => [
     primaryKey({ columns: [table.dealId, table.contactId] }),
     index("idx_deal_contacts_contact_id").on(table.contactId),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 export const dealTags = pgTable(
   "deal_tags",
@@ -221,8 +250,9 @@ export const dealTags = pgTable(
   (table) => [
     primaryKey({ columns: [table.dealId, table.tagId] }),
     index("idx_deal_tags_tag_id").on(table.tagId),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 export const companyTags = pgTable(
   "company_tags",
@@ -237,8 +267,9 @@ export const companyTags = pgTable(
   (table) => [
     primaryKey({ columns: [table.companyId, table.tagId] }),
     index("idx_company_tags_tag_id").on(table.tagId),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // Notes (multi-entity: deal, contact, company)
 export const notes = pgTable(
@@ -276,8 +307,13 @@ export const notes = pgTable(
       table.embedding.op("vector_cosine_ops"),
     ),
     index("idx_notes_search_vector").using("gin", table.searchVector),
+    check(
+      "notes_at_least_one_entity",
+      sql`COALESCE(deal_id, contact_id, company_id) IS NOT NULL`,
+    ),
+    authReadPolicy(),
   ],
-);
+).enableRLS();
 
 // Note attachments (files stored in Supabase Storage)
 export const noteAttachments = pgTable(
@@ -296,26 +332,33 @@ export const noteAttachments = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("idx_note_attachments_note_id").on(table.noteId)],
-);
+  (table) => [
+    index("idx_note_attachments_note_id").on(table.noteId),
+    authReadPolicy(),
+  ],
+).enableRLS();
 
 // Gmail OAuth tokens (per Clerk user)
-export const gmailTokens = pgTable("gmail_tokens", {
-  id: uuid().primaryKey().defaultRandom(),
-  clerkUserId: text("clerk_user_id").notNull().unique(),
-  email: text().notNull(),
-  accessToken: text("access_token").notNull(),
-  refreshToken: text("refresh_token").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const gmailTokens = pgTable(
+  "gmail_tokens",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    clerkUserId: text("clerk_user_id").notNull().unique(),
+    email: text().notNull(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  () => [authReadPolicy()],
+).enableRLS();
 
-// Type exports
+// Type exports — full types (for writes/inserts)
 export type Company = typeof companies.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Deal = typeof deals.$inferSelect;
@@ -324,3 +367,9 @@ export type DealActivity = typeof dealActivities.$inferSelect;
 export type Tag = typeof tags.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type NoteAttachment = typeof noteAttachments.$inferSelect;
+
+// Slim types — exclude heavy columns never used in UI reads
+export type CompanyRow = Omit<Company, "searchVector">;
+export type ContactRow = Omit<Contact, "searchVector">;
+export type DealRow = Omit<Deal, "searchVector">;
+export type NoteRow = Omit<Note, "embedding" | "searchVector">;
