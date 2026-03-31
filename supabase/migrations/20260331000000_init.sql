@@ -97,6 +97,7 @@ CREATE INDEX idx_deals_company_id ON deals (company_id);
 CREATE INDEX idx_deals_assigned_to ON deals (assigned_to);
 CREATE INDEX idx_deals_created_at ON deals (created_at);
 CREATE INDEX idx_deals_primary_contact_id ON deals (primary_contact_id);
+CREATE INDEX idx_deals_source ON deals (source);
 CREATE INDEX idx_deals_search_vector ON deals USING gin (search_vector);
 
 -- Deal insights (AI analysis)
@@ -107,7 +108,7 @@ CREATE TABLE deal_insights (
   raw_input text,
   analysis_text text NOT NULL,
   summary text,
-  embedding vector(768),
+  embedding extensions.vector(768),
   analysis_model text NOT NULL,
   embedding_model text NOT NULL DEFAULT 'gemini-embedding-2-preview',
   generated_at timestamptz NOT NULL DEFAULT now()
@@ -115,7 +116,7 @@ CREATE TABLE deal_insights (
 ALTER TABLE deal_insights ADD CONSTRAINT deal_insights_deal_id_deals_id_fk
   FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE CASCADE;
 CREATE INDEX idx_deal_insights_deal_id ON deal_insights (deal_id);
-CREATE INDEX idx_deal_insights_embedding ON deal_insights USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX idx_deal_insights_embedding ON deal_insights USING hnsw (embedding extensions.vector_cosine_ops);
 
 -- Deal activities (audit log)
 CREATE TABLE deal_activities (
@@ -177,7 +178,7 @@ CREATE TABLE notes (
   deal_id uuid,
   contact_id uuid,
   company_id uuid,
-  embedding vector(768),
+  embedding extensions.vector(768),
   token_count integer,
   search_vector tsvector,
   created_by text NOT NULL,
@@ -197,7 +198,7 @@ CREATE INDEX idx_notes_deal_id ON notes (deal_id);
 CREATE INDEX idx_notes_contact_id ON notes (contact_id);
 CREATE INDEX idx_notes_company_id ON notes (company_id);
 CREATE INDEX idx_notes_created_at ON notes (created_at);
-CREATE INDEX idx_notes_embedding ON notes USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX idx_notes_embedding ON notes USING hnsw (embedding extensions.vector_cosine_ops);
 CREATE INDEX idx_notes_search_vector ON notes USING gin (search_vector);
 
 -- Note attachments
@@ -430,11 +431,14 @@ CREATE POLICY "Authenticated read access" ON public.company_tags     FOR SELECT 
 CREATE POLICY "Authenticated read access" ON public.deal_contacts    FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read access" ON public.notes            FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated read access" ON public.note_attachments FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated read access" ON public.gmail_tokens     FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Owner read access" ON public.gmail_tokens
+  FOR SELECT TO authenticated
+  USING (clerk_user_id = (SELECT auth.jwt() ->> 'sub'));
 
 -- Revoke default grants — least privilege
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM public;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM anon, public;
 
 -- Re-grant SELECT to authenticated (revoke above removed inherited grants)
 -- All writes go through server actions as postgres role

@@ -1,5 +1,6 @@
 [tools]
 node = "24"
+supabase = "2"
 
 [env]
 _.file = ".env.local"
@@ -87,6 +88,21 @@ run = "supabase migration new"
 [tasks."db:status"]
 description = "Show Supabase service status + URLs/keys"
 run = "supabase status"
+
+[tasks."db:prod:link"]
+description = "Link to production Supabase project"
+env = { _.file = ".env.prod" }
+run = "supabase link --project-ref $SUPABASE_PROJECT_REF"
+
+[tasks."db:prod:push"]
+description = "Push pending migrations to production"
+env = { _.file = ".env.prod" }
+run = "supabase db push --dry-run && echo '\n--- Dry run passed. Pushing for real... ---\n' && supabase db push"
+
+[tasks."db:prod:reset"]
+description = "Reset production DB and re-run all migrations (DESTRUCTIVE)"
+env = { _.file = ".env.prod" }
+run = "supabase db reset --linked --yes"
 
 [tasks.test]
 description = "Run unit tests"
