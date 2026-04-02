@@ -68,16 +68,18 @@ async function DashboardContent({
             key={kpi.key}
             className={`card-hover animate-fade-up stagger-${i + 1} relative overflow-hidden`}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-neon-400/[0.03] to-transparent pointer-events-none" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="absolute -top-8 -right-8 size-24 rounded-full bg-neon-400/[0.04] blur-2xl pointer-events-none" />
+            <CardHeader className="flex flex-row items-center justify-between pb-1">
+              <CardTitle className="text-[0.6rem] font-sans font-semibold uppercase tracking-[0.2em] text-muted-foreground/50">
                 {kpi.label}
               </CardTitle>
-              <kpi.icon className="size-4 text-neon-400/60" />
+              <div className="flex items-center justify-center size-6 rounded-md bg-neon-400/[0.06]">
+                <kpi.icon className="size-3 text-neon-500/70" />
+              </div>
             </CardHeader>
             <CardContent>
               <p
-                className={`text-3xl font-bold tracking-tight tabular-nums ${kpi.prefix === "$" ? "text-emerald-600" : ""}`}
+                className={`text-2xl font-bold tracking-tight tabular-nums ${kpi.prefix === "$" ? "text-emerald-600" : ""}`}
               >
                 {kpi.prefix}
                 {kpiValues[kpi.key]}
@@ -225,12 +227,24 @@ async function DashboardContent({
 export default function DashboardPage(props: { searchParams: SearchParams }) {
   return (
     <div className="space-y-8">
-      <div className="flex items-end gap-3">
-        <h1 className="font-heading text-3xl font-bold tracking-tight">
-          Dashboard
-        </h1>
-        <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+      <div className="flex items-end justify-between">
+        <div className="space-y-1">
+          <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-neon-500/50">
+            Intelligence Overview
+          </p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">
+            Dashboard
+          </h1>
+        </div>
+        <span className="text-[0.6rem] tabular-nums uppercase tracking-wider text-muted-foreground/70">
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
       </div>
+      <div className="accent-line" />
       <Suspense
         fallback={
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

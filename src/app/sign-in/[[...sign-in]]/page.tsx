@@ -21,7 +21,7 @@ export default function SignInPage() {
               WenInDoubt
             </h1>
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mt-1">
-              Admin Platform
+              Intelligence Platform
             </p>
           </div>
         </div>

@@ -6,9 +6,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-outfit);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-dm-serif);
+  --font-heading: var(--font-newsreader);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -41,11 +41,14 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Custom neon color scale (ice-blue from wenindoubt.com brand) */
-  --color-neon-300: oklch(0.82 0.1 230);
-  --color-neon-400: oklch(0.72 0.12 230);
-  --color-neon-500: oklch(0.65 0.13 230);
-  --color-neon-600: oklch(0.55 0.14 230);
+  /* Neon color scale (electric cyan — brand accent) */
+  --color-neon-300: oklch(0.82 0.12 225);
+  --color-neon-400: oklch(0.7 0.14 225);
+  --color-neon-500: oklch(0.62 0.15 225);
+  --color-neon-600: oklch(0.52 0.16 225);
+
+  /* Signal color (AI presence — aliases neon-400) */
+  --color-signal: var(--color-neon-400);
 
   /* Animation tokens */
   --animate-fade-up: fade-up 0.5s ease-out both;
@@ -78,6 +81,28 @@
       transform: rotate(360deg);
     }
   }
+  @keyframes ai-breathe {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+  }
+  @keyframes shimmer-slide {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  --animate-ai-breathe: ai-breathe 3s ease-in-out infinite;
+  --animate-shimmer: shimmer-slide 8s ease-in-out infinite;
 }
 
 /* ─── Light Palette (Default) ─── */
@@ -88,7 +113,7 @@
   --card-foreground: oklch(0.15 0.015 265);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.015 265);
-  --primary: oklch(0.55 0.14 230);
+  --primary: oklch(0.52 0.16 225);
   --primary-foreground: oklch(0.98 0.005 265);
   --secondary: oklch(0.96 0.005 265);
   --secondary-foreground: oklch(0.2 0.015 265);
@@ -99,16 +124,16 @@
   --destructive: oklch(0.55 0.22 27);
   --border: oklch(0.91 0.005 265);
   --input: oklch(0.91 0.005 265);
-  --ring: oklch(0.55 0.14 230);
+  --ring: oklch(0.52 0.16 225);
   --radius: 0.5rem;
   --sidebar: oklch(0.97 0.005 265);
   --sidebar-foreground: oklch(0.35 0.012 265);
-  --sidebar-primary: oklch(0.55 0.14 230);
+  --sidebar-primary: oklch(0.52 0.16 225);
   --sidebar-primary-foreground: oklch(0.98 0.005 265);
   --sidebar-accent: oklch(0.94 0.005 265);
   --sidebar-accent-foreground: oklch(0.15 0.015 265);
   --sidebar-border: oklch(0.91 0.005 265);
-  --sidebar-ring: oklch(0.55 0.14 230);
+  --sidebar-ring: oklch(0.52 0.16 225);
 }
 
 /* ─── Base Styles ─── */
@@ -152,10 +177,10 @@ body::before {
   border-radius: inherit;
   background: conic-gradient(
     from 0deg,
-    oklch(0.72 0.12 230),
-    oklch(0.65 0.14 170),
-    oklch(0.68 0.13 290),
-    oklch(0.72 0.12 230)
+    var(--color-neon-400),
+    oklch(0.62 0.15 170),
+    oklch(0.66 0.14 290),
+    var(--color-neon-400)
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -203,7 +228,33 @@ body::before {
     0 0 0 1px oklch(1 0 0 / 6%);
 }
 
-/* ─── Gold Accent Underline ─── */
+/* ─── AI Signal Dot ─── */
+.signal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  animation: ai-breathe 3s ease-in-out infinite;
+  box-shadow: 0 0 8px color-mix(in oklch, var(--color-signal) 40%, transparent);
+}
+
+/* ─── Accent Line (animated shimmer) ─── */
+.accent-line {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--color-neon-400) 20%, transparent) 15%,
+    color-mix(in oklch, var(--color-neon-400) 40%, transparent) 50%,
+    color-mix(in oklch, var(--color-neon-400) 20%, transparent) 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-slide 8s ease-in-out infinite;
+  will-change: background-position;
+}
+
+/* ─── Neon Accent Underline ─── */
 .neon-underline {
   position: relative;
 }
@@ -214,7 +265,7 @@ body::before {
   left: 0;
   width: 2rem;
   height: 2px;
-  background: oklch(0.72 0.12 230);
+  background: var(--color-neon-400);
   border-radius: 1px;
 }
 

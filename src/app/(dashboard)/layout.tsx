@@ -10,14 +10,16 @@ export default function DashboardLayout({
     <SidebarProvider>
       <AppSidebar />
       <main className="flex-1 min-w-0">
-        {/* Gold accent line */}
-        <div className="h-[2px] bg-gradient-to-r from-neon-400/80 via-neon-400/30 to-transparent" />
-        <div className="flex items-center gap-3 border-b border-border/50 px-6 py-3">
-          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          <div className="h-4 w-px bg-border" />
-          <span className="text-xs text-muted-foreground tracking-wide">
-            Deal Intelligence Platform
-          </span>
+        <div className="accent-line" />
+        <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
+          <SidebarTrigger className="text-muted-foreground/60 hover:text-foreground transition-colors" />
+          <div className="h-4 w-px bg-border/40" />
+          <div className="flex items-center gap-2">
+            <span className="signal-dot" />
+            <span className="text-[0.6rem] font-medium uppercase tracking-[0.15em] text-muted-foreground/50">
+              Intelligence Platform
+            </span>
+          </div>
         </div>
         <div className="p-6 lg:p-8">{children}</div>
       </main>

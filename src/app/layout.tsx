@@ -1,20 +1,19 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { DM_Serif_Text, Geist_Mono, Inter } from "next/font/google";
+import { Geist_Mono, Newsreader, Outfit } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
   display: "swap",
 });
 
-const dmSerif = DM_Serif_Text({
-  variable: "--font-dm-serif",
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
-  weight: "400",
   display: "swap",
 });
 
@@ -38,7 +37,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${inter.variable} ${dmSerif.variable} ${geistMono.variable} h-full antialiased`}
+        className={`${outfit.variable} ${newsreader.variable} ${geistMono.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">
           <TooltipProvider>{children}</TooltipProvider>
