@@ -66,32 +66,32 @@ async function FiltersWithTags() {
 export default async function DealsPage(props: { searchParams: SearchParams }) {
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-end gap-3">
+      <div>
+        <div className="flex items-center justify-between mb-3">
           <h1 className="font-heading text-3xl font-bold tracking-tight">
             Deals
           </h1>
-          <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/deals/board" />}
+              className="border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+            >
+              <Kanban className="size-4" />
+              Board
+            </Button>
+            <Button
+              nativeButton={false}
+              render={<Link href="/deals/new" />}
+              className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
+            >
+              <Plus className="size-4" />
+              Add Deal
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/deals/board" />}
-            className="border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
-          >
-            <Kanban className="size-4" />
-            Board
-          </Button>
-          <Button
-            nativeButton={false}
-            render={<Link href="/deals/new" />}
-            className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
-          >
-            <Plus className="size-4" />
-            Add Deal
-          </Button>
-        </div>
+        <div className="accent-line" />
       </div>
       <Suspense fallback={<div className="h-10" />}>
         <FiltersWithTags />

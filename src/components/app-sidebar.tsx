@@ -36,7 +36,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border px-5 py-5">
+      <SidebarHeader className="border-b border-sidebar-border/50 px-5 py-5">
         <Link href="/" className="flex items-center gap-3 group">
           <Image
             src="/logo.png"
@@ -46,11 +46,11 @@ export function AppSidebar() {
             className="rounded-lg"
           />
           <div className="flex flex-col">
-            <span className="text-base font-semibold tracking-wide text-foreground">
+            <span className="text-sm font-semibold tracking-wide text-foreground">
               WenInDoubt
             </span>
-            <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Admin
+            <span className="text-[0.55rem] uppercase tracking-[0.25em] text-muted-foreground/60">
+              Intelligence
             </span>
           </div>
         </Link>
@@ -66,8 +66,8 @@ export function AppSidebar() {
                   render={<Link href={item.href} />}
                   className={
                     isActive
-                      ? "bg-neon-400/10 text-neon-400 font-medium"
-                      : "text-sidebar-foreground hover:text-foreground"
+                      ? "bg-neon-400/[0.08] text-neon-500 font-medium"
+                      : "text-sidebar-foreground/70 hover:text-foreground hover:bg-sidebar-accent/50"
                   }
                 >
                   <item.icon className="size-5" />
@@ -78,10 +78,16 @@ export function AppSidebar() {
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border p-4">
+      <SidebarFooter className="border-t border-sidebar-border/50 p-4 space-y-3">
+        <div className="flex items-center gap-2 px-1">
+          <span className="signal-dot" />
+          <span className="text-[0.55rem] uppercase tracking-[0.15em] text-muted-foreground/40">
+            AI
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <UserButton />
-          <span className="text-xs text-muted-foreground truncate">
+          <span className="text-xs text-muted-foreground/60 truncate">
             Account
           </span>
         </div>

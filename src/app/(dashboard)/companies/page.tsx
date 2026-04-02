@@ -57,21 +57,21 @@ export default async function CompaniesPage(props: {
 }) {
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-end gap-3">
+      <div>
+        <div className="flex items-center justify-between mb-3">
           <h1 className="font-heading text-3xl font-bold tracking-tight">
             Companies
           </h1>
-          <div className="mb-1 h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+          <Button
+            nativeButton={false}
+            render={<Link href="/companies/new" />}
+            className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
+          >
+            <Plus className="size-4" />
+            Add Company
+          </Button>
         </div>
-        <Button
-          nativeButton={false}
-          render={<Link href="/companies/new" />}
-          className="bg-neon-400 text-primary-foreground hover:bg-neon-500 border-0"
-        >
-          <Plus className="size-4" />
-          Add Company
-        </Button>
+        <div className="accent-line" />
       </div>
       <Suspense fallback={<div className="h-10" />}>
         <CompanyFilters />
