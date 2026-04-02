@@ -140,19 +140,18 @@ function ExportToolbar({
     const renderedHtml = contentRef.current?.innerHTML;
     if (!renderedHtml) return;
 
-    const printWindow = window.open("", "_blank");
+    const html = `<!DOCTYPE html><html><head><title>Deal Analysis${dealTitle ? ` — ${dealTitle}` : ""}</title><style>${PRINT_STYLES}</style></head><body>${renderedHtml}</body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const blobUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(blobUrl, "_blank", "width=800,height=600");
     if (!printWindow) {
+      URL.revokeObjectURL(blobUrl);
       toast.error("Popup blocked — allow popups to print");
       return;
     }
 
-    printWindow.document.open();
-    printWindow.document.write(
-      `<!DOCTYPE html><html><head><title>Deal Analysis${dealTitle ? ` — ${dealTitle}` : ""}</title><style>${PRINT_STYLES}</style></head><body>${renderedHtml}</body></html>`,
-    );
-    printWindow.document.close();
-
     printWindow.onload = () => {
+      URL.revokeObjectURL(blobUrl);
       printWindow.print();
       printWindow.onafterprint = () => printWindow.close();
     };
@@ -566,7 +565,7 @@ export function DealInsightsPanel({
     }
   }, [insights.length]);
 
-  function handleCustomSubmit(e: React.FormEvent) {
+  function handleCustomSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     const q = customQuery.trim();
     if (!q) return;

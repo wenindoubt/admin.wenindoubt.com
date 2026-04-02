@@ -7,7 +7,7 @@ import { stripCommas } from "./utils";
 // Field constraints defined once, shared between form + server schemas
 const company = {
   name: z.string().min(1, "Company name is required").max(200),
-  website: z.string().url("Invalid URL"),
+  website: z.url("Invalid URL"),
   industry: z.string().max(100),
   size: z.string(),
 };
@@ -35,15 +35,15 @@ export type UpdateCompanyInput = z.infer<typeof updateCompanySchema>;
 // ── Contact ──
 
 const contact = {
-  companyId: z.string().uuid("Company is required"),
+  companyId: z.uuid("Company is required"),
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
-  email: z.string().max(255),
+  email: z.email(),
   phone: z
     .string()
     .max(50)
     .refine((v) => !v || isValidPhone(v), "Invalid phone number"),
-  linkedinUrl: z.string().url("Invalid URL"),
+  linkedinUrl: z.url("Invalid URL"),
   jobTitle: z.string().max(200),
 };
 
@@ -51,7 +51,7 @@ export const contactFormSchema = z.object({
   companyId: contact.companyId,
   firstName: contact.firstName,
   lastName: contact.lastName,
-  email: contact.email.email("Invalid email").min(1, "Email is required"),
+  email: contact.email,
   phone: contact.phone.optional(),
   linkedinUrl: contact.linkedinUrl.or(z.literal("")).optional(),
   jobTitle: contact.jobTitle.optional(),
@@ -63,7 +63,7 @@ export const createContactSchema = z.object({
   companyId: contact.companyId,
   firstName: contact.firstName,
   lastName: contact.lastName,
-  email: contact.email.email("Email is required"),
+  email: contact.email,
   phone: contact.phone.nullable().optional(),
   linkedinUrl: contact.linkedinUrl.nullable().optional(),
   jobTitle: contact.jobTitle.nullable().optional(),
@@ -96,8 +96,8 @@ const dealSources = [
 ] as const;
 
 const deal = {
-  companyId: z.string().uuid("Company is required"),
-  primaryContactId: z.string().uuid("Primary contact is required"),
+  companyId: z.uuid("Company is required"),
+  primaryContactId: z.uuid("Primary contact is required"),
   title: z.string().min(1, "Deal title is required").max(300),
   stage: z.enum(dealStages),
   source: z.enum(dealSources),
@@ -110,7 +110,7 @@ const deal = {
 export const dealFormSchema = z.object({
   companyId: deal.companyId,
   primaryContactId: deal.primaryContactId,
-  additionalContactIds: z.array(z.string().uuid()),
+  additionalContactIds: z.array(z.uuid()),
   title: deal.title,
   stage: deal.stage,
   source: deal.source,
@@ -130,7 +130,7 @@ export type DealFormValues = z.infer<typeof dealFormSchema>;
 export const createDealSchema = z.object({
   companyId: deal.companyId,
   primaryContactId: deal.primaryContactId,
-  additionalContactIds: z.array(z.string().uuid()).optional().default([]),
+  additionalContactIds: z.array(z.uuid()).optional().default([]),
   title: deal.title,
   stage: deal.stage,
   source: deal.source,
@@ -166,9 +166,9 @@ export const createNoteSchema = z
   .object({
     title: z.string().max(300).nullable().optional(),
     content: z.string().max(50000).optional().default(""),
-    dealId: z.string().uuid().nullable().optional(),
-    contactId: z.string().uuid().nullable().optional(),
-    companyId: z.string().uuid().nullable().optional(),
+    dealId: z.uuid().nullable().optional(),
+    contactId: z.uuid().nullable().optional(),
+    companyId: z.uuid().nullable().optional(),
     attachments: z.array(attachmentMetaSchema).optional(),
   })
   .refine(
@@ -205,7 +205,7 @@ export const activityFormSchema = z.object({
 export type ActivityFormValues = z.infer<typeof activityFormSchema>;
 
 export const addDealActivitySchema = z.object({
-  dealId: z.string().uuid("Invalid deal ID"),
+  dealId: z.uuid("Invalid deal ID"),
   type: z.enum(["email", "call", "meeting", "status_change"]),
   description: activity.description,
 });
@@ -223,7 +223,7 @@ const ingestContactSchema = z.object({
   firstName: contact.firstName,
   lastName: contact.lastName,
   // Email is optional for the ingest API — contacts.email is nullable in DB
-  email: contact.email.email("Invalid email").nullable().optional(),
+  email: contact.email.nullable().optional(),
   phone: contact.phone.nullable().optional(),
   linkedinUrl: contact.linkedinUrl.nullable().optional(),
   jobTitle: contact.jobTitle.nullable().optional(),
