@@ -88,7 +88,7 @@ export const contacts = pgTable(
       .references(() => companies.id, { onDelete: "cascade" }),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
-    email: text().notNull(),
+    email: text(),
     phone: text(),
     linkedinUrl: text("linkedin_url"),
     jobTitle: text("job_title"),
@@ -103,6 +103,10 @@ export const contacts = pgTable(
   (table) => [
     index("idx_contacts_company_id").on(table.companyId),
     uniqueIndex("idx_contacts_company_email").on(table.companyId, table.email),
+    // Partial unique index: dedup by name when email is absent (API ingest path)
+    uniqueIndex("idx_contacts_company_name")
+      .on(table.companyId, sql`lower(first_name)`, sql`lower(last_name)`)
+      .where(sql`email IS NULL`),
     index("idx_contacts_search_vector").using("gin", table.searchVector),
     authReadPolicy(),
   ],
@@ -358,6 +362,19 @@ export const gmailTokens = pgTable(
   () => [authReadPolicy()],
 ).enableRLS();
 
+// API keys (external service auth — server-only, no RLS read policy)
+export const apiKeys = pgTable("api_keys", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  keyPrefix: text("key_prefix").notNull(),
+  keyHash: text("key_hash").notNull().unique(),
+  hmacSecret: text("hmac_secret").notNull(),
+  scopes: text().array().notNull().default(sql`'{}'::text[]`),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
+
 // Type exports — full types (for writes/inserts)
 export type Company = typeof companies.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
@@ -367,6 +384,7 @@ export type DealActivity = typeof dealActivities.$inferSelect;
 export type Tag = typeof tags.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type NoteAttachment = typeof noteAttachments.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
 
 // Slim types — exclude heavy columns never used in UI reads
 export type CompanyRow = Omit<Company, "searchVector">;

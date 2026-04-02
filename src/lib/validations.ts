@@ -209,3 +209,34 @@ export const addDealActivitySchema = z.object({
   type: z.enum(["email", "call", "meeting", "status_change"]),
   description: activity.description,
 });
+
+// ── Ingest API (external — OpenClaw / service-to-service) ──
+
+const ingestCompanySchema = z.object({
+  name: company.name,
+  website: company.website.nullable().optional(),
+  industry: company.industry.nullable().optional(),
+  size: company.size.nullable().optional(),
+});
+
+const ingestContactSchema = z.object({
+  firstName: contact.firstName,
+  lastName: contact.lastName,
+  // Email is optional for the ingest API — contacts.email is nullable in DB
+  email: contact.email.email("Invalid email").nullable().optional(),
+  phone: contact.phone.nullable().optional(),
+  linkedinUrl: contact.linkedinUrl.nullable().optional(),
+  jobTitle: contact.jobTitle.nullable().optional(),
+});
+
+export const ingestRequestSchema = z
+  .object({
+    company: ingestCompanySchema.optional(),
+    contact: ingestContactSchema.optional(),
+  })
+  .refine(
+    (d) => d.company || d.contact,
+    "At least one of 'company' or 'contact' is required",
+  );
+
+export type IngestRequest = z.infer<typeof ingestRequestSchema>;
