@@ -128,6 +128,10 @@ run = "npx tsx scripts/backfill-assigned-to.ts"
 description = "Backfill note embeddings"
 run = "npx tsx scripts/backfill-note-embeddings.ts"
 
+[tasks."api:keygen"]
+description = "Generate a new API key for the /api/v1/ingest endpoint"
+run = "npx tsx scripts/generate-api-key.ts {{arg(name='name', i=0)}}"
+
 [tasks.inspect]
 description = "Headless page inspection (screenshot + errors + a11y tree)"
 run = "npx tsx scripts/inspect.ts {{arg(name='path', i=0)}}"
