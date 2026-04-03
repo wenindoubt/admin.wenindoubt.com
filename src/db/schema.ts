@@ -290,6 +290,7 @@ export const notes = pgTable(
     companyId: uuid("company_id").references(() => companies.id, {
       onDelete: "cascade",
     }),
+    externalId: text("external_id"),
     embedding: vector({ dimensions: 768 }),
     tokenCount: integer("token_count"),
     searchVector: tsvector("search_vector"),
@@ -311,6 +312,9 @@ export const notes = pgTable(
       table.embedding.op("vector_cosine_ops"),
     ),
     index("idx_notes_search_vector").using("gin", table.searchVector),
+    uniqueIndex("idx_notes_external_id")
+      .on(table.externalId)
+      .where(sql`external_id IS NOT NULL`),
     check(
       "notes_at_least_one_entity",
       sql`COALESCE(deal_id, contact_id, company_id) IS NOT NULL`,

@@ -1,6 +1,6 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, contacts } from "@/db/schema";
+import { companies, contacts, notes } from "@/db/schema";
 import { validateApiRequest } from "@/lib/api-auth";
 import { ingestRequestSchema } from "@/lib/validations";
 
@@ -39,7 +39,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const { company: companyInput, contact: contactInput } = parsed.data;
+  const {
+    company: companyInput,
+    contact: contactInput,
+    notes: notesInput,
+  } = parsed.data;
 
   try {
     const result = await db.transaction(async (tx) => {
@@ -262,7 +266,70 @@ export async function POST(request: Request) {
         }
       }
 
-      return { companyResult, contactResult };
+      // ── Notes insert/upsert ──────────────────────────────────────────────────
+      const noteResults: {
+        id: string;
+        externalId: string | null;
+        _status: UpsertStatus;
+      }[] = [];
+
+      if (notesInput && notesInput.length > 0) {
+        for (const noteInput of notesInput) {
+          const contactId =
+            noteInput.associateTo.includes("contact") && contactResult
+              ? contactResult.data.id
+              : null;
+          const companyId =
+            noteInput.associateTo.includes("company") && companyResult
+              ? companyResult.data.id
+              : null;
+
+          if (!contactId && !companyId) {
+            throw new Error(
+              `Note associateTo [${noteInput.associateTo.join(", ")}] references an entity not present in this request`,
+            );
+          }
+
+          const noteValues = {
+            type: "note" as const,
+            title: noteInput.title ?? null,
+            content: noteInput.content,
+            contactId,
+            companyId,
+            createdBy: `openclaw-${auth.keyName}`,
+          };
+
+          let noteRow: typeof notes.$inferSelect;
+          let wasUpdated = false;
+
+          if (noteInput.externalId) {
+            [noteRow] = await tx
+              .insert(notes)
+              .values({ ...noteValues, externalId: noteInput.externalId })
+              .onConflictDoUpdate({
+                target: notes.externalId,
+                targetWhere: sql`external_id IS NOT NULL`,
+                set: {
+                  title: noteValues.title,
+                  content: noteValues.content,
+                  updatedAt: new Date(),
+                },
+              })
+              .returning();
+            wasUpdated = noteRow.updatedAt > noteRow.createdAt;
+          } else {
+            [noteRow] = await tx.insert(notes).values(noteValues).returning();
+          }
+
+          noteResults.push({
+            id: noteRow.id,
+            externalId: noteRow.externalId,
+            _status: wasUpdated ? "updated" : "created",
+          });
+        }
+      }
+
+      return { companyResult, contactResult, noteResults };
     });
 
     // Exclude searchVector — internal tsvector column, not useful to callers
@@ -286,12 +353,16 @@ export async function POST(request: Request) {
             _status: result.contactResult.status,
           }
         : null,
+      notes: result.noteResults,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
 
-    // Surface client-visible validation errors (e.g. missing company for contact)
-    if (message.includes("Contact requires a company")) {
+    // Surface client-visible validation errors
+    if (
+      message.includes("Contact requires a company") ||
+      message.includes("Note associateTo")
+    ) {
       return Response.json({ error: message }, { status: 400 });
     }
 

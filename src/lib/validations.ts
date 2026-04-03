@@ -229,10 +229,22 @@ const ingestContactSchema = z.object({
   jobTitle: contact.jobTitle.nullable().optional(),
 });
 
+const ingestNoteSchema = z.object({
+  content: z.string().min(1).max(50000),
+  title: z.string().max(300).nullable().optional(),
+  // Which upserted entities to attach the note to — must include at least one
+  associateTo: z
+    .array(z.enum(["contact", "company"]))
+    .min(1, "associateTo must include at least one of: contact, company"),
+  // Stable caller-generated UUID — enables idempotent upsert
+  externalId: z.uuid().optional(),
+});
+
 export const ingestRequestSchema = z
   .object({
     company: ingestCompanySchema.optional(),
     contact: ingestContactSchema.optional(),
+    notes: z.array(ingestNoteSchema).optional(),
   })
   .refine(
     (d) => d.company || d.contact,
