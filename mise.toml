@@ -59,11 +59,11 @@ run = "docker run --rm -v \"$(pwd):/src\" semgrep/semgrep:1.156.0 semgrep scan -
 
 [tasks.seed]
 description = "Seed sample data"
-run = "npx tsx scripts/seed.ts"
+run = "node_modules/.bin/tsx scripts/seed.ts"
 
 [tasks."seed:clean"]
 description = "Remove sample data"
-run = "npx tsx scripts/seed.ts --clean"
+run = "node_modules/.bin/tsx scripts/seed.ts --clean"
 
 [tasks."db:push"]
 description = "Push Drizzle schema to local DB"
@@ -131,6 +131,14 @@ run = "npx tsx scripts/backfill-note-embeddings.ts"
 [tasks."api:keygen"]
 description = "Generate a new API key for the /api/v1/ingest endpoint"
 run = "npx tsx scripts/generate-api-key.ts {{arg(name='name', i=0)}}"
+
+[tasks."api:list"]
+description = "List all API keys"
+run = "npx tsx scripts/list-api-keys.ts"
+
+[tasks."api:delete"]
+description = "Delete an API key by ID (use api:list to find IDs)"
+run = "npx tsx scripts/delete-api-key.ts {{arg(name='id', i=0)}}"
 
 [tasks.inspect]
 description = "Headless page inspection (screenshot + errors + a11y tree)"
