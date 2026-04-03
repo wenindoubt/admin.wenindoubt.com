@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { after } from "next/server";
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { db } from "@/db";
 import { apiKeys } from "@/db/schema";
 
@@ -33,13 +33,25 @@ export async function validateApiRequest(
   const timestamp = request.headers.get("x-timestamp");
 
   if (!apiKey || !signature || !timestamp) {
-    return { ok: false, status: 400, message: "Missing required auth headers: X-API-Key, X-Signature, X-Timestamp" };
+    return {
+      ok: false,
+      status: 400,
+      message:
+        "Missing required auth headers: X-API-Key, X-Signature, X-Timestamp",
+    };
   }
 
   // Validate timestamp is within the allowed window
   const ts = Number(timestamp);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts * 1000) > TIMESTAMP_WINDOW_MS) {
-    return { ok: false, status: 401, message: "Request expired or invalid timestamp" };
+  if (
+    !Number.isFinite(ts) ||
+    Math.abs(Date.now() - ts * 1000) > TIMESTAMP_WINDOW_MS
+  ) {
+    return {
+      ok: false,
+      status: 401,
+      message: "Request expired or invalid timestamp",
+    };
   }
 
   // Look up the key by hash
@@ -56,11 +68,20 @@ export async function validateApiRequest(
 
   // Rate limit by key prefix
   if (!checkRateLimit(row.keyPrefix)) {
-    return { ok: false, status: 429, message: "Rate limit exceeded (60 req/min)" };
+    return {
+      ok: false,
+      status: 429,
+      message: "Rate limit exceeded (60 req/min)",
+    };
   }
 
   // Verify HMAC signature
-  const sigValid = verifySignature(row.hmacSecret, timestamp, rawBody, signature);
+  const sigValid = verifySignature(
+    row.hmacSecret,
+    timestamp,
+    rawBody,
+    signature,
+  );
   if (!sigValid) {
     return { ok: false, status: 401, message: "Invalid signature" };
   }
@@ -73,7 +94,12 @@ export async function validateApiRequest(
       .where(eq(apiKeys.id, row.id));
   });
 
-  return { ok: true, keyId: row.id, keyName: row.name, keyPrefix: row.keyPrefix };
+  return {
+    ok: true,
+    keyId: row.id,
+    keyName: row.name,
+    keyPrefix: row.keyPrefix,
+  };
 }
 
 function verifySignature(
@@ -101,7 +127,10 @@ function checkRateLimit(keyPrefix: string): boolean {
   const entry = rateLimitMap.get(keyPrefix);
 
   if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(keyPrefix, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    rateLimitMap.set(keyPrefix, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    });
     return true;
   }
 

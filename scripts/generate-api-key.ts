@@ -15,7 +15,9 @@ import { apiKeys } from "../src/db/schema";
 const name = process.argv[2];
 if (!name?.trim()) {
   console.error("Usage: npx tsx scripts/generate-api-key.ts <name>");
-  console.error('Example: npx tsx scripts/generate-api-key.ts "OpenClaw Skill"');
+  console.error(
+    'Example: npx tsx scripts/generate-api-key.ts "OpenClaw Skill"',
+  );
   process.exit(1);
 }
 
@@ -44,7 +46,9 @@ async function main() {
   console.log(`Key ID:      ${row.id}`);
   console.log(`API Key:     ${apiKey}`);
   console.log(`HMAC Secret: ${hmacSecret}`);
-  console.log("\n!! Store these values securely. They cannot be recovered. !!\n");
+  console.log(
+    "\n!! Store these values securely. They cannot be recovered. !!\n",
+  );
 
   await conn.end();
 }
