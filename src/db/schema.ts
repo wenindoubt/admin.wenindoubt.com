@@ -372,7 +372,9 @@ export const apiKeys = pgTable("api_keys", {
   scopes: text().array().notNull().default(sql`'{}'::text[]`),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 }).enableRLS();
 
 // Type exports — full types (for writes/inserts)

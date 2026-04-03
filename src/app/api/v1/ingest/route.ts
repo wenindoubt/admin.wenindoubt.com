@@ -12,7 +12,10 @@ export async function POST(request: Request) {
   try {
     rawBody = await request.text();
   } catch {
-    return Response.json({ error: "Failed to read request body" }, { status: 400 });
+    return Response.json(
+      { error: "Failed to read request body" },
+      { status: 400 },
+    );
   }
 
   // Authenticate
@@ -40,8 +43,14 @@ export async function POST(request: Request) {
 
   try {
     const result = await db.transaction(async (tx) => {
-      let companyResult: { data: typeof companies.$inferSelect; status: UpsertStatus } | null = null;
-      let contactResult: { data: typeof contacts.$inferSelect; status: UpsertStatus } | null = null;
+      let companyResult: {
+        data: typeof companies.$inferSelect;
+        status: UpsertStatus;
+      } | null = null;
+      let contactResult: {
+        data: typeof contacts.$inferSelect;
+        status: UpsertStatus;
+      } | null = null;
 
       // ── Company upsert ───────────────────────────────────────────────────────
       if (companyInput) {
@@ -54,8 +63,10 @@ export async function POST(request: Request) {
         if (existing) {
           // Merge: only overwrite fields that are newly provided and non-null
           const updates: Partial<typeof companyInput> = {};
-          if (companyInput.website != null) updates.website = companyInput.website;
-          if (companyInput.industry != null) updates.industry = companyInput.industry;
+          if (companyInput.website != null)
+            updates.website = companyInput.website;
+          if (companyInput.industry != null)
+            updates.industry = companyInput.industry;
           if (companyInput.size != null) updates.size = companyInput.size;
 
           if (Object.keys(updates).length > 0) {
@@ -69,7 +80,10 @@ export async function POST(request: Request) {
             companyResult = { data: existing, status: "unchanged" };
           }
         } else {
-          const [created] = await tx.insert(companies).values(companyInput).returning();
+          const [created] = await tx
+            .insert(companies)
+            .values(companyInput)
+            .returning();
           companyResult = { data: created, status: "created" };
         }
       }
@@ -77,30 +91,106 @@ export async function POST(request: Request) {
       // ── Contact upsert ───────────────────────────────────────────────────────
       if (contactInput) {
         if (!companyResult) {
-          throw new Error("Contact requires a company — include 'company' in the request");
+          throw new Error(
+            "Contact requires a company — include 'company' in the request",
+          );
         }
 
         const companyId = companyResult.data.id;
 
         if (contactInput.email) {
-          // Email present: use the unique index on (company_id, email) for upsert
-          const mergeFields: Record<string, unknown> = { updatedAt: new Date() };
-          if (contactInput.phone != null) mergeFields.phone = contactInput.phone;
-          if (contactInput.linkedinUrl != null) mergeFields.linkedinUrl = contactInput.linkedinUrl;
-          if (contactInput.jobTitle != null) mergeFields.jobTitle = contactInput.jobTitle;
+          // Email present — first check if a no-email record exists with same name (merge case)
+          const [noEmailMatch] = await tx
+            .select()
+            .from(contacts)
+            .where(
+              and(
+                eq(contacts.companyId, companyId),
+                sql`lower(${contacts.firstName}) = lower(${contactInput.firstName})`,
+                sql`lower(${contacts.lastName}) = lower(${contactInput.lastName})`,
+                isNull(contacts.email),
+              ),
+            )
+            .limit(1);
 
-          const [upserted] = await tx
-            .insert(contacts)
-            .values({ companyId, ...contactInput })
-            .onConflictDoUpdate({
-              target: [contacts.companyId, contacts.email],
-              set: mergeFields,
-            })
-            .returning();
+          if (noEmailMatch) {
+            // Merge email (and any other new fields) onto the existing no-email record
+            const updates: Record<string, unknown> = {
+              email: contactInput.email,
+              updatedAt: new Date(),
+            };
+            if (contactInput.phone != null) updates.phone = contactInput.phone;
+            if (contactInput.linkedinUrl != null)
+              updates.linkedinUrl = contactInput.linkedinUrl;
+            if (contactInput.jobTitle != null)
+              updates.jobTitle = contactInput.jobTitle;
 
-          // Determine if it was created or updated by checking createdAt vs updatedAt
-          const wasUpdated = upserted.updatedAt > upserted.createdAt;
-          contactResult = { data: upserted, status: wasUpdated ? "updated" : "created" };
+            const [updated] = await tx
+              .update(contacts)
+              .set(updates)
+              .where(eq(contacts.id, noEmailMatch.id))
+              .returning();
+            contactResult = { data: updated, status: "updated" };
+          } else {
+            // Check for a name match with any email — handles the email-change case
+            const [nameMatch] = await tx
+              .select()
+              .from(contacts)
+              .where(
+                and(
+                  eq(contacts.companyId, companyId),
+                  sql`lower(${contacts.firstName}) = lower(${contactInput.firstName})`,
+                  sql`lower(${contacts.lastName}) = lower(${contactInput.lastName})`,
+                ),
+              )
+              .limit(1);
+
+            if (nameMatch) {
+              const updates: Record<string, unknown> = {
+                email: contactInput.email,
+                updatedAt: new Date(),
+              };
+              if (contactInput.phone != null)
+                updates.phone = contactInput.phone;
+              if (contactInput.linkedinUrl != null)
+                updates.linkedinUrl = contactInput.linkedinUrl;
+              if (contactInput.jobTitle != null)
+                updates.jobTitle = contactInput.jobTitle;
+
+              const [updated] = await tx
+                .update(contacts)
+                .set(updates)
+                .where(eq(contacts.id, nameMatch.id))
+                .returning();
+              contactResult = { data: updated, status: "updated" };
+            } else {
+              // No existing record by name — use the unique index on (company_id, email) for upsert
+              const mergeFields: Record<string, unknown> = {
+                updatedAt: new Date(),
+              };
+              if (contactInput.phone != null)
+                mergeFields.phone = contactInput.phone;
+              if (contactInput.linkedinUrl != null)
+                mergeFields.linkedinUrl = contactInput.linkedinUrl;
+              if (contactInput.jobTitle != null)
+                mergeFields.jobTitle = contactInput.jobTitle;
+
+              const [upserted] = await tx
+                .insert(contacts)
+                .values({ companyId, ...contactInput })
+                .onConflictDoUpdate({
+                  target: [contacts.companyId, contacts.email],
+                  set: mergeFields,
+                })
+                .returning();
+
+              const wasUpdated = upserted.updatedAt > upserted.createdAt;
+              contactResult = {
+                data: upserted,
+                status: wasUpdated ? "updated" : "created",
+              };
+            }
+          }
         } else {
           // No email: use partial unique index on (company_id, lower(first), lower(last)) WHERE email IS NULL
           const [existing] = await tx
@@ -119,8 +209,10 @@ export async function POST(request: Request) {
           if (existing) {
             const updates: Record<string, unknown> = { updatedAt: new Date() };
             if (contactInput.phone != null) updates.phone = contactInput.phone;
-            if (contactInput.linkedinUrl != null) updates.linkedinUrl = contactInput.linkedinUrl;
-            if (contactInput.jobTitle != null) updates.jobTitle = contactInput.jobTitle;
+            if (contactInput.linkedinUrl != null)
+              updates.linkedinUrl = contactInput.linkedinUrl;
+            if (contactInput.jobTitle != null)
+              updates.jobTitle = contactInput.jobTitle;
 
             const [updated] = await tx
               .update(contacts)
@@ -129,11 +221,43 @@ export async function POST(request: Request) {
               .returning();
             contactResult = { data: updated, status: "updated" };
           } else {
-            const [created] = await tx
-              .insert(contacts)
-              .values({ companyId, ...contactInput })
-              .returning();
-            contactResult = { data: created, status: "created" };
+            // Fall back to name match with any email — avoids duplicate when contact already has email
+            const [nameMatch] = await tx
+              .select()
+              .from(contacts)
+              .where(
+                and(
+                  eq(contacts.companyId, companyId),
+                  sql`lower(${contacts.firstName}) = lower(${contactInput.firstName})`,
+                  sql`lower(${contacts.lastName}) = lower(${contactInput.lastName})`,
+                ),
+              )
+              .limit(1);
+
+            if (nameMatch) {
+              const updates: Record<string, unknown> = {
+                updatedAt: new Date(),
+              };
+              if (contactInput.phone != null)
+                updates.phone = contactInput.phone;
+              if (contactInput.linkedinUrl != null)
+                updates.linkedinUrl = contactInput.linkedinUrl;
+              if (contactInput.jobTitle != null)
+                updates.jobTitle = contactInput.jobTitle;
+
+              const [updated] = await tx
+                .update(contacts)
+                .set(updates)
+                .where(eq(contacts.id, nameMatch.id))
+                .returning();
+              contactResult = { data: updated, status: "updated" };
+            } else {
+              const [created] = await tx
+                .insert(contacts)
+                .values({ companyId, ...contactInput })
+                .returning();
+              contactResult = { data: created, status: "created" };
+            }
           }
         }
       }
@@ -151,10 +275,16 @@ export async function POST(request: Request) {
 
     return Response.json({
       company: result.companyResult
-        ? { ...omitSearchVector(result.companyResult.data), _status: result.companyResult.status }
+        ? {
+            ...omitSearchVector(result.companyResult.data),
+            _status: result.companyResult.status,
+          }
         : null,
       contact: result.contactResult
-        ? { ...omitSearchVector(result.contactResult.data), _status: result.contactResult.status }
+        ? {
+            ...omitSearchVector(result.contactResult.data),
+            _status: result.contactResult.status,
+          }
         : null,
     });
   } catch (err) {

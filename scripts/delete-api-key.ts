@@ -25,7 +25,11 @@ async function main() {
   const [deleted] = await db
     .delete(apiKeys)
     .where(eq(apiKeys.id, id.trim()))
-    .returning({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix });
+    .returning({
+      id: apiKeys.id,
+      name: apiKeys.name,
+      keyPrefix: apiKeys.keyPrefix,
+    });
 
   if (!deleted) {
     console.error(`No key found with ID: ${id}`);
@@ -33,7 +37,9 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Deleted: [${deleted.keyPrefix}...] "${deleted.name}" (${deleted.id})`);
+  console.log(
+    `Deleted: [${deleted.keyPrefix}...] "${deleted.name}" (${deleted.id})`,
+  );
   await conn.end();
 }
 

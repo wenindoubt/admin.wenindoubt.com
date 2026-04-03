@@ -140,6 +140,21 @@ run = "npx tsx scripts/list-api-keys.ts"
 description = "Delete an API key by ID (use api:list to find IDs)"
 run = "npx tsx scripts/delete-api-key.ts {{arg(name='id', i=0)}}"
 
+[tasks."api:prod:keygen"]
+description = "Generate a new API key against production DB"
+env = { _.file = ".env.prod" }
+run = "npx tsx scripts/generate-api-key.ts {{arg(name='name', i=0)}}"
+
+[tasks."api:prod:list"]
+description = "List all API keys in production"
+env = { _.file = ".env.prod" }
+run = "npx tsx scripts/list-api-keys.ts"
+
+[tasks."api:prod:delete"]
+description = "Delete an API key by ID in production"
+env = { _.file = ".env.prod" }
+run = "npx tsx scripts/delete-api-key.ts {{arg(name='id', i=0)}}"
+
 [tasks.inspect]
 description = "Headless page inspection (screenshot + errors + a11y tree)"
 run = "npx tsx scripts/inspect.ts {{arg(name='path', i=0)}}"
