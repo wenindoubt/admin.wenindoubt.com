@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: ./ingest.sh --company <name> [--website <url>] [--industry <str>] [--size <str>]
+# Usage: ./scout.sh --company <name> [--website <url>] [--industry <str>] [--size <str>]
 #                    [--first <name> --last <name>] [--email <addr>] [--phone <str>]
 #                    [--job-title <str>] [--linkedin <url>]
 #                    [--note <content>] [--note-title <str>]
@@ -101,7 +101,7 @@ fi
 TS=$(date +%s)
 SIG=$(printf '%s' "${TS}.${BODY}" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
 
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://admin-wenindoubt-com.vercel.app/api/v1/ingest \
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://admin-wenindoubt-com.vercel.app/api/v1/scout \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $KEY" \
   -H "X-Signature: $SIG" \
