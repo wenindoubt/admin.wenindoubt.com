@@ -11,8 +11,8 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-// findTalentForDeal / findDealsForTalent / findTalentForEntity are NOT tested in
-// this file. All three call generateEmbedding(), which requires a live
+// findTalentForDeal / findDealsForTalent are NOT tested in
+// this file. Both call generateEmbedding(), which requires a live
 // GOOGLE_AI_API_KEY at call time and cannot be meaningfully exercised with a
 // mocked DB. We mock the module solely to prevent @google/genai from loading.
 vi.mock("@/lib/ai/embeddings", () => ({
@@ -32,8 +32,8 @@ vi.mock("@/db", () => ({
 
 // ─── Imports (after vi.mock so they receive mocked modules) ───────────────────
 
-import { db } from "@/db";
 import { revalidatePath } from "next/cache";
+import { db } from "@/db";
 import {
   assignTalentToDeal,
   createTalent,
@@ -52,31 +52,37 @@ import { createTalentSchema, talentFormSchema } from "@/lib/validations";
  * resolves to `[]`. The chain itself is also thenable, so callers that skip
  * `.returning()` (e.g. tag inserts) can still `await chain`.
  */
+// biome-ignore lint/suspicious/noExplicitAny: returns any to be compatible with multiple Drizzle builder types
 function makeChain<T>(result: T): any {
-  const p = Promise.resolve(result);
-  const c: any = {};
-
-  // Fluent pass-through — no argument inspection needed
-  const fluent = () => c;
-  c.orderBy = fluent;
-  c.limit = fluent;
-  c.offset = fluent;
-  c.innerJoin = fluent;
-
-  // vi.fn() so callers can assert args when needed
-  c.from = vi.fn().mockReturnValue(c);
-  c.where = vi.fn().mockReturnValue(c);
-  c.set = vi.fn().mockReturnValue(c);
-  c.values = vi.fn().mockReturnValue(c);
-  c.returning = vi.fn().mockResolvedValue(result);
-  c.onConflictDoNothing = vi.fn().mockResolvedValue([]);
-
-  // Thenable — supports `await chain` without a terminal method
-  c.then = (resolve: any, reject: any) => p.then(resolve, reject);
-  c.catch = (reject: any) => p.catch(reject);
-  c.finally = (fn: any) => p.finally(fn);
-
-  return c;
+  // Extend a real Promise so `await chain` uses Promise.prototype.then
+  // (own `.then` would trigger the noThenProperty lint rule).
+  const fluent = {
+    from: vi.fn(),
+    where: vi.fn(),
+    set: vi.fn(),
+    values: vi.fn(),
+    orderBy: vi.fn(),
+    limit: vi.fn(),
+    offset: vi.fn(),
+    innerJoin: vi.fn(),
+    returning: vi.fn().mockResolvedValue(result),
+    onConflictDoNothing: vi.fn().mockResolvedValue([]),
+  };
+  const chain = Object.assign(Promise.resolve(result), fluent);
+  // Wire fluent builder methods to return the chain itself
+  for (const key of [
+    "from",
+    "where",
+    "set",
+    "values",
+    "orderBy",
+    "limit",
+    "offset",
+    "innerJoin",
+  ] as const) {
+    fluent[key].mockReturnValue(chain);
+  }
+  return chain;
 }
 
 const uuid = () => randomUUID();
@@ -128,6 +134,7 @@ describe("createTalent", () => {
 
   it("missing firstName throws validation error before touching DB", async () => {
     await expect(
+      // biome-ignore lint/suspicious/noExplicitAny: testing invalid input shape
       createTalent({ lastName: "Doe", tier: "A" } as any),
     ).rejects.toThrow();
 
@@ -139,6 +146,7 @@ describe("createTalent", () => {
       createTalent({
         firstName: "Jane",
         lastName: "Doe",
+        // biome-ignore lint/suspicious/noExplicitAny: testing invalid tier value
         tier: "Z" as any,
         status: "active",
         tagIds: [],
@@ -206,6 +214,7 @@ describe("updateTalent", () => {
       delete: vi.fn().mockReturnValue(makeChain([])),
       insert: vi.fn().mockReturnValue(makeChain([])),
     };
+    // biome-ignore lint/suspicious/noExplicitAny: mockTx is a partial stub, not a full PgTransaction
     vi.mocked(db.transaction).mockImplementation(async (fn: any) => fn(mockTx));
 
     await updateTalent(id, { tagIds: [newTagId] });
@@ -264,7 +273,7 @@ describe("getTalent filters", () => {
    * getTalent runs two parallel db.select calls (rows + COUNT) via Promise.all,
    * then a third select for tags when rows.length > 0.
    */
-  function setupSelectMocks(rows: any[] = [], total = 0) {
+  function setupSelectMocks(rows: unknown[] = [], total = 0) {
     vi.mocked(db.select)
       .mockReturnValueOnce(makeChain(rows))
       .mockReturnValueOnce(makeChain([{ total }]));

@@ -58,6 +58,14 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Toggle membership of `item` in a Set, returning a new Set (immutable update) */
+export function toggleSetItem<T>(prev: Set<T>, item: T): Set<T> {
+  const next = new Set(prev);
+  if (next.has(item)) next.delete(item);
+  else next.add(item);
+  return next;
+}
+
 export function formatCurrencyInput(value: string): string {
   const stripped = value.replace(/[^\d.]/g, "");
   if (!stripped) return "";

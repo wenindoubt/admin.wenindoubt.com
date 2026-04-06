@@ -1,6 +1,7 @@
 export const PAGE_SIZE = 25;
 export const PAGE_SIZE_ACTIVITY = 5;
 export const PAGE_SIZE_NOTES = 10;
+export const PAGE_SIZE_TALENT_MATCHES = 5;
 
 export type NoteEntityType = "deal" | "contact" | "company" | "talent";
 export type LinkedEntity = { id: string; name: string };

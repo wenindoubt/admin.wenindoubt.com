@@ -12,7 +12,7 @@ export function TierBadge({ tier }: { tier: "S" | "A" | "B" | "C" | "D" }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded border px-1.5 py-0 text-xs font-mono font-semibold",
+        "inline-flex items-center justify-center rounded border w-6 h-5 text-xs font-mono font-semibold shrink-0",
         TIER_CLASSES[tier],
       )}
     >

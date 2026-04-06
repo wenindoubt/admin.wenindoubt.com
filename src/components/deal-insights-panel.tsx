@@ -80,6 +80,9 @@ type Props = {
 
 const PAGE_SIZE = 3;
 
+// Time budget for the `after()` embedding write to complete before the retry refresh
+const AFTER_EMBEDDING_DELAY_MS = 2500;
+
 function AnalysisContent({ text }: { text: string }) {
   return <MarkdownRenderer content={text} />;
 }
@@ -499,6 +502,10 @@ export function DealInsightsPanel({
     return changes;
   }, [currentContext, latestInsight, dismissedStale]);
   const isStale = staleChanges.length > 0;
+  // Keeps streamed content visible until DB data arrives — router.refresh() after
+  // stream completion races with the after() embedding write, causing an empty flash.
+  const showStreaming =
+    isAnalyzing || (!latestInsight && streamedText.length > 0);
 
   function runAnalysis(prompt?: string) {
     if (isAnalyzing) return;
@@ -510,6 +517,7 @@ export function DealInsightsPanel({
   }
 
   const hasRunAutoAnalysis = useRef(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reconnect to in-progress or recently-completed analysis (survives navigation)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reconnect on mount or after starting new analysis
@@ -535,7 +543,7 @@ export function DealInsightsPanel({
     setStreamedText(existing.text);
     setActivePrompt(existing.prompt);
 
-    return subscribeAnalysis(dealId, (text, done, error) => {
+    const unsubscribe = subscribeAnalysis(dealId, (text, done, error) => {
       setStreamedText(text);
       if (done) {
         setIsAnalyzing(false);
@@ -544,9 +552,20 @@ export function DealInsightsPanel({
         else {
           toast.success("Analysis complete");
           router.refresh();
+          refreshTimerRef.current = setTimeout(
+            () => router.refresh(),
+            AFTER_EMBEDDING_DELAY_MS,
+          );
         }
       }
     });
+    return () => {
+      unsubscribe();
+      if (refreshTimerRef.current !== null) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
   }, [dealId, analysisKey]);
 
   // Auto-trigger analysis for new deals with no insights
@@ -680,7 +699,7 @@ export function DealInsightsPanel({
           )}
 
           {/* Streaming state */}
-          {isAnalyzing && (
+          {showStreaming && (
             <div>
               {activePrompt && <PromptBadge prompt={activePrompt} />}
               {streamedText ? (
@@ -706,7 +725,7 @@ export function DealInsightsPanel({
           )}
 
           {/* Empty state */}
-          {!isAnalyzing && insights.length === 0 && (
+          {!showStreaming && insights.length === 0 && (
             <div className="flex flex-col items-center py-8 text-center">
               <div className="flex size-12 items-center justify-center rounded-full bg-neon-400/10 mb-3">
                 <FileText className="size-5 text-neon-400/60" />

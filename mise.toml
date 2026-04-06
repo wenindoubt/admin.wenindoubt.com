@@ -65,6 +65,14 @@ run = "node_modules/.bin/tsx scripts/seed.ts"
 description = "Remove sample data"
 run = "node_modules/.bin/tsx scripts/seed.ts --clean"
 
+[tasks."seed:talent"]
+description = "Seed talent data (replaces TestTlnt E2E records)"
+run = "node_modules/.bin/tsx scripts/seed-talent.ts"
+
+[tasks."seed:talent:clean"]
+description = "Remove seeded talent"
+run = "node_modules/.bin/tsx scripts/seed-talent.ts --clean"
+
 [tasks."db:push"]
 description = "Push Drizzle schema to local DB"
 run = "npx drizzle-kit push"

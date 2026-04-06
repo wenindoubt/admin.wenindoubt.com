@@ -4,7 +4,7 @@ import { expect, test, uniqueName } from "./fixtures";
 
 // CRMHelpers is not exported from fixtures.ts; use any for helper function
 // params so the file compiles without importing internals.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: CRMHelpers not exported from fixtures
 type CRM = any;
 type TalentHandle = { id: string; firstName: string; lastName: string };
 
@@ -56,12 +56,11 @@ async function getFirstDealPath(crm: CRM): Promise<string> {
   await crm.goto("/deals");
   await crm.waitForContentLoad();
 
-  const link = crm.page
-    .locator("table tbody tr a[href^='/deals/']")
-    .first();
+  const link = crm.page.locator("table tbody tr a[href^='/deals/']").first();
 
   const href = await link.getAttribute("href");
-  if (!href) throw new Error("No seeded deal found — run `mise run seed` first");
+  if (!href)
+    throw new Error("No seeded deal found — run `mise run seed` first");
   return href;
 }
 
@@ -212,9 +211,7 @@ test.describe("Talent — Filter by Tier", () => {
 
     // DropdownMenuCheckboxItem renders as role="menuitemcheckbox"
     // Item content: <TierBadge /> + <span>Tier S</span>
-    await crm.page
-      .getByRole("menuitemcheckbox", { name: /Tier S/ })
-      .click();
+    await crm.page.getByRole("menuitemcheckbox", { name: /Tier S/ }).click();
 
     // URL should now contain tier=S
     await expect(crm.page).toHaveURL(/tier=S/);

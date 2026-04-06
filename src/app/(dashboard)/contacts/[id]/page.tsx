@@ -12,7 +12,6 @@ import { Suspense } from "react";
 import { ClickableRow } from "@/components/clickable-row";
 import { EntityNotesSection } from "@/components/entity-notes-section";
 import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
-import { SuggestedTalentPanel } from "@/components/suggested-talent-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -239,9 +238,6 @@ export default async function ContactDetailPage({ params }: Props) {
           )}
         </CardContent>
       </Card>
-      {/* Suggested Talent */}
-      <SuggestedTalentPanel entityType="contact" entityId={id} />
-
       {/* Notes */}
       <Suspense fallback={<NotesSkeleton />}>
         <EntityNotesSection

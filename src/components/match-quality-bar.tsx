@@ -1,24 +1,26 @@
 export function MatchQualityBar({ score }: { score: number }) {
   const pct = Math.round(score * 100);
-  const { fill, label } =
+  const label =
     score >= 0.75
-      ? { fill: "bg-emerald-500", label: "Strong match" }
+      ? "Strong match"
       : score >= 0.55
-        ? { fill: "bg-amber-500", label: "Good match" }
-        : { fill: "bg-orange-500", label: "Weak match" };
+        ? "Good match"
+        : "Weak match";
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1 rounded-full bg-border/30 overflow-hidden">
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-xs font-semibold tabular-nums text-neon-600">
+          {pct}%
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-border/40 overflow-hidden">
         <div
-          className={`h-1 rounded-full ${fill}`}
+          className="h-full rounded-full bg-neon-400 transition-all duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-[10px] text-muted-foreground/60 tabular-nums">
-        {pct}%
-      </span>
-      <span className="text-[10px] text-muted-foreground/50">{label}</span>
     </div>
   );
 }

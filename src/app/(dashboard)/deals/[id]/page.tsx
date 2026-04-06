@@ -308,10 +308,15 @@ export default async function DealDetailPage({ params, searchParams }: Props) {
 
       {/* Assigned Talent */}
       <Card className="border-border/50">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="neon-underline pb-1 text-base">
-            Assigned Talent
-          </CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="neon-underline pb-1 text-base">
+              Assigned Talent
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Confirmed — working on this deal
+            </p>
+          </div>
           <AssignTalentPicker
             dealId={id}
             assignedTalentIds={assignedTalent.map((t) => t.id)}
@@ -320,7 +325,7 @@ export default async function DealDetailPage({ params, searchParams }: Props) {
         <CardContent>
           {assignedTalent.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No talent assigned yet
+              No one assigned yet — use AI suggestions below or add manually
             </p>
           ) : (
             <div className="space-y-1">

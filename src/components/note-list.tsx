@@ -22,7 +22,7 @@ import { PaginationBar } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import type { NoteAttachment, NoteRow } from "@/db/schema";
 import { deleteNote, getAttachmentUrl, updateNote } from "@/lib/actions/notes";
-import { formatDateTime, formatFileSize } from "@/lib/utils";
+import { formatDateTime, formatFileSize, toggleSetItem } from "@/lib/utils";
 
 type Props = {
   notes: NoteRow[];
@@ -87,12 +87,7 @@ export function NoteList({
   }
 
   const toggleExpanded = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpandedIds((prev) => toggleSetItem(prev, id));
   }, []);
 
   const totalPages = Math.ceil(total / pageSize);
