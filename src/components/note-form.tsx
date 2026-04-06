@@ -183,6 +183,7 @@ export function NoteForm({
             : alsoLinkCompany && linkedCompany
               ? linkedCompany.id
               : null,
+        talentId: entityType === "talent" ? entityId : null,
         attachments: attachments.length > 0 ? attachments : undefined,
       });
       toast.success("Note added");

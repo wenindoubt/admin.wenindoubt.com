@@ -54,6 +54,13 @@ export const dealSourceEnum = pgEnum("deal_source", [
   "other",
 ]);
 
+export const talentTierEnum = pgEnum("talent_tier", ["S", "A", "B", "C", "D"]);
+export const talentStatusEnum = pgEnum("talent_status", [
+  "active",
+  "inactive",
+  "archived",
+]);
+
 // Companies (accounts/organizations)
 export const companies = pgTable(
   "companies",
@@ -220,6 +227,7 @@ export const tags = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull().unique(),
     color: text(),
+    scope: text().notNull().default("general"),
   },
   () => [authReadPolicy()],
 ).enableRLS();
@@ -275,7 +283,77 @@ export const companyTags = pgTable(
   ],
 ).enableRLS();
 
-// Notes (multi-entity: deal, contact, company)
+// Talent (engineers/freelancers to assign to deals)
+export const talent = pgTable(
+  "talent",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text(),
+    phone: text(),
+    linkedinUrl: text("linkedin_url"),
+    tier: talentTierEnum().notNull(),
+    status: talentStatusEnum().notNull().default("active"),
+    bio: text(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    searchVector: tsvector("search_vector"),
+  },
+  (table) => [
+    index("idx_talent_tier").on(table.tier),
+    index("idx_talent_status").on(table.status),
+    index("idx_talent_tier_status")
+      .on(table.tier, table.status)
+      .where(sql`status != 'archived'`),
+    index("idx_talent_search_vector").using("gin", table.searchVector),
+    authReadPolicy(),
+  ],
+).enableRLS();
+
+export const talentTags = pgTable(
+  "talent_tags",
+  {
+    talentId: uuid("talent_id")
+      .notNull()
+      .references(() => talent.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.talentId, table.tagId] }),
+    index("idx_talent_tags_tag_id").on(table.tagId),
+    authReadPolicy(),
+  ],
+).enableRLS();
+
+export const talentDeals = pgTable(
+  "talent_deals",
+  {
+    talentId: uuid("talent_id")
+      .notNull()
+      .references(() => talent.id, { onDelete: "cascade" }),
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    assignedAt: timestamp("assigned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.talentId, table.dealId] }),
+    index("idx_talent_deals_deal_id").on(table.dealId),
+    index("idx_talent_deals_talent_id").on(table.talentId),
+    authReadPolicy(),
+  ],
+).enableRLS();
+
+// Notes (multi-entity: deal, contact, company, talent)
 export const notes = pgTable(
   "notes",
   {
@@ -288,6 +366,9 @@ export const notes = pgTable(
       onDelete: "cascade",
     }),
     companyId: uuid("company_id").references(() => companies.id, {
+      onDelete: "cascade",
+    }),
+    talentId: uuid("talent_id").references(() => talent.id, {
       onDelete: "cascade",
     }),
     externalId: text("external_id"),
@@ -306,6 +387,7 @@ export const notes = pgTable(
     index("idx_notes_deal_id").on(table.dealId),
     index("idx_notes_contact_id").on(table.contactId),
     index("idx_notes_company_id").on(table.companyId),
+    index("idx_notes_talent_id").on(table.talentId),
     index("idx_notes_created_at").on(table.createdAt),
     index("idx_notes_embedding").using(
       "hnsw",
@@ -317,7 +399,7 @@ export const notes = pgTable(
       .where(sql`external_id IS NOT NULL`),
     check(
       "notes_at_least_one_entity",
-      sql`COALESCE(deal_id, contact_id, company_id) IS NOT NULL`,
+      sql`COALESCE(deal_id, contact_id, company_id, talent_id) IS NOT NULL`,
     ),
     authReadPolicy(),
   ],
@@ -397,3 +479,6 @@ export type CompanyRow = Omit<Company, "searchVector">;
 export type ContactRow = Omit<Contact, "searchVector">;
 export type DealRow = Omit<Deal, "searchVector">;
 export type NoteRow = Omit<Note, "embedding" | "searchVector">;
+export type Talent = typeof talent.$inferSelect;
+export type TalentRow = Omit<Talent, "searchVector">;
+export type TalentDeal = typeof talentDeals.$inferSelect;

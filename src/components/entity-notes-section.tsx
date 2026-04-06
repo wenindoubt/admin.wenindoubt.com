@@ -30,7 +30,13 @@ type CompanyProps = {
   linkedCompany: LinkedEntity;
 };
 
-type Props = DealProps | ContactProps | CompanyProps;
+type TalentProps = {
+  entityType: "talent";
+  entityId: string;
+  linkedTalent: LinkedEntity;
+};
+
+type Props = DealProps | ContactProps | CompanyProps | TalentProps;
 
 async function fetchNotes(props: Props) {
   if (props.entityType === "deal") {
@@ -46,7 +52,9 @@ async function fetchNotes(props: Props) {
   const filter =
     props.entityType === "contact"
       ? { contactId: props.entityId }
-      : { companyId: props.entityId };
+      : props.entityType === "talent"
+        ? { talentId: props.entityId }
+        : { companyId: props.entityId };
   return Promise.all([
     getNotes({ ...filter, limit: 10, offset: 0 }),
     getNoteTokenStats(props.entityType, props.entityId),

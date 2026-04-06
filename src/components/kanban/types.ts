@@ -1,8 +1,9 @@
-import type { DealRow } from "@/db/schema";
+import type { DealRow, TalentRow } from "@/db/schema";
 
 export type DealWithRelations = DealRow & {
   company: { name: string };
   contact: { name: string } | null;
+  assignedTalent?: Pick<TalentRow, "id" | "firstName" | "lastName" | "tier">[];
 };
 
 export type KanbanColumn = {

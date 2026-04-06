@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { clerk, clerkSetup } from "@clerk/testing/playwright";
 import { test as setup } from "@playwright/test";
@@ -16,6 +17,9 @@ setup("clerk setup", async () => {
 });
 
 setup("authenticate", async ({ page }) => {
+  // Reuse existing session if available (avoids Clerk re-auth in local dev)
+  if (existsSync(authFile)) return;
+
   await page.goto("/sign-in");
   await clerk.signIn({
     page,

@@ -39,6 +39,7 @@ type NoteFilters = {
   dealId?: string;
   contactId?: string;
   companyId?: string;
+  talentId?: string;
   limit?: number;
   offset?: number;
 };
@@ -53,6 +54,7 @@ export async function getNotes(filters?: NoteFilters) {
     conditions.push(eq(notes.contactId, filters.contactId));
   if (filters?.companyId)
     conditions.push(eq(notes.companyId, filters.companyId));
+  if (filters?.talentId) conditions.push(eq(notes.talentId, filters.talentId));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -130,6 +132,7 @@ export async function createNote(data: CreateNoteInput) {
       dealId: noteData.dealId ?? null,
       contactId: noteData.contactId ?? null,
       companyId: noteData.companyId ?? null,
+      talentId: noteData.talentId ?? null,
       createdBy: userId,
     })
     .returning();
@@ -257,6 +260,7 @@ export async function searchNotes(query: string, filters?: NoteFilters) {
     conditions.push(eq(notes.contactId, filters.contactId));
   if (filters?.companyId)
     conditions.push(eq(notes.companyId, filters.companyId));
+  if (filters?.talentId) conditions.push(eq(notes.talentId, filters.talentId));
 
   const where = and(...conditions);
 
@@ -298,6 +302,8 @@ export async function getNoteTokenStats(
     if (!deal) return { noteCount: 0, totalTokens: 0 };
 
     where = buildDealNoteConditions(entityId, deal.contactIds, deal.companyId);
+  } else if (entityType === "talent") {
+    where = eq(notes.talentId, entityId);
   } else {
     where = eq(
       entityType === "contact" ? notes.contactId : notes.companyId,
@@ -356,8 +362,10 @@ function revalidateNotePaths(note: {
   dealId?: string | null;
   contactId?: string | null;
   companyId?: string | null;
+  talentId?: string | null;
 }) {
   if (note.dealId) revalidatePath(`/deals/${note.dealId}`);
   if (note.contactId) revalidatePath(`/contacts/${note.contactId}`);
   if (note.companyId) revalidatePath(`/companies/${note.companyId}`);
+  if (note.talentId) revalidatePath(`/talent/${note.talentId}`);
 }

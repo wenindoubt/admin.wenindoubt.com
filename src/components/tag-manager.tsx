@@ -20,16 +20,36 @@ const TAG_COLORS = [
   "#6b7280",
 ];
 
-export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
-  const [tags, setTags] = useState(initialTags);
+export function TagManager({
+  generalTags,
+  talentTags,
+}: {
+  generalTags: Tag[];
+  talentTags: Tag[];
+}) {
+  const [activeScope, setActiveScope] = useState<"general" | "talent">(
+    "general",
+  );
+  const [generalList, setGeneralList] = useState(generalTags);
+  const [talentList, setTalentList] = useState(talentTags);
   const [name, setName] = useState("");
   const [color, setColor] = useState(TAG_COLORS[0]);
+
+  const activeTags = activeScope === "general" ? generalList : talentList;
 
   async function handleCreate() {
     if (!name.trim()) return;
     try {
-      const tag = await createTag(name.trim(), color);
-      setTags((prev) => [...prev, tag]);
+      const tag = await createTag(
+        name.trim(),
+        color,
+        activeScope === "talent" ? "talent" : "general",
+      );
+      if (activeScope === "general") {
+        setGeneralList((prev) => [...prev, tag]);
+      } else {
+        setTalentList((prev) => [...prev, tag]);
+      }
       setName("");
       toast.success("Tag created");
     } catch {
@@ -39,6 +59,29 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Scope tabs */}
+      <div className="flex gap-1 border-b border-border/50">
+        {(
+          [
+            { scope: "general", label: "Deals & Companies" },
+            { scope: "talent", label: "Talent" },
+          ] as const
+        ).map(({ scope, label }) => (
+          <button
+            key={scope}
+            type="button"
+            onClick={() => setActiveScope(scope)}
+            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeScope === scope
+                ? "border-neon-400 text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-3">
         <Input
           placeholder="Tag name"
@@ -72,7 +115,7 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {tags.map((tag) => (
+        {activeTags.map((tag) => (
           <Badge
             key={tag.id}
             className="border-0 px-3 py-1 text-sm"
@@ -85,7 +128,7 @@ export function TagManager({ tags: initialTags }: { tags: Tag[] }) {
             {tag.name}
           </Badge>
         ))}
-        {tags.length === 0 && (
+        {activeTags.length === 0 && (
           <p className="text-sm text-muted-foreground">No tags yet</p>
         )}
       </div>

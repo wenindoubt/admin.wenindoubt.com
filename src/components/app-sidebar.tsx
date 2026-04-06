@@ -7,6 +7,7 @@ import {
   Kanban,
   LayoutDashboard,
   Tags,
+  UserCheck2,
   Users,
 } from "lucide-react";
 import Image from "next/image";
@@ -26,6 +27,7 @@ const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Companies", href: "/companies", icon: Building2 },
   { label: "Contacts", href: "/contacts", icon: Users },
+  { label: "Talent", href: "/talent", icon: UserCheck2 },
   { label: "Deals", href: "/deals", icon: Handshake },
   { label: "Board", href: "/deals/board", icon: Kanban },
   { label: "Tags", href: "/tags", icon: Tags },

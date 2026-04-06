@@ -11,15 +11,20 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ActivityForm } from "@/components/activity-form";
 import { ActivityTimeline } from "@/components/activity-timeline";
+import { AssignTalentPicker } from "@/components/assign-talent-picker";
 import { EntityNotesSection } from "@/components/entity-notes-section";
 import { LazyDealInsightsPanel as DealInsightsPanel } from "@/components/lazy";
 import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
+import { SuggestedTalentPanel } from "@/components/suggested-talent-panel";
 import { TagPicker } from "@/components/tag-picker";
+import { TierBadge } from "@/components/talent-tier-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { UnassignTalentButton } from "@/components/unassign-talent-button";
 import { getDeal, getTags } from "@/lib/actions/deals";
+import { getTalentForDeal } from "@/lib/actions/talent";
 import { DEAL_SOURCES, DEAL_STAGES } from "@/lib/constants";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -32,7 +37,11 @@ type Props = {
 export default async function DealDetailPage({ params, searchParams }: Props) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const suppressAutoAnalyze = sp.analyze === "false";
-  const [deal, allTags] = await Promise.all([getDeal(id), getTags()]);
+  const [deal, allTags, assignedTalent] = await Promise.all([
+    getDeal(id),
+    getTags(),
+    getTalentForDeal(id),
+  ]);
   if (!deal) notFound();
 
   const resolvedDeal = {
@@ -296,6 +305,51 @@ export default async function DealDetailPage({ params, searchParams }: Props) {
         insightsTotal={deal.insightsTotal}
         suppressAutoAnalyze={suppressAutoAnalyze}
       />
+
+      {/* Assigned Talent */}
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="neon-underline pb-1 text-base">
+            Assigned Talent
+          </CardTitle>
+          <AssignTalentPicker
+            dealId={id}
+            assignedTalentIds={assignedTalent.map((t) => t.id)}
+          />
+        </CardHeader>
+        <CardContent>
+          {assignedTalent.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No talent assigned yet
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {assignedTalent.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 bg-card/60"
+                >
+                  <TierBadge tier={t.tier} />
+                  <Link
+                    href={`/talent/${t.id}`}
+                    className="text-sm font-medium hover:text-neon-400 transition-colors"
+                  >
+                    {t.firstName} {t.lastName}
+                  </Link>
+                  <UnassignTalentButton
+                    talentId={t.id}
+                    dealId={id}
+                    className="ml-auto"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Suggested Talent */}
+      <SuggestedTalentPanel dealId={id} />
 
       {/* Notes */}
       <Suspense fallback={<NotesSkeleton />}>

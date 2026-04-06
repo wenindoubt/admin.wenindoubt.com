@@ -527,18 +527,27 @@ export async function getRecentActivities(filters?: {
 }
 
 // Tags
-export async function getTags() {
+export async function getTags(scope?: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  return db.select().from(tags).orderBy(tags.name);
+  const where = scope ? eq(tags.scope, scope) : eq(tags.scope, "general");
+
+  return db.select().from(tags).where(where).orderBy(tags.name);
 }
 
-export async function createTag(name: string, color?: string) {
+export async function createTag(
+  name: string,
+  color?: string,
+  scope = "general",
+) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const [tag] = await db.insert(tags).values({ name, color }).returning();
+  const [tag] = await db
+    .insert(tags)
+    .values({ name, color, scope })
+    .returning();
   return tag;
 }
 

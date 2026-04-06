@@ -7,6 +7,7 @@ import { ClickableRow } from "@/components/clickable-row";
 import { ContactList } from "@/components/contact-list";
 import { EntityNotesSection } from "@/components/entity-notes-section";
 import { NotesSkeleton } from "@/components/skeletons/notes-skeleton";
+import { SuggestedTalentPanel } from "@/components/suggested-talent-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -244,6 +245,9 @@ export default async function CompanyDetailPage({ params }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Suggested Talent */}
+      <SuggestedTalentPanel entityType="company" entityId={id} />
 
       {/* Notes */}
       <Suspense fallback={<NotesSkeleton />}>

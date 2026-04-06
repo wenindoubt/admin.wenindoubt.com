@@ -169,11 +169,12 @@ export const createNoteSchema = z
     dealId: z.uuid().nullable().optional(),
     contactId: z.uuid().nullable().optional(),
     companyId: z.uuid().nullable().optional(),
+    talentId: z.uuid().nullable().optional(),
     attachments: z.array(attachmentMetaSchema).optional(),
   })
   .refine(
-    (d) => d.dealId || d.contactId || d.companyId,
-    "At least one entity (deal, contact, or company) is required",
+    (d) => d.dealId || d.contactId || d.companyId || d.talentId,
+    "At least one entity (deal, contact, company, or talent) is required",
   )
   .refine(
     (d) =>
@@ -252,3 +253,53 @@ export const ingestRequestSchema = z
   );
 
 export type IngestRequest = z.infer<typeof ingestRequestSchema>;
+
+// ── Talent ──
+
+const talentTiers = ["S", "A", "B", "C", "D"] as const;
+const talentStatuses = ["active", "inactive", "archived"] as const;
+
+const talentFields = {
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  email: z.email(),
+  phone: z
+    .string()
+    .max(50)
+    .refine((v) => !v || isValidPhone(v), "Invalid phone number"),
+  linkedinUrl: z.url("Invalid URL"),
+  tier: z.enum(talentTiers),
+  status: z.enum(talentStatuses),
+  bio: z.string().max(5000),
+};
+
+export const talentFormSchema = z.object({
+  firstName: talentFields.firstName,
+  lastName: talentFields.lastName,
+  email: talentFields.email.or(z.literal("")).optional(),
+  phone: talentFields.phone.optional(),
+  linkedinUrl: talentFields.linkedinUrl.or(z.literal("")).optional(),
+  tier: talentFields.tier,
+  status: talentFields.status,
+  bio: talentFields.bio.optional(),
+  tagIds: z.array(z.uuid()).optional(),
+});
+export type TalentFormValues = z.infer<typeof talentFormSchema>;
+
+export const createTalentSchema = z.object({
+  firstName: talentFields.firstName,
+  lastName: talentFields.lastName,
+  email: talentFields.email.nullable().optional(),
+  phone: talentFields.phone.nullable().optional(),
+  linkedinUrl: talentFields.linkedinUrl.nullable().optional(),
+  tier: talentFields.tier,
+  status: talentFields.status.default("active"),
+  bio: talentFields.bio.nullable().optional(),
+  tagIds: z.array(z.uuid()).optional().default([]),
+});
+export type CreateTalentInput = z.infer<typeof createTalentSchema>;
+export const updateTalentSchema = createTalentSchema
+  .omit({ tagIds: true })
+  .partial()
+  .extend({ tagIds: z.array(z.uuid()).optional() });
+export type UpdateTalentInput = z.infer<typeof updateTalentSchema>;

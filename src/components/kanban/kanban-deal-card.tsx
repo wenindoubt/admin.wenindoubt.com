@@ -4,6 +4,7 @@ import type { DraggableProvided } from "@hello-pangea/dnd";
 import { Clock } from "lucide-react";
 import Link from "next/link";
 import type { RefObject } from "react";
+import { TierBadge } from "@/components/talent-tier-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { DealWithRelations } from "./types";
@@ -57,6 +58,13 @@ export function KanbanDealCard({
               <Clock className="size-3" />
               Follow up {formatDate(deal.followUpAt)}
             </p>
+          )}
+          {deal.assignedTalent && deal.assignedTalent.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {deal.assignedTalent.map((t) => (
+                <TierBadge key={t.id} tier={t.tier} />
+              ))}
+            </div>
           )}
         </CardContent>
       </Link>
