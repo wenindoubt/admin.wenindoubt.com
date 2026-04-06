@@ -21,7 +21,7 @@
     "@google/genai": "^1.48.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.2.2",
-    "@supabase/supabase-js": "^2.99.3",
+    "@supabase/supabase-js": "^2.101.1",
     "@tiptap/extension-placeholder": "^3.22.2",
     "@tiptap/react": "^3.21.0",
     "@tiptap/starter-kit": "^3.22.2",
