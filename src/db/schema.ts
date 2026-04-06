@@ -445,7 +445,15 @@ export const gmailTokens = pgTable(
       .notNull()
       .defaultNow(),
   },
-  () => [authReadPolicy()],
+  (table) => [
+    // Owner-only: each user can only read their own Gmail tokens
+    pgPolicy("Owner read access", {
+      as: "permissive",
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.clerkUserId} = (select auth.jwt() ->> 'sub')`,
+    }),
+  ],
 ).enableRLS();
 
 // API keys (external service auth — server-only, no RLS read policy)
